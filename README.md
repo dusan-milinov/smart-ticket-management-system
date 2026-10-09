@@ -1,0 +1,274 @@
+# Ticket Management Portal
+
+> Initial scope, functional requirements, and role-based workflows. This document is a baseline draft; unresolved decisions are listed at the end.
+
+## 1. Overview
+
+The Ticket Management Portal allows users to submit and track IT tickets, communicate with support agents, and view ticket history. The system automatically assigns new tickets to support agents based on workload. Administrators oversee tickets, manage accounts, and reassign tickets when necessary.
+
+The system has three roles:
+
+- **User** — submits and tracks their own tickets.
+- **Support Agent** — handles assigned tickets.
+- **Administrator** — manages users, agents, and all tickets.
+
+## 2. System Scope
+
+The initial system will support:
+
+- User registration, email validation, authentication, and authorization.
+- Login, logout, and password reset through email verification.
+- Profile management.
+- Ticket submission and automatic ticket-number generation.
+- Automatic ticket assignment based on agent workload.
+- Ticket tracking, searching, and filtering.
+- Comments on tickets.
+- Ticket status management and resolution.
+- Ticket reassignment.
+- Immutable ticket event history.
+- User and support-agent administration.
+
+The system will enforce **role-based authorization and method-level authorization**, including ownership and assignment checks.
+
+### 2.1 Ticket Classification
+
+| Category | Subcategories |
+| --- | --- |
+| IT | Incident, Software Request |
+
+### 2.2 Deferred Scope
+
+- An optional HR category and its subcategories.
+- A second version of automatic assignment that also considers the agent's sector.
+
+These extensions are outside the initial implementation.
+
+## 3. Role-Based Features
+
+### 3.1 User
+
+- Register an account.
+- Log in and log out.
+- Manage their own profile, subject to the profile rules still to be defined.
+- Submit tickets.
+- View their own tickets.
+- Search and filter their own tickets.
+- Comment on their own tickets.
+- View the history of their own tickets.
+
+### 3.2 Support Agent
+
+- View assigned tickets.
+- Comment on assigned tickets.
+- Resolve assigned tickets by changing their status to `RESOLVED`.
+
+Permission to perform other status transitions remains to be confirmed.
+
+### 3.3 Administrator
+
+- View and manage users.
+- View and manage support agents.
+- View all tickets.
+- Reassign tickets.
+- Change ticket statuses.
+- Comment on any ticket, including when the assigned agent is unavailable.
+
+### 3.4 Access Boundaries
+
+| Role | Ticket access | Administrative access |
+| --- | --- | --- |
+| User | Own tickets only | No access to all-user lists or account administration |
+| Support Agent | Assigned tickets only | No administrative access defined in this baseline |
+| Administrator | All tickets | User and support-agent management |
+
+Authorization must protect backend operations as well as access to frontend pages. Role checks must be combined with ticket ownership or assignment checks where applicable.
+
+## 4. Functional Requirements
+
+### FR-01 — Registration
+
+The system shall allow users to create an account using:
+
+- First name.
+- Last name.
+- Email address.
+- Password.
+
+The system shall support email validation. The verification flow and its effect on account access remain to be defined.
+
+### FR-02 — Authentication and Logout
+
+The system shall authenticate users using email and password.
+
+The system shall support:
+
+- Login using JWT-based authentication to secure API access.
+- Logout by clearing authentication credentials from the client.
+- Password reset through email verification.
+
+**JWT clarification:** Removing a token from the client ends that client's local authenticated state. It does not invalidate an already-issued JWT on the server. Token lifetime and any server-side revocation or refresh-token behavior remain to be defined.
+
+### FR-03 — Profile Management
+
+The system shall support profile management operations, originally described as CRUD: create, read, update, and delete.
+
+Account creation is covered by FR-01. Editable profile fields, deletion/deactivation behavior, and permissions for each operation remain to be defined.
+
+### FR-04 — Ticket Creation
+
+The system shall allow an authenticated user to submit a ticket under the IT category using one of these subcategories:
+
+- Incident.
+- Software Request.
+
+The system shall automatically generate a unique ticket number and initiate automatic assignment after submission.
+
+Required form fields and validation rules for each subcategory remain to be defined.
+
+### FR-05 — Automatic Ticket Assignment
+
+The first version shall automatically assign a new ticket to an active support agent with the smallest workload.
+
+Whenever a ticket is created, the system shall:
+
+1. Retrieve active support agents.
+2. Count the active tickets assigned to each agent.
+3. Sort agents by their active-ticket count.
+4. Select an agent with the lowest count.
+5. Assign the ticket to that agent.
+6. Save a ticket-assignment event.
+
+The definition of an active ticket, availability rules, tie-breaking, behavior when no agent is eligible, and concurrent assignment handling remain to be defined.
+
+A later version may additionally consider the agent's sector.
+
+### FR-06 — Ticket Search and Filtering
+
+The system shall allow users to search and filter their own tickets.
+
+Supported filter criteria shall include:
+
+- Status.
+- Ticket subcategory/type, when the filter is implemented.
+- Priority.
+- Creation date.
+
+Regular users shall not be able to retrieve other users' tickets through search or filtering. Searchable text fields remain to be defined.
+
+### FR-07 — Comments
+
+The system shall allow:
+
+- Users to comment on their own tickets.
+- Support agents to comment on assigned tickets.
+- Administrators to comment on any ticket.
+
+Adding a comment shall create a `COMMENT_ADDED` event in the ticket history.
+
+### FR-08 — Ticket Status Management
+
+The system shall track each ticket's current status.
+
+The working status names include:
+
+- `IN_QUEUE`
+- `FULFILLMENT`
+- `RESOLVED`
+
+The workflow also includes closure. The final status list, including whether closure uses `CLOSED`, and the allowed transitions remain to be confirmed.
+
+Support agents shall be able to resolve assigned tickets. Administrators shall be able to change ticket statuses. State changes shall be recorded in the ticket history.
+
+### FR-09 — Ticket Reassignment
+
+The system shall allow administrators to reassign tickets when necessary, such as when an agent is unavailable or a ticket requires escalation.
+
+The system shall record reassignment in the ticket history.
+
+Whether the administrator selects the replacement agent or triggers automatic selection remains to be defined. Support-level eligibility is not yet specified.
+
+### FR-10 — Ticket Event Tracking
+
+The system shall maintain immutable ticket history through ticket events.
+
+The history shall make it possible to determine:
+
+- Who created the ticket.
+- When the ticket was assigned.
+- Whether it was reassigned.
+- Which statuses it passed through.
+- Who resolved it.
+- When it was resolved.
+
+Recorded events shall not be editable. See Section 6 for the event types.
+
+### FR-11 — User and Support-Agent Management
+
+The system shall allow administrators to view and manage users and support agents.
+
+The exact management operations and their effects on existing tickets remain to be defined.
+
+## 5. Workflows
+
+### 5.1 General Ticket Workflow
+
+1. A user registers an account and logs in.
+2. The user submits an Incident or Software Request ticket.
+3. The system generates a ticket number and automatically assigns the ticket based on agent workload.
+4. The assigned support agent works on the ticket.
+5. The user and assigned agent communicate through comments.
+6. An administrator may comment, change status, or reassign the ticket when necessary.
+7. The agent resolves the ticket.
+8. The ticket reaches closure according to rules still to be defined.
+9. Ticket events preserve the history throughout the workflow.
+
+### 5.2 User Workflow
+
+Login → Create ticket → Automatic assignment → Track status and add comments → Resolution → Closure.
+
+Automatic assignment and resolution are system/agent actions visible to the user. The actor responsible for closure remains to be confirmed.
+
+### 5.3 Support-Agent Workflow
+
+View assigned tickets → Fulfill the request or investigate the incident → Comment as needed → Resolve the ticket.
+
+The actor responsible for moving a ticket into `FULFILLMENT` remains to be confirmed.
+
+### 5.4 Administrator Workflow
+
+Monitor tickets → Review the need for intervention → Reassign, comment, or change status as needed.
+
+Administrators also manage user and support-agent accounts independently of the ticket lifecycle.
+
+## 6. Ticket Events and History
+
+**Ticket events collectively form the ticket history.**
+
+The proposed `eventType` field is a string with the following values:
+
+| Event type | Meaning |
+| --- | --- |
+| `TICKET_CREATED` | A ticket was submitted. |
+| `TICKET_ASSIGNED` | A ticket received its initial support-agent assignment. |
+| `STATUS_CHANGED` | A ticket's status changed. |
+| `COMMENT_ADDED` | A comment was added. |
+| `TICKET_REASSIGNED` | A ticket was reassigned to another support agent. |
+| `TICKET_RESOLVED` | A ticket was resolved. |
+| `TICKET_CLOSED` | A ticket was closed. |
+
+Events need enough information to identify the ticket, when the event occurred, who or what performed it, and the relevant change. System-generated actions must be distinguishable from user actions.
+
+It must be decided whether resolution and closure produce both a `STATUS_CHANGED` event and a specialized event, or only the specialized event.
+
+## 7. Decisions to Confirm
+
+These items clarify incomplete requirements; they do not introduce additional committed functionality.
+
+1. **Status lifecycle:** Final statuses, allowed transitions, who starts fulfillment, and who closes tickets.
+2. **Automatic assignment:** Active-ticket definition, availability criteria, tie-breaking, no-agent handling, and concurrency behavior.
+3. **Reassignment:** Manual replacement selection versus automatic selection, and whether support levels exist in the baseline.
+4. **Ticket forms:** Required fields and validation for Incident and Software Request.
+5. **Profiles and administration:** Editable fields, permitted management operations, and deletion/deactivation behavior.
+6. **Authentication:** Email verification behavior, password-reset flow, JWT expiry, and logout/revocation semantics.
+7. **Role capabilities:** Whether agents and administrators may also submit personal tickets; any additional agent status permissions.
+8. **History:** How specialized status events relate to `STATUS_CHANGED`.
