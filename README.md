@@ -83,7 +83,16 @@ Permission to perform other status transitions remains to be confirmed.
 
 Authorization must protect backend operations as well as access to frontend pages. Role checks must be combined with ticket ownership or assignment checks where applicable.
 
-## 4. Functional Requirements
+
+## 4. Entity Relationsip Diagram
+The initial ERD: 
+
+![Smart Ticket Management Platform initial ERD](docs/img/initial_erd.png)
+
+Optional entities/fields to add:
+- **tickets.version**: for detecting conflicting updates by support agent and admin.
+
+## 5. Functional Requirements
 
 ### FR-01 — Registration
 
@@ -208,9 +217,9 @@ The system shall allow administrators to view and manage users and support agent
 
 The exact management operations and their effects on existing tickets remain to be defined.
 
-## 5. Workflows
+## 6. Workflows
 
-### 5.1 General Ticket Workflow
+### 6.1 General Ticket Workflow
 
 1. A user registers an account and logs in.
 2. The user submits an Incident or Software Request ticket.
@@ -222,25 +231,25 @@ The exact management operations and their effects on existing tickets remain to 
 8. The ticket reaches closure according to rules still to be defined.
 9. Ticket events preserve the history throughout the workflow.
 
-### 5.2 User Workflow
+### 6.2 User Workflow
 
 Login → Create ticket → Automatic assignment → Track status and add comments → Resolution → Closure.
 
 Automatic assignment and resolution are system/agent actions visible to the user. The actor responsible for closure remains to be confirmed.
 
-### 5.3 Support-Agent Workflow
+### 6.3 Support-Agent Workflow
 
 View assigned tickets → Fulfill the request or investigate the incident → Comment as needed → Resolve the ticket.
 
 The actor responsible for moving a ticket into `FULFILLMENT` remains to be confirmed.
 
-### 5.4 Administrator Workflow
+### 6.4 Administrator Workflow
 
 Monitor tickets → Review the need for intervention → Reassign, comment, or change status as needed.
 
 Administrators also manage user and support-agent accounts independently of the ticket lifecycle.
 
-## 6. Ticket Events and History
+## 7. Ticket Events and History
 
 **Ticket events collectively form the ticket history.**
 
@@ -260,7 +269,7 @@ Events need enough information to identify the ticket, when the event occurred, 
 
 It must be decided whether resolution and closure produce both a `STATUS_CHANGED` event and a specialized event, or only the specialized event.
 
-## 7. Decisions to Confirm
+## 8. Decisions to Confirm
 
 These items clarify incomplete requirements; they do not introduce additional committed functionality.
 
