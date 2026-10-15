@@ -1,0 +1,67 @@
+package io.github.dusan_milinov.backend.model;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import io.github.dusan_milinov.backend.enums.TicketPriority;
+import io.github.dusan_milinov.backend.enums.TicketStatus;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "tickets")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Ticket {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ticket_id")
+    private Long ticketId;
+
+    @Column(name = "ticket_number", nullable = false, unique = true)
+    private String ticketNumber;
+
+    @NotBlank(message = "Ticket title is required")
+    @Column(nullable = false)
+    private String title;
+
+    @NotBlank(message = "Ticket description is required")
+    @Column(nullable = false)
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ticket_status", nullable = false)
+    private TicketStatus ticketStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ticket_priority", nullable = false)
+    private TicketPriority ticketPriority;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt = LocalDateTime.now();
+
+    /*
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_id", nullable = false)
+    private User creator;
+    */
+
+    /*
+    @ManyToOne
+    @JoinColumn(name = "assignee_id")
+    private User assignee;
+    */
+
+    @ManyToOne
+    @JoinColumn(name = "ticket_type", nullable = false)
+    private TicketType ticketType;
+
+}
