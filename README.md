@@ -84,13 +84,33 @@ Permission to perform other status transitions remains to be confirmed.
 Authorization must protect backend operations as well as access to frontend pages. Role checks must be combined with ticket ownership or assignment checks where applicable.
 
 
-## 4. Entity Relationsip Diagram
+## 4. Diagrams
+### 4.1 Entity-Relationship Diagram
 The initial ERD: 
 
 ![Smart Ticket Management Platform initial ERD](docs/img/initial_erd.png)
 
 Optional entities/fields to add:
 - **tickets.version**: for detecting conflicting updates by support agent and admin.
+
+## 4.2 Sequence Diagram
+The initial sequence diagram for ticket submission and automatic assignment:
+
+![Initial ticket submission and automatic assignment sequence diagram](docs/img/ticket_submission_and_assignment_sequence.png)
+
+Backend ticket creation, assignment, and event saving are executed in a single transaction.
+
+## 4.3 Class Diagram
+The initial class diagram:
+
+**Domain classes:**
+
+![Initial class diagram - domain classes](docs/img/class_diagram_domain_classes.png)
+
+**Application services:**
+
+![Initial class diagram - domain classes](docs/img/class_diagram_domain_classes.png)
+
 
 ## 5. Functional Requirements
 
