@@ -1,8 +1,7 @@
-package io.github.dusan_milinov.backend.model;
+package com.ticketmanagement.backend.model;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import io.github.dusan_milinov.backend.enums.TicketPriority;
-import io.github.dusan_milinov.backend.enums.TicketStatus;
+import com.ticketmanagement.backend.enums.TicketPriority;
+import com.ticketmanagement.backend.enums.TicketStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;

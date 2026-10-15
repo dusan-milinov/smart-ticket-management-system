@@ -1,4 +1,4 @@
-package io.github.dusan_milinov.backend.model;
+package com.ticketmanagement.backend.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;

@@ -1,4 +1,4 @@
-package io.github.dusan_milinov.backend.enums;
+package com.ticketmanagement.backend.enums;
 
 public enum TicketStatus {
     IN_QUEUE,

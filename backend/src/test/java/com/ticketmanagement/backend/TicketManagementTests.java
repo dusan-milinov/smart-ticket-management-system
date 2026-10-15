@@ -1,10 +1,10 @@
-package io.github.dusan_milinov.backend;
+package com.ticketmanagement.backend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class BackendApplicationTests {
+class TicketManagementTests {
 
     @Test
     void contextLoads() {
