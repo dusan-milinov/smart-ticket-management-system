@@ -1,4 +1,4 @@
-package com.ticketmanagement.backend;
+package com.ticketmanagement.backend.controller;
 
 import com.ticketmanagement.backend.dto.auth.LoginRequest;
 import com.ticketmanagement.backend.dto.auth.RegisterRequest;
