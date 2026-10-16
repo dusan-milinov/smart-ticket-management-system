@@ -109,7 +109,7 @@ The initial class diagram:
 
 **Application services:**
 
-![Initial class diagram - domain classes](docs/img/class_diagram_domain_classes.png)
+![Initial class diagram - domain classes](docs/img/class_diagram_services.png)
 
 
 ## 5. Functional Requirements
