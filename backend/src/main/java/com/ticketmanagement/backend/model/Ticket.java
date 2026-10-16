@@ -1,11 +1,13 @@
 package com.ticketmanagement.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.ticketmanagement.backend.enums.TicketPriority;
 import com.ticketmanagement.backend.enums.TicketStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
@@ -18,6 +20,7 @@ import java.time.LocalDateTime;
 public class Ticket {
 
     @Id
+    @Getter
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ticket_id")
     private Long ticketId;
@@ -47,17 +50,13 @@ public class Ticket {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    /*
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id", nullable = false)
-    private User creator;
-    */
+    private AppUser creator;
 
-    /*
     @ManyToOne
     @JoinColumn(name = "assignee_id")
-    private User assignee;
-    */
+    private AppUser assignee;
 
     @ManyToOne
     @JoinColumn(name = "ticket_type", nullable = false)
