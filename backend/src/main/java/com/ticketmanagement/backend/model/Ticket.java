@@ -8,7 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "tickets")
@@ -30,7 +30,7 @@ public class Ticket {
     private String title;
 
     @NotBlank(message = "Ticket description is required")
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
@@ -42,22 +42,20 @@ public class Ticket {
     private TicketPriority ticketPriority;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private Instant updatedAt = Instant.now();
 
-    /*
+    // TODO: add 'version' field for resolving conflicting updates by support agent and admin?
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id", nullable = false)
-    private User creator;
-    */
+    private AppUser creator;
 
-    /*
     @ManyToOne
     @JoinColumn(name = "assignee_id")
-    private User assignee;
-    */
+    private AppUser assignee;
 
     @ManyToOne
     @JoinColumn(name = "ticket_type", nullable = false)
