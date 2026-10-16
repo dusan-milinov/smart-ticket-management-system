@@ -49,6 +49,9 @@ public class Ticket {
 
     // TODO: add 'version' field for resolving conflicting updates by support agent and admin?
 
+    @Column(name = "resolution_summary", columnDefinition = "TEXT")
+    private String resolutionSummary;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id", nullable = false)
     private AppUser creator;
