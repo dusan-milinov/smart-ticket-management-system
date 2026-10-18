@@ -1,12 +1,14 @@
 package com.ticketmanagement.backend.service;
 
 import com.ticketmanagement.backend.dto.auth.LoginRequest;
+import com.ticketmanagement.backend.dto.auth.LoginResponse;
 import com.ticketmanagement.backend.dto.auth.RegisterRequest;
 import com.ticketmanagement.backend.dto.auth.UserResponse;
 import com.ticketmanagement.backend.enums.Role;
 import com.ticketmanagement.backend.exception.UserAlreadyExistsException;
 import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.repository.UserRepository;
+import com.ticketmanagement.backend.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,6 +25,7 @@ public class UserService {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public UserResponse register(RegisterRequest request) {
         String email = request.email()
@@ -45,17 +48,20 @@ public class UserService {
         return UserResponse.from(savedUser);
     }
 
-    public Authentication login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         String email = request.email()
                 .trim()
                 .toLowerCase(Locale.ROOT);
 
-        return authenticationManager.authenticate(
+        Authentication aithentication = authenticationManager.authenticate(
                 UsernamePasswordAuthenticationToken.unauthenticated(
                         email,
                         request.password()
                 )
         );
+
+        String token = jwtService.generateToken(aithentication);
+        return new LoginResponse(token);
 
     }
 
