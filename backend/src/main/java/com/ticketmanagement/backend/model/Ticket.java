@@ -3,6 +3,7 @@ package com.ticketmanagement.backend.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.ticketmanagement.backend.enums.TicketPriority;
 import com.ticketmanagement.backend.enums.TicketStatus;
+import com.ticketmanagement.backend.enums.TicketType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -58,8 +59,8 @@ public class Ticket {
     @JoinColumn(name = "assignee_id")
     private AppUser assignee;
 
-    @ManyToOne
-    @JoinColumn(name = "ticket_type", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ticket_type", nullable = false)
     private TicketType ticketType;
 
 }

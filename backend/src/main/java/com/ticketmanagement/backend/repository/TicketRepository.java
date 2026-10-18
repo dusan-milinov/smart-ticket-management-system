@@ -11,10 +11,12 @@ public interface TicketRepository extends JpaRepository<Ticket,Long> {
 
     boolean existsByTicketId(Long ticketId);
 
+    boolean existsByTicketNumber(String ticketNumber);
+
     List<Ticket> findAll();
     Optional<Ticket> findByTicketId(Long ticketId);
 
-    void deleteByTicketId(Long ticketId);
+    void delete(Ticket ticket);
 
     List<Ticket> findByTicketStatus(TicketStatus status);
 
