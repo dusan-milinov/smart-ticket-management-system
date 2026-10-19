@@ -2,6 +2,8 @@
 
 > This document will change throughout the development process. Unresolved decisions are listed at the end.
 
+> Accessing a list of all the backend endpoints for testing can be done through http://localhost:8080/swagger-ui.html
+
 ## 1. Overview
 
 The Ticket Management Portal allows users to submit and track IT tickets, communicate with support agents, and view ticket history. The system automatically assigns new tickets to support agents based on workload. Administrators oversee tickets, manage accounts, and reassign tickets when necessary.
