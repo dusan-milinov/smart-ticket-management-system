@@ -34,7 +34,7 @@ public class Ticket {
     private String title;
 
     @NotBlank(message = "Ticket description is required")
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
@@ -50,6 +50,8 @@ public class Ticket {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    // TODO: add 'version' field for resolving conflicting updates by support agent and admin?
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id", nullable = false)
