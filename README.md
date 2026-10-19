@@ -1,6 +1,6 @@
 # Ticket Management Portal
 
-> Initial scope, functional requirements, and role-based workflows. This document is a baseline draft; unresolved decisions are listed at the end.
+> This document will change throughout the development process. Unresolved decisions are listed at the end.
 
 ## 1. Overview
 
