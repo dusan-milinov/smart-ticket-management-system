@@ -5,6 +5,7 @@ import com.ticketmanagement.backend.enums.TicketStatus;
 import com.ticketmanagement.backend.enums.TicketType;
 import com.ticketmanagement.backend.model.Ticket;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 public record TicketResponse(
@@ -14,8 +15,9 @@ public record TicketResponse(
         String description,
         TicketStatus ticketStatus,
         TicketPriority ticketPriority,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt,
+        String resolutionSummary,
+        Instant createdAt,
+        Instant updatedAt,
         Long creatorId,
         Long assigneeId,
         TicketType ticketType
@@ -28,6 +30,7 @@ public record TicketResponse(
                 ticket.getDescription(),
                 ticket.getTicketStatus(),
                 ticket.getTicketPriority(),
+                ticket.getResolutionSummary(),
                 ticket.getCreatedAt(),
                 ticket.getUpdatedAt(),
                 ticket.getCreator().getId(),

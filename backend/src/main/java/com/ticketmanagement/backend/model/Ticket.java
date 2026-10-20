@@ -11,6 +11,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -45,11 +46,14 @@ public class Ticket {
     @Column(name = "ticket_priority", nullable = false)
     private TicketPriority ticketPriority;
 
+    @Column(name = "resolution_summary", columnDefinition = "TEXT")
+    private String resolutionSummary;
+
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private Instant updatedAt = Instant.now();
 
     // TODO: add 'version' field for resolving conflicting updates by support agent and admin?
 
@@ -64,5 +68,19 @@ public class Ticket {
     @Enumerated(EnumType.STRING)
     @Column(name = "ticket_type", nullable = false)
     private TicketType ticketType;
+
+    public void changeStatus(TicketStatus status) {
+        this.ticketStatus = status;
+    }
+
+    public void assignTo(AppUser agent) {
+        changeStatus(TicketStatus.FULFILLMENT);
+        this.assignee = agent;
+    }
+
+    public void resolve(String summary) {
+        changeStatus(TicketStatus.RESOLVED);
+        this.resolutionSummary = summary;
+    }
 
 }
