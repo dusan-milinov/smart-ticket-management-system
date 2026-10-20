@@ -1,6 +1,8 @@
 # Ticket Management Portal
 
-> Initial scope, functional requirements, and role-based workflows. This document is a baseline draft; unresolved decisions are listed at the end.
+> This document will change throughout the development process. Unresolved decisions are listed at the end.
+
+> Accessing a list of all the backend endpoints for testing can be done through http://localhost:8080/swagger-ui.html
 
 ## 1. Overview
 

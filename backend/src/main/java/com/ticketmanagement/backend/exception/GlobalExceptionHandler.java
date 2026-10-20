@@ -39,4 +39,21 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.UNAUTHORIZED)
                 .body("Invalid email or password");
     }
+
+    @ExceptionHandler(TicketAlreadyExistsException.class)
+    public ResponseEntity<String> handleTicketAlreadyExistsException(TicketAlreadyExistsException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ex.getMessage());
+    }
+
+    @ExceptionHandler({
+            TicketNotFoundException.class,
+            UserNotFoundException.class
+    })
+    public ResponseEntity<String> handleNotFoundException(RuntimeException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ex.getMessage());
+    }
 }
