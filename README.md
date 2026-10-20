@@ -191,7 +191,7 @@ Authorization must protect backend operations as well as access to frontend page
 ### Entity-Relationship Diagram
 The initial ERD: 
 
-![Smart Ticket Management Platform initial ERD](docs/img/initial_erd.png)
+![Smart Ticket Management Platform initial ERD](docs/img/erd.png)
 
 Optional entities/fields to add:
 - **tickets.version**: for detecting conflicting updates by support agent and admin.
@@ -208,7 +208,7 @@ The initial class diagram:
 
 **Domain classes:**
 
-![Initial class diagram - domain classes](docs/img/class_diagram_domain_classes.png)
+![Initial class diagram - domain classes](docs/img/domain_classes.png)
 
 **Application services:**
 
