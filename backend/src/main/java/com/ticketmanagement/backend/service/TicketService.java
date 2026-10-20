@@ -10,6 +10,7 @@ import com.ticketmanagement.backend.model.Ticket;
 import com.ticketmanagement.backend.repository.TicketRepository;
 import com.ticketmanagement.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,11 +24,14 @@ import java.util.UUID;
 public class TicketService {
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
 
     @Transactional
-    public TicketResponse createTicket(CreateTicketRequest request) {
-        AppUser creator = userRepository.findById(request.creatorId())
-                .orElseThrow(() -> new UserNotFoundException("User with ID " + request.creatorId() + " not found."));
+    public TicketResponse createTicket(
+            CreateTicketRequest request
+    ) {
+
+       AppUser creator = currentUserService.getCurrentUser();
 
         LocalDateTime now = LocalDateTime.now();
         Ticket ticket = new Ticket();

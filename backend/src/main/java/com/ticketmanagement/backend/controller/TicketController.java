@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,7 +21,9 @@ public class TicketController {
     private final TicketService ticketService;
 
     @PostMapping("/add")
-    public ResponseEntity<TicketResponse> addTicket(@Valid @RequestBody CreateTicketRequest request) {
+    public ResponseEntity<TicketResponse> addTicket(
+            @Valid @RequestBody CreateTicketRequest request
+    ) {
         return new ResponseEntity<>(ticketService.createTicket(request), HttpStatus.CREATED);
     }
 

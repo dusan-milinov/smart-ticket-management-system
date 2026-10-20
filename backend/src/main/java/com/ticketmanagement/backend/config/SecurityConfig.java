@@ -36,6 +36,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/agent/**").hasRole("SUPPORT_AGENT")
+                        .requestMatchers("/tickets/**").hasAnyRole("ADMIN", "SUPPORT_AGENT", "USER")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable())
