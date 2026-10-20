@@ -1,4 +1,5 @@
 HELP.md
+AGENTS.md
 target/
 .env
 backend/.env
