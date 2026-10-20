@@ -4,7 +4,7 @@
 
 > Accessing a list of all the backend endpoints for testing can be done through http://localhost:8080/swagger-ui.html
 
-## 1. Overview
+## Overview
 
 The Ticket Management Portal allows users to submit and track IT tickets, communicate with support agents, and view ticket history. The system automatically assigns new tickets to support agents based on workload. Administrators oversee tickets, manage accounts, and reassign tickets when necessary.
 
@@ -14,7 +14,108 @@ The system has three roles:
 - **Support Agent** — handles assigned tickets.
 - **Administrator** — manages users, agents, and all tickets.
 
-## 2. System Scope
+
+## Running with Docker
+
+MySQL and Spring Boot run in Docker containers. Angular currently runs locally.
+
+### Prerequisites
+
+- Docker Desktop.
+- A local `backend/.env` file containing the variables referenced in `compose.yaml`. Copy `/.env.example` into `backend/`, and change placeholder values. 
+- Run all commands below from the repository root.
+
+
+### Configuration
+
+`--env-file ./backend/.env` supplies values for variable substitution in `compose.yaml`. The service's `environment` mappings pass the required values into its container.  
+
+Validate Compose configuration:
+
+```powershell
+docker compose --env-file ./backend/.env config
+```
+
+Add `--quiet` for omitting printout.
+MySQL initialization variables create the database and user only when initializing an empty data directory. Changing `.env` does not update credentials in an existing database.  
+
+Use `up --build` after changing backend code.
+The backend image build skips tests. Run the Maven verification checks separately before building. From `/backend/`:
+  
+  ```powershell
+  ./mvnw.cmd verify
+  ```
+
+### Start the application
+
+Build the backend image and start services:
+
+```powershell
+docker compose --env-file ./backend/.env up --build -d
+```
+
+Start existing containers without rebuilding the image:
+
+```powershell
+docker compose --env-file ./backend/.env up -d
+```
+
+After backend code changes, rebuild and recreate the backend container:
+
+```powershell
+docker compose --env-file ./backend/.env up --build -d backend
+```
+
+### Status and logs
+
+Show service status and published ports:
+
+```powershell
+docker compose --env-file ./backend/.env ps
+```
+
+Follow backend logs:
+
+```powershell
+docker compose --env-file ./backend/.env logs -f backend
+```
+
+### Stop the application
+
+Stop containers while keeping them available for reuse:
+
+```powershell
+docker compose --env-file ./backend/.env stop
+```
+
+Remove containers and the Compose network while preserving database data:
+
+```powershell
+docker compose --env-file ./backend/.env down
+```
+
+### Connection addresses
+
+| Connection | Address |
+| --- | --- |
+| Local Angular/browser -> backend | `http://localhost:8080` |
+| IntelliJ -> MySQL | `localhost:3307` |
+| Backend container -> MySQL | `jdbc:mysql://db:3306/<db-name>` |
+
+### Develop using IntelliJ
+
+To run Spring Boot from IntelliJ, stop the backend container first to
+free port `8080`:
+
+```powershell
+docker compose --env-file ./backend/.env stop backend
+docker compose --env-file ./backend/.env up -d db
+```
+
+Start SB from IntelliJ using the local database address
+`localhost:3307` and the required environment variables.
+
+## System Scope
 
 The initial system will support:
 
@@ -45,9 +146,9 @@ The system will enforce **role-based authorization and method-level authorizatio
 
 These extensions are outside the initial implementation.
 
-## 3. Role-Based Features
+## Role-Based Features
 
-### 3.1 User
+### User
 
 - Register an account.
 - Log in and log out.
@@ -58,7 +159,7 @@ These extensions are outside the initial implementation.
 - Comment on their own tickets.
 - View the history of their own tickets.
 
-### 3.2 Support Agent
+### Support Agent
 
 - View assigned tickets.
 - Comment on assigned tickets.
@@ -66,7 +167,7 @@ These extensions are outside the initial implementation.
 
 Permission to perform other status transitions remains to be confirmed.
 
-### 3.3 Administrator
+### Administrator
 
 - View and manage users.
 - View and manage support agents.
@@ -75,7 +176,7 @@ Permission to perform other status transitions remains to be confirmed.
 - Change ticket statuses.
 - Comment on any ticket, including when the assigned agent is unavailable.
 
-### 3.4 Access Boundaries
+### Access Boundaries
 
 | Role | Ticket access | Administrative access |
 | --- | --- | --- |
@@ -86,8 +187,8 @@ Permission to perform other status transitions remains to be confirmed.
 Authorization must protect backend operations as well as access to frontend pages. Role checks must be combined with ticket ownership or assignment checks where applicable.
 
 
-## 4. Diagrams
-### 4.1 Entity-Relationship Diagram
+## Diagrams
+### Entity-Relationship Diagram
 The initial ERD: 
 
 ![Smart Ticket Management Platform initial ERD](docs/img/initial_erd.png)
@@ -95,14 +196,14 @@ The initial ERD:
 Optional entities/fields to add:
 - **tickets.version**: for detecting conflicting updates by support agent and admin.
 
-## 4.2 Sequence Diagram
+## Sequence Diagram
 The initial sequence diagram for ticket submission and automatic assignment:
 
 ![Initial ticket submission and automatic assignment sequence diagram](docs/img/ticket_submission_and_assignment_sequence.png)
 
 Backend ticket creation, assignment, and event saving are executed in a single transaction.
 
-## 4.3 Class Diagram
+## Class Diagram
 The initial class diagram:
 
 **Domain classes:**
@@ -114,7 +215,7 @@ The initial class diagram:
 ![Initial class diagram - domain classes](docs/img/class_diagram_services.png)
 
 
-## 5. Functional Requirements
+## Functional Requirements
 
 ### FR-01 — Registration
 
@@ -239,9 +340,9 @@ The system shall allow administrators to view and manage users and support agent
 
 The exact management operations and their effects on existing tickets remain to be defined.
 
-## 6. Workflows
+## Workflows
 
-### 6.1 General Ticket Workflow
+### General Ticket Workflow
 
 1. A user registers an account and logs in.
 2. The user submits an Incident or Software Request ticket.
@@ -253,25 +354,25 @@ The exact management operations and their effects on existing tickets remain to 
 8. The ticket reaches closure according to rules still to be defined.
 9. Ticket events preserve the history throughout the workflow.
 
-### 6.2 User Workflow
+### User Workflow
 
 Login → Create ticket → Automatic assignment → Track status and add comments → Resolution → Closure.
 
 Automatic assignment and resolution are system/agent actions visible to the user. The actor responsible for closure remains to be confirmed.
 
-### 6.3 Support-Agent Workflow
+### Support-Agent Workflow
 
 View assigned tickets → Fulfill the request or investigate the incident → Comment as needed → Resolve the ticket.
 
 The actor responsible for moving a ticket into `FULFILLMENT` remains to be confirmed.
 
-### 6.4 Administrator Workflow
+### Administrator Workflow
 
 Monitor tickets → Review the need for intervention → Reassign, comment, or change status as needed.
 
 Administrators also manage user and support-agent accounts independently of the ticket lifecycle.
 
-## 7. Ticket Events and History
+## Ticket Events and History
 
 **Ticket events collectively form the ticket history.**
 
@@ -291,7 +392,7 @@ Events need enough information to identify the ticket, when the event occurred, 
 
 It must be decided whether resolution and closure produce both a `STATUS_CHANGED` event and a specialized event, or only the specialized event.
 
-## 8. Decisions to Confirm
+## Decisions to Confirm
 
 These items clarify incomplete requirements; they do not introduce additional committed functionality.
 
