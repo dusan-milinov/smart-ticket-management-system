@@ -4,8 +4,10 @@ package com.ticketmanagement.backend.controller;
 import com.ticketmanagement.backend.dto.ticket.CreateTicketRequest;
 import com.ticketmanagement.backend.dto.ticket.TicketResponse;
 import com.ticketmanagement.backend.enums.TicketStatus;
+import com.ticketmanagement.backend.service.CurrentUserService;
 import com.ticketmanagement.backend.service.TicketService;
 import jakarta.validation.Valid;
+import jakarta.websocket.server.PathParam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,12 +21,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TicketController {
     private final TicketService ticketService;
+    private final CurrentUserService currentUserService;
 
     @PostMapping("/add")
     public ResponseEntity<TicketResponse> addTicket(
             @Valid @RequestBody CreateTicketRequest request
     ) {
-        return new ResponseEntity<>(ticketService.createTicket(request), HttpStatus.CREATED);
+        return new ResponseEntity<>(ticketService.createTicket(request, currentUserService.getCurrentUser()), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -59,6 +62,14 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getTicketsByAssigneeId(assigneeId));
     }
 
-    // TODO: Dodati mapping-e za resolve i reassign
+    @PatchMapping("/reassign")
+    public ResponseEntity<TicketResponse> reassignTicket(@PathParam("ticketID") Long ticketID, @PathParam("assigneeId") Long assigneeId) {
+        return ResponseEntity.ok(ticketService.reassign(ticketID, assigneeId, currentUserService.getCurrentUser().getId()));
+    }
+
+    @PatchMapping("/resolve")
+    public ResponseEntity<TicketResponse> resolveTicket(@PathParam("ticketID") Long ticketID, @PathParam("summary") String summary) {
+        return ResponseEntity.ok(ticketService.resolveTicket(ticketID, summary, currentUserService.getCurrentUser().getId()));
+    }
 
 }

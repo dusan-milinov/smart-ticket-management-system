@@ -33,7 +33,6 @@ public class TicketEventService {
         AppUser actor = userRepository.findById(actorID)
                 .orElseThrow(() -> new UserNotFoundException("User with ID " + actorID + " not found."));
 
-        // Create and save the event
         TicketEvent event = new TicketEvent();
         event.setTicket(ticket);
         event.setInitiator(actor);
