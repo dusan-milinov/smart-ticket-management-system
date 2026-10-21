@@ -6,8 +6,6 @@ import jakarta.validation.constraints.NotNull;
 public record CreateCommentRequest(
         @NotBlank(message = "Comment content is required")
         String content,
-        @NotNull(message = "Author ID is required")
-        Long authorId,
         @NotNull(message = "Ticket ID is required")
         Long ticketId
 ) {
