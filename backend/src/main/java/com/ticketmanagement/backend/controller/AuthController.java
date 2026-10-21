@@ -1,6 +1,7 @@
 package com.ticketmanagement.backend.controller;
 
 import com.ticketmanagement.backend.dto.auth.LoginRequest;
+import com.ticketmanagement.backend.dto.auth.LoginResponse;
 import com.ticketmanagement.backend.dto.auth.RegisterRequest;
 import com.ticketmanagement.backend.dto.auth.UserResponse;
 import com.ticketmanagement.backend.service.UserService;
@@ -32,13 +33,12 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(
+    public ResponseEntity<LoginResponse> login(
             @Valid @RequestBody LoginRequest request
     ) {
-        userService.login(request);
+        LoginResponse response = userService.login(request);
         return ResponseEntity
-                .status(HttpStatus.OK)
-                .body("Login successful");
+                .ok(response);
     }
 
 }

@@ -25,7 +25,7 @@ public class Comment {
     private String content;
 
     @Column(name = "created_at", nullable = false)
-    private final Instant createdAt = Instant.now();
+    private Instant createdAt = Instant.now();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "author_id", nullable = false)

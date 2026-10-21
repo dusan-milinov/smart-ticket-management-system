@@ -16,9 +16,6 @@ public record CreateTicketRequest(
         @NotNull(message = "Ticket priority is required")
         TicketPriority ticketPriority,
 
-        @NotNull(message = "Creator ID is required")
-        Long creatorId,
-
         @NotNull(message = "Ticket type is required")
         TicketType ticketType
 

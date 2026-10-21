@@ -2,17 +2,21 @@ package com.ticketmanagement.backend.service;
 
 import com.ticketmanagement.backend.dto.ticket.CreateTicketRequest;
 import com.ticketmanagement.backend.dto.ticket.TicketResponse;
+import com.ticketmanagement.backend.enums.TicketEventType;
 import com.ticketmanagement.backend.enums.TicketStatus;
 import com.ticketmanagement.backend.exception.TicketNotFoundException;
 import com.ticketmanagement.backend.exception.UserNotFoundException;
 import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.model.Ticket;
+import com.ticketmanagement.backend.repository.TicketEventRepository;
 import com.ticketmanagement.backend.repository.TicketRepository;
 import com.ticketmanagement.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -21,28 +25,37 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class TicketService {
+    private final TicketEventService ticketEventService;
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
 
     @Transactional
-    public TicketResponse createTicket(CreateTicketRequest request) {
-        AppUser creator = userRepository.findById(request.creatorId())
-                .orElseThrow(() -> new UserNotFoundException("User with ID " + request.creatorId() + " not found."));
+    public TicketResponse createTicket(
+            CreateTicketRequest request
+    ) {
 
-        LocalDateTime now = LocalDateTime.now();
+       AppUser creator = currentUserService.getCurrentUser();
+
+        Instant now = Instant.now();
         Ticket ticket = new Ticket();
         ticket.setTicketNumber(generateTicketNumber());
         ticket.setTitle(request.title());
         ticket.setDescription(request.description());
         ticket.setTicketStatus(TicketStatus.IN_QUEUE);
         ticket.setTicketPriority(request.ticketPriority());
+        ticket.setResolutionSummary(null);
         ticket.setCreatedAt(now);
         ticket.setUpdatedAt(now);
         ticket.setCreator(creator);
         ticket.setAssignee(null);
         ticket.setTicketType(request.ticketType());
 
-        return TicketResponse.from(ticketRepository.save(ticket));
+        Ticket savedTicket = ticketRepository.save(ticket);
+
+        //TODO: Add actor to event recording, currently 1
+        ticketEventService.recordEvent(savedTicket.getTicketId(), (long)1, TicketEventType.CREATED, null, null);
+        return TicketResponse.from(savedTicket);
     }
 
     private String generateTicketNumber() {
@@ -51,6 +64,20 @@ public class TicketService {
             ticketNumber = "TKT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         } while (ticketRepository.existsByTicketNumber(ticketNumber));
         return ticketNumber;
+    }
+
+    public void reassign(long ticketID, long assigneeID, long actorID) {
+        Ticket ticket = ticketRepository.findByTicketId(ticketID).orElseThrow(() -> new TicketNotFoundException("Ticket with ID " + ticketID + " not found."));
+        AppUser assignee = userRepository.findById(assigneeID).orElseThrow(() -> new UserNotFoundException("User with ID " + assigneeID + " not found."));
+        ticketEventService.recordEvent(ticketID, actorID, TicketEventType.REASSIGNED, ticket.getAssignee() == null ? null : ticket.getAssignee().getId().toString(), assigneeID + "");
+        ticket.assignTo(assignee);
+    }
+
+    public void resolveTicket(long ticketID, String summary, long actorID){
+        Ticket ticket = ticketRepository.findByTicketId(ticketID).orElseThrow(() -> new TicketNotFoundException("Ticket with ID " + ticketID + " not found."));
+
+        ticketEventService.recordEvent(ticketID, actorID, TicketEventType.RESOLVED, ticket.getResolutionSummary(), summary);
+        ticket.resolve(summary);
     }
 
     public List<TicketResponse> getAllTickets() {
@@ -70,7 +97,6 @@ public class TicketService {
     public List<TicketResponse> getTicketsByStatus(TicketStatus status) {
         return toResponses(ticketRepository.findByTicketStatus(status));
     }
-
 
     public List<TicketResponse> getTicketsByUserId(Long userId) {
         return toResponses(ticketRepository.findByCreatorId(userId));

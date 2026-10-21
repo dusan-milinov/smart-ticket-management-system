@@ -9,8 +9,6 @@ import java.util.Optional;
 
 public interface TicketRepository extends JpaRepository<Ticket,Long> {
 
-    boolean existsByTicketId(Long ticketId);
-
     boolean existsByTicketNumber(String ticketNumber);
 
     List<Ticket> findAll();
