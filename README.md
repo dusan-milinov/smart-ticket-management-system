@@ -115,6 +115,56 @@ docker compose --env-file ./backend/.env up -d db
 Start SB from IntelliJ using the local database address
 `localhost:3307` and the required environment variables.
 
+### Development user seeding
+
+User seeding is disabled by default. It runs at startup only when both the
+`dev` Spring profile is active and `app.seed.enabled=true`. When enabled,
+`app.seed.password` must be supplied externally, otherwise
+startup fails, even if all seed accounts already exist. There is no default
+seed password. Passwords are encoded with the application's existing
+`PasswordEncoder` and must never be committed or logged.
+
+| Email | Role |
+| --- | --- |
+| `admin@example.com` | `ADMIN` |
+| `zika@example.com` | `SUPPORT_AGENT` |
+| `nikola@example.com` | `SUPPORT_AGENT` |
+| `agent3@example.com` | `SUPPORT_AGENT` |
+| `petar.petrovic@example.com` | `USER` |
+| `vojin.vojinovic@example.com` | `USER` |
+
+Each email is checked independently. Only missing accounts are inserted, in
+one transaction. Restarting or changing the seed password does not overwrite
+existing passwords, roles, or other account data. No tickets, comments, or
+events are seeded yet.
+
+**Activation state is deferred:** `AppUser` does not yet support active/inactive
+accounts. All three agents currently behave alike; `agent3@example.com` is
+reserved for the future inactive-agent scenario.
+
+**IntelliJ:** In the Spring Boot run configuration, set the active profile to
+`dev`. Add environment variables `APP_SEED_ENABLED=true` and
+`APP_SEED_PASSWORD` with a locally chosen password, alongside the existing
+database configuration. Remove `APP_SEED_ENABLED` or set it to `false` to disable seeding.
+
+**Docker Compose:** In the local, untracked `backend/.env`, set
+`SPRING_PROFILES_ACTIVE=dev`, `APP_SEED_ENABLED=true`, and `APP_SEED_PASSWORD`
+to a locally chosen password.
+
+From the repository root, apply these settings and rebuild after code changes:
+
+```powershell
+docker compose --env-file .\backend\.env up --build -d backend
+```
+
+After seeding, set `APP_SEED_ENABLED=false`, remove `APP_SEED_PASSWORD` from the
+local file, and recreate the backend to remove the enabled settings from its
+environment:
+
+```powershell
+docker compose --env-file .\backend\.env up -d --force-recreate backend
+```
+
 ## System Scope
 
 The initial system will support:
