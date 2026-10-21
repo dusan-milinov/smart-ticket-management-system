@@ -58,4 +58,7 @@ public class TicketController {
     public ResponseEntity<List<TicketResponse>> getTicketsByAssigneeId(@PathVariable Long assigneeId) {
         return ResponseEntity.ok(ticketService.getTicketsByAssigneeId(assigneeId));
     }
+
+    // TODO: Dodati mapping-e za resolve i reassign
+
 }
