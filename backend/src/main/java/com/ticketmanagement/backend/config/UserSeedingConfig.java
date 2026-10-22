@@ -2,6 +2,13 @@ package com.ticketmanagement.backend.config;
 
 import com.ticketmanagement.backend.repository.UserRepository;
 import com.ticketmanagement.backend.service.UserSeeder;
+import com.ticketmanagement.backend.repository.CommentRepository;
+import com.ticketmanagement.backend.repository.TicketEventRepository;
+import com.ticketmanagement.backend.repository.TicketRepository;
+import com.ticketmanagement.backend.service.CommentSeeder;
+import com.ticketmanagement.backend.service.TicketEventSeeder;
+import com.ticketmanagement.backend.service.TicketFixtureSeeder;
+import com.ticketmanagement.backend.service.TicketSeeder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,7 +32,32 @@ public class UserSeedingConfig {
     }
 
     @Bean
-    public ApplicationRunner userSeedingRunner(UserSeeder userSeeder) {
-        return args -> userSeeder.seed();
+    public TicketEventSeeder ticketEventSeeder(TicketEventRepository repository) {
+        return new TicketEventSeeder(repository);
+    }
+
+    @Bean
+    public CommentSeeder commentSeeder(CommentRepository repository, TicketEventSeeder eventSeeder) {
+        return new CommentSeeder(repository, eventSeeder);
+    }
+
+    @Bean
+    public TicketFixtureSeeder ticketFixtureSeeder(TicketRepository tickets, UserRepository users,
+                                                   CommentSeeder comments, TicketEventSeeder events) {
+        return new TicketFixtureSeeder(tickets, users, comments, events);
+    }
+
+    @Bean
+    public TicketSeeder ticketSeeder(TicketFixtureSeeder fixtureSeeder) {
+        return new TicketSeeder(fixtureSeeder);
+    }
+
+    @Bean
+    public ApplicationRunner userSeedingRunner(UserSeeder userSeeder, TicketSeeder ticketSeeder) {
+        return args -> {
+            userSeeder.seed();
+            ticketSeeder.validateTypes();
+            ticketSeeder.seed();
+        };
     }
 }

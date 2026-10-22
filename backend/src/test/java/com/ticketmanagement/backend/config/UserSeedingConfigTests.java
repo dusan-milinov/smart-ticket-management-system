@@ -2,6 +2,13 @@ package com.ticketmanagement.backend.config;
 
 import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.repository.UserRepository;
+import com.ticketmanagement.backend.repository.CommentRepository;
+import com.ticketmanagement.backend.repository.TicketEventRepository;
+import com.ticketmanagement.backend.repository.TicketRepository;
+import com.ticketmanagement.backend.service.CommentSeeder;
+import com.ticketmanagement.backend.service.TicketEventSeeder;
+import com.ticketmanagement.backend.service.TicketFixtureSeeder;
+import com.ticketmanagement.backend.service.TicketSeeder;
 import com.ticketmanagement.backend.service.UserSeeder;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.ApplicationRunner;
@@ -45,15 +52,20 @@ class UserSeedingConfigTests {
             contextRunner.withPropertyValues(properties).run(context -> {
                 assertThat(context).hasNotFailed()
                         .doesNotHaveBean(UserSeeder.class)
+                        .doesNotHaveBean(TicketSeeder.class)
+                        .doesNotHaveBean(TicketFixtureSeeder.class)
+                        .doesNotHaveBean(CommentSeeder.class)
+                        .doesNotHaveBean(TicketEventSeeder.class)
                         .doesNotHaveBean(ApplicationRunner.class);
                 verifyNoInteractions(context.getBean(UserRepository.class),
-                        context.getBean(PasswordEncoder.class));
+                        context.getBean(PasswordEncoder.class), context.getBean(TicketRepository.class),
+                        context.getBean(CommentRepository.class), context.getBean(TicketEventRepository.class));
             });
         }
     }
 
     @Test
-    void enabledRunnerDelegatesToSeederInsideOneTransaction() {
+    void enabledRunnerUsesSeparateUserAndTicketTransactions() {
         contextRunner.withPropertyValues(
                 "spring.profiles.active=dev",
                 "app.seed.enabled=true",
@@ -82,9 +94,24 @@ class UserSeedingConfigTests {
             order.verify(repository).existsByEmail("vojin.vojinovic@example.com");
             order.verify(repository).save(any(AppUser.class));
             order.verify(transactionManager).commit(any());
-            verify(transactionManager, times(1)).getTransaction(any());
+            verify(transactionManager, times(9)).getTransaction(any());
+            verify(transactionManager, times(9)).commit(any());
             verify(transactionManager, never()).rollback(any());
         });
+    }
+
+    @Test
+    void runnerSeedsUsersThenValidatesTypesThenSeedsTickets() throws Exception {
+        UserSeeder users = mock(UserSeeder.class);
+        TicketSeeder tickets = mock(TicketSeeder.class);
+
+        new UserSeedingConfig().userSeedingRunner(users, tickets).run(new DefaultApplicationArguments());
+
+        var order = inOrder(users, tickets);
+        order.verify(users).seed();
+        order.verify(tickets).validateTypes();
+        order.verify(tickets).seed();
+        order.verifyNoMoreInteractions();
     }
 
     @Test
@@ -129,6 +156,23 @@ class UserSeedingConfigTests {
         @Bean
         UserRepository userRepository() {
             return mock(UserRepository.class);
+        }
+
+        @Bean
+        TicketRepository ticketRepository() {
+            TicketRepository repository = mock(TicketRepository.class);
+            when(repository.existsByTicketNumber(anyString())).thenReturn(true);
+            return repository;
+        }
+
+        @Bean
+        CommentRepository commentRepository() {
+            return mock(CommentRepository.class);
+        }
+
+        @Bean
+        TicketEventRepository ticketEventRepository() {
+            return mock(TicketEventRepository.class);
         }
 
         @Bean

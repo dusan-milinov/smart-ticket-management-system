@@ -5,13 +5,12 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "ticket_events")
 public class TicketEvent {
@@ -36,7 +35,7 @@ public class TicketEvent {
     private String newValue;
 
     @Column(name = "created_at", nullable = false)
-    private final Instant createdAt = Instant.now();
+    private final Instant createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ticket_id", nullable = false)
@@ -45,4 +44,23 @@ public class TicketEvent {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "performed_by", nullable = false)
     private AppUser initiator;
+
+    public TicketEvent() {
+        this(Instant.now());
+    }
+
+    public TicketEvent(Instant createdAt) {
+        this.createdAt = Objects.requireNonNull(createdAt, "Event timestamp is required");
+    }
+
+    public TicketEvent(Long id, TicketEventType eventType, String oldValue, String newValue,
+                       Ticket ticket, AppUser initiator) {
+        this();
+        this.id = id;
+        this.eventType = eventType;
+        this.oldValue = oldValue;
+        this.newValue = newValue;
+        this.ticket = ticket;
+        this.initiator = initiator;
+    }
 }
