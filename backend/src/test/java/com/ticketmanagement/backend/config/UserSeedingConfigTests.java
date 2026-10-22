@@ -97,7 +97,7 @@ class UserSeedingConfigTests {
                         assertThat(context).hasFailed();
                         assertThat(context.getStartupFailure())
                                 .hasRootCauseInstanceOf(IllegalArgumentException.class)
-                                .hasRootCauseMessage("app.seed.password must be configured and nonblank when development seeding is enabled");
+                                .hasRootCauseMessage("app.seed.password must be configured and nonblank when development seeding is enabled.");
                     });
         }
     }

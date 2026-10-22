@@ -120,7 +120,7 @@ class UserSeederTests {
         for (String password : new String[]{null, "", " \t\n"}) {
             assertThatIllegalArgumentException()
                     .isThrownBy(() -> new UserSeeder(userRepository, passwordEncoder, password))
-                    .withMessage("app.seed.password must be configured and nonblank when development seeding is enabled");
+                    .withMessage("app.seed.password must be configured and nonblank when development seeding is enabled.");
         }
         verifyNoInteractions(userRepository, passwordEncoder);
     }
