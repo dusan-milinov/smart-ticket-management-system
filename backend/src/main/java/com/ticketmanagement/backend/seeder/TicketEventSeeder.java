@@ -1,4 +1,4 @@
-package com.ticketmanagement.backend.service;
+package com.ticketmanagement.backend.seeder;
 
 import com.ticketmanagement.backend.enums.TicketEventType;
 import com.ticketmanagement.backend.model.AppUser;

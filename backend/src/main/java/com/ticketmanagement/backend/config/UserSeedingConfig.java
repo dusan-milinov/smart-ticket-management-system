@@ -1,14 +1,14 @@
 package com.ticketmanagement.backend.config;
 
 import com.ticketmanagement.backend.repository.UserRepository;
-import com.ticketmanagement.backend.service.UserSeeder;
+import com.ticketmanagement.backend.seeder.UserSeeder;
 import com.ticketmanagement.backend.repository.CommentRepository;
 import com.ticketmanagement.backend.repository.TicketEventRepository;
 import com.ticketmanagement.backend.repository.TicketRepository;
-import com.ticketmanagement.backend.service.CommentSeeder;
-import com.ticketmanagement.backend.service.TicketEventSeeder;
-import com.ticketmanagement.backend.service.TicketFixtureSeeder;
-import com.ticketmanagement.backend.service.TicketSeeder;
+import com.ticketmanagement.backend.seeder.CommentSeeder;
+import com.ticketmanagement.backend.seeder.TicketEventSeeder;
+import com.ticketmanagement.backend.seeder.TicketFixtureSeeder;
+import com.ticketmanagement.backend.seeder.TicketSeeder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
