@@ -37,6 +37,7 @@ docker compose --env-file ./backend/.env config
 ```
 
 Add `--quiet` for omitting printout.
+`SECRET_KEY` in `backend/.env` is the JWT signing secret. `compose.yaml` passes it to the backend as `SECURITY_JWT_SECRET`.
 MySQL initialization variables create the database and user only when initializing an empty data directory. Changing `.env` does not update credentials in an existing database.  
 
 Use `up --build` after changing backend code.
@@ -234,11 +235,37 @@ The system shall authenticate users using email and password.
 
 The system shall support:
 
-- Login using JWT-based authentication to secure API access.
-- Logout by clearing authentication credentials from the client.
+- Login using JWT-based authentication to secure API access. The JWT is delivered in an `HttpOnly` cookie (see [Authentication Cookie](#authentication-cookie)).
+- Logout by having the server expire the authentication cookie (`POST /auth/logout`).
 - Password reset through email verification.
 
-**JWT clarification:** Removing a token from the client ends that client's local authenticated state. It does not invalidate an already-issued JWT on the server. Token lifetime and any server-side revocation or refresh-token behavior remain to be defined.
+**JWT clarification:** Expiring the cookie ends that client's local authenticated state. It does not invalidate an already-issued JWT on the server. Token lifetime and any server-side revocation or refresh-token behavior remain to be defined.
+
+#### Authentication Cookie
+
+| Endpoint | Behavior |
+|---|---|
+| `POST /auth/login` | Returns `204 No Content` and sets the `access_token` cookie. The token is never in the response body. |
+| `POST /auth/logout` | Returns `204 No Content` and expires the cookie (`Max-Age=0`). |
+| `GET /users/me` | Returns the current user. The frontend calls it to restore the session after a page reload, because JavaScript cannot read the cookie. |
+
+Cookie attributes: `HttpOnly`, `SameSite=Lax`, `Path=/`, lifetime equal to `security.jwt.expiration-seconds`, and `Secure` controlled by `security.jwt.cookie-secure`.
+
+Important:
+
+- **Production:** set `security.jwt.cookie-secure=true` (HTTPS only). With the default `false`, the cookie also travels over plain HTTP.
+- **Frontend requests must send credentials.** Cross-origin calls need `withCredentials: true` (Angular `HttpClient`). The allowed origin is set by `app.cors.allowed-origins` and must be an explicit origin, never `*`.
+- **CSRF:** CSRF protection is disabled. Protection relies on `SameSite=Lax`, the CORS origin allow-list and JSON-only request bodies (which force a CORS preflight). Do not add state-changing `GET` endpoints. If the frontend and API end up on different sites, switch to `SameSite=None; Secure` and enable CSRF tokens.
+- **Token sources:** the API reads the JWT from the cookie first and falls back to the `Authorization: Bearer` header, so Swagger UI and curl still work. `/auth/**`, `/v3/api-docs/**` and `/swagger-ui/**` ignore the cookie, so a stale cookie cannot block login.
+- **Secret:** `SECRET_KEY` must be at least 32 bytes. The application refuses to start otherwise. Generate one with `openssl rand -base64 48`.
+
+Manual test with curl:
+
+```powershell
+curl.exe -i -c cookies.txt -H "Content-Type: application/json" -d '{\"email\":\"user@example.com\",\"password\":\"...\"}' http://localhost:8080/auth/login
+curl.exe -i -b cookies.txt http://localhost:8080/users/me
+curl.exe -i -b cookies.txt -c cookies.txt -X POST http://localhost:8080/auth/logout
+```
 
 ### FR-03 — Profile Management
 
