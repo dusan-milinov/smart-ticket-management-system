@@ -2,6 +2,8 @@ package com.ticketmanagement.backend.repository;
 
 import com.ticketmanagement.backend.enums.TicketStatus;
 import com.ticketmanagement.backend.model.Ticket;
+import jakarta.validation.constraints.Null;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -11,9 +13,11 @@ public interface TicketRepository extends JpaRepository<Ticket,Long> {
 
     boolean existsByTicketNumber(String ticketNumber);
 
+    @NullMarked
     List<Ticket> findAll();
     Optional<Ticket> findByTicketId(Long ticketId);
 
+    @NullMarked
     void delete(Ticket ticket);
 
     List<Ticket> findByTicketStatus(TicketStatus status);
