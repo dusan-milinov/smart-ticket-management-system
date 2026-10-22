@@ -33,11 +33,10 @@ MySQL and Spring Boot run in Docker containers. Angular currently runs locally.
 Validate Compose configuration:
 
 ```powershell
-docker compose --env-file ./backend/.env config
+docker compose --env-file ./backend/.env config --quiet
 ```
 
-Add `--quiet` for omitting printout.
-`SECRET_KEY` in `backend/.env` is the JWT signing secret. `compose.yaml` passes it to the backend as `SECURITY_JWT_SECRET`.
+`--quiet` ommits printout.
 MySQL initialization variables create the database and user only when initializing an empty data directory. Changing `.env` does not update credentials in an existing database.  
 
 Use `up --build` after changing backend code.
@@ -100,7 +99,7 @@ docker compose --env-file ./backend/.env down
 | Connection | Address |
 | --- | --- |
 | Local Angular/browser -> backend | `http://localhost:8080` |
-| IntelliJ -> MySQL | `localhost:3307` |
+| IntelliJ -> MySQL | `localhost:3306` |
 | Backend container -> MySQL | `jdbc:mysql://db:3306/<db-name>` |
 
 ### Develop using IntelliJ
@@ -114,7 +113,71 @@ docker compose --env-file ./backend/.env up -d db
 ```
 
 Start SB from IntelliJ using the local database address
-`localhost:3307` and the required environment variables.
+`localhost:3306` and the required environment variables.
+
+### Development seeding
+
+Development seeding is disabled by default. It runs at startup only when both the
+`dev` Spring profile is active and `app.seed.enabled=true`. When enabled,
+`app.seed.password` must be supplied externally, otherwise
+startup fails, even if all seed accounts already exist. There is no default
+seed password.
+
+| Email | Role |
+| --- | --- |
+| `admin@example.com` | `ADMIN` |
+| `zika@example.com` | `SUPPORT_AGENT` |
+| `nikola@example.com` | `SUPPORT_AGENT` |
+| `agent3@example.com` | `SUPPORT_AGENT` |
+| `petar.petrovic@example.com` | `USER` |
+| `vojin.vojinovic@example.com` | `USER` |
+
+Each email is checked independently. Only missing accounts are inserted, in
+one transaction. Restarting or changing the seed password does not overwrite
+existing passwords, roles, or other account data.
+
+The same runner seeds users first, validates the existing `INCIDENT` and
+`SOFTWARE_REQUEST` enum types (there are no type rows to insert), then creates
+eight tickets numbered `TKT-SEED-0001` through `TKT-SEED-0008`. Seed assignments are not workload-based, and users are resolved by email with their actual roles checked. A missing user or unexpected role fails seeding.
+
+| Tickets | Final status | Comments per ticket | Special history |
+| --- | --- | --- | --- |
+| 1–2 | `RESOLVED` | 3, 2 | Resolution summaries; ticket 2 reassigned |
+| 3–5 | `FULFILLMENT` | 1 each | Ticket 4 reassigned |
+| 6–7 | `FULFILLMENT` | 0 | Initial assignment |
+| 8 | `CANCELLED` | 0 | Admin cancellation |
+
+Resolution uses a single `RESOLVED` event rather than a duplicate status event.
+
+Each ticket, its assignment, comments, and complete history are saved in one transaction. A failure rolls back that entire fixture and stops further seeding; earlier completed fixtures remain. Existing ticket numbers and all their children are skipped unchanged, even if their history is incomplete.
+
+**Activation state is deferred:** `AppUser` does not yet support active/inactive accounts. All three agents currently behave alike; `agent3@example.com` is reserved for the future inactive-agent scenario.
+
+**IntelliJ:** In the Spring Boot run configuration, set the active profile to
+`dev`. Add environment variables `APP_SEED_ENABLED=true` and
+`APP_SEED_PASSWORD` with a locally chosen password, alongside the existing
+database configuration. Remove `APP_SEED_ENABLED` or set it to `false` to disable seeding.
+
+**Docker Compose:** In the local, untracked `backend/.env`, set
+`SPRING_PROFILES_ACTIVE=dev`, `APP_SEED_ENABLED=true`, and `APP_SEED_PASSWORD`
+to a locally chosen password.
+
+The backend `environment` mappings in `compose.yaml` pass the seed variables into the
+container.
+
+From the repository root, apply these settings and rebuild after code changes:
+
+```powershell
+docker compose --env-file .\backend\.env up --build -d backend
+```
+
+After seeding, set `APP_SEED_ENABLED=false`, remove `APP_SEED_PASSWORD` from the
+local file, and recreate the backend to remove the enabled settings from its
+environment:
+
+```powershell
+docker compose --env-file .\backend\.env up -d --force-recreate backend
+```
 
 ## System Scope
 
@@ -407,13 +470,13 @@ The proposed `eventType` field is a string with the following values:
 
 | Event type | Meaning |
 | --- | --- |
-| `TICKET_CREATED` | A ticket was submitted. |
-| `TICKET_ASSIGNED` | A ticket received its initial support-agent assignment. |
+| `CREATED` | A ticket was submitted. |
+| `ASSIGNED` | A ticket received its initial support-agent assignment. |
 | `STATUS_CHANGED` | A ticket's status changed. |
 | `COMMENT_ADDED` | A comment was added. |
-| `TICKET_REASSIGNED` | A ticket was reassigned to another support agent. |
-| `TICKET_RESOLVED` | A ticket was resolved. |
-| `TICKET_CLOSED` | A ticket was closed. |
+| `REASSIGNED` | A ticket was reassigned to another support agent. |
+| `RESOLVED` | A ticket was resolved. |
+| `CLOSED` | A ticket was closed. |
 
 Events need enough information to identify the ticket, when the event occurred, who or what performed it, and the relevant change. System-generated actions must be distinguishable from user actions.
 
