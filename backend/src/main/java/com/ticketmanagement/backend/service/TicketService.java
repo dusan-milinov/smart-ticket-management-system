@@ -28,14 +28,12 @@ public class TicketService {
     private final TicketEventService ticketEventService;
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
-    private final CurrentUserService currentUserService;
 
     @Transactional
     public TicketResponse createTicket(
-            CreateTicketRequest request
+            CreateTicketRequest request,
+            AppUser creator
     ) {
-
-       AppUser creator = currentUserService.getCurrentUser();
 
         Instant now = Instant.now();
         Ticket ticket = new Ticket();
@@ -53,8 +51,7 @@ public class TicketService {
 
         Ticket savedTicket = ticketRepository.save(ticket);
 
-        //TODO: Add actor to event recording, currently 1
-        ticketEventService.recordEvent(savedTicket.getTicketId(), (long)1, TicketEventType.CREATED, null, null);
+        ticketEventService.recordEvent(savedTicket.getTicketId(), creator.getId(), TicketEventType.CREATED, null, null);
         return TicketResponse.from(savedTicket);
     }
 
@@ -66,18 +63,22 @@ public class TicketService {
         return ticketNumber;
     }
 
-    public void reassign(long ticketID, long assigneeID, long actorID) {
+    @Transactional
+    public TicketResponse reassign(long ticketID, long assigneeID, long actorID) {
         Ticket ticket = ticketRepository.findByTicketId(ticketID).orElseThrow(() -> new TicketNotFoundException("Ticket with ID " + ticketID + " not found."));
         AppUser assignee = userRepository.findById(assigneeID).orElseThrow(() -> new UserNotFoundException("User with ID " + assigneeID + " not found."));
         ticketEventService.recordEvent(ticketID, actorID, TicketEventType.REASSIGNED, ticket.getAssignee() == null ? null : ticket.getAssignee().getId().toString(), assigneeID + "");
         ticket.assignTo(assignee);
+        return TicketResponse.from(ticket);
     }
 
-    public void resolveTicket(long ticketID, String summary, long actorID){
+    @Transactional
+    public TicketResponse resolveTicket(long ticketID, String summary, long actorID){
         Ticket ticket = ticketRepository.findByTicketId(ticketID).orElseThrow(() -> new TicketNotFoundException("Ticket with ID " + ticketID + " not found."));
 
         ticketEventService.recordEvent(ticketID, actorID, TicketEventType.RESOLVED, ticket.getResolutionSummary(), summary);
         ticket.resolve(summary);
+        return TicketResponse.from(ticket);
     }
 
     public List<TicketResponse> getAllTickets() {

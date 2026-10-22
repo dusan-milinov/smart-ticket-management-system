@@ -72,6 +72,8 @@ public class SecurityConfig {
                                                 .requestMatchers("/agent/**").hasRole("SUPPORT_AGENT")
                                                 .requestMatchers("/tickets/**")
                                                 .hasAnyRole("ADMIN", "SUPPORT_AGENT", "USER")
+                                                .requestMatchers("/comments/**").hasAnyRole("ADMIN", "SUPPORT_AGENT", "USER")
+                                                .requestMatchers("/ticket-events/**").hasAnyRole("ADMIN", "SUPPORT_AGENT", "USER") // ("ADMIN", "SUPPORT_AGENT")?
                                                 .anyRequest().authenticated())
                                 .formLogin(form -> form.disable())
                                 .httpBasic(basic -> basic.disable())
