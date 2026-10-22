@@ -29,8 +29,8 @@ public class CommentService {
 
     @Transactional
     public CommentResponse addComment(CreateCommentRequest comment, long actorId) {
-        AppUser author = userRepository.findById(comment.authorId())
-                .orElseThrow(() -> new UserNotFoundException("User with ID " + comment.authorId() + " not found."));
+        AppUser author = userRepository.findById(actorId)
+                .orElseThrow(() -> new UserNotFoundException("User with ID " + actorId + " not found."));
         Ticket ticket = ticketRepository.findByTicketId(comment.ticketId())
                 .orElseThrow(() -> new TicketNotFoundException("Ticket with ID " + comment.ticketId() + " not found."));
 
