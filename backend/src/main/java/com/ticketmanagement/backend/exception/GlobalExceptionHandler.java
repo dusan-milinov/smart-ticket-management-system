@@ -14,20 +14,18 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(PasswordChangeException.class)
-    public ResponseEntity<String> handlePasswordChangeException(PasswordChangeException ex) {
-        return ResponseEntity.badRequest().body(ex.getMessage());
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handlePasswordChangeException(PasswordChangeException ex) {
+        return new ErrorResponse(ex.getMessage());
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<String> handleConstraintViolationException(ConstraintViolationException ex) {
-        return ResponseEntity.badRequest().body("Invalid request data");
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleConstraintViolationException(ConstraintViolationException ex) {
+        return new ErrorResponse("Invalid request data");
     }
 
-    @ExceptionHandler(UserAlreadyExistsException.class)
-    public ResponseEntity<String> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
-        return ResponseEntity
-                .status(HttpStatus.CONFLICT)
-                .body(ex.getMessage());
+
     @ExceptionHandler({
             UserAlreadyExistsException.class,
             TicketAlreadyExistsException.class

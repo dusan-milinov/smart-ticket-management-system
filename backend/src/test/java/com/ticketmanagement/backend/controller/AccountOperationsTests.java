@@ -6,6 +6,7 @@ import com.ticketmanagement.backend.dto.auth.RegisterSupportAgentRequest;
 import com.ticketmanagement.backend.enums.Role;
 import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.repository.UserRepository;
+import com.ticketmanagement.backend.security.JwtCookieService;
 import com.ticketmanagement.backend.security.JwtService;
 import com.ticketmanagement.backend.service.CurrentUserService;
 import com.ticketmanagement.backend.service.UserService;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -65,6 +67,7 @@ class AccountOperationsTests {
     @MockitoBean private UserRepository users;
     @MockitoBean private AuthenticationManager authenticationManager;
     @MockitoBean private JwtService jwtService;
+    @MockitoBean private JwtCookieService jwtCookieService;
     @MockitoBean private JwtDecoder decoder;
 
     private AppUser owner;
@@ -114,7 +117,7 @@ class AccountOperationsTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"currentPassword\":\"wrong-secret\",\"newPassword\":\"" + NEW + "\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("Current password is incorrect"));
+                .andExpect(jsonPath("$.message").value("Current password is incorrect"));
         assertUnchanged();
     }
 
@@ -124,7 +127,7 @@ class AccountOperationsTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"currentPassword\":\"" + CURRENT + "\",\"newPassword\":\"" + CURRENT + "\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("New password must differ from the current password"));
+                .andExpect(jsonPath("$.message").value("New password must differ from the current password"));
         assertUnchanged();
     }
 
@@ -201,7 +204,7 @@ class AccountOperationsTests {
         mvc.perform(post("/admin/support-agents").with(identity("ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON).content(AGENT_REQUEST))
                 .andExpect(status().isConflict())
-                .andExpect(content().string("User with email agent@example.com already exists."));
+                .andExpect(jsonPath("$.message").value("User with email agent@example.com already exists."));
         verify(users, never()).save(any());
     }
 
@@ -259,8 +262,13 @@ class AccountOperationsTests {
         when(authenticationManager.authenticate(any())).thenReturn(
                 UsernamePasswordAuthenticationToken.authenticated(EMAIL, null, List.of()));
         when(jwtService.generateToken(any())).thenReturn("test-response-token");
+        when(jwtCookieService.create("test-response-token"))
+                .thenReturn(ResponseCookie.from("access_token", "test-response-token").httpOnly(true).build());
         mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content(AGENT_REQUEST))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.token").value("test-response-token"));
+                .andExpect(status().isNoContent())
+                .andExpect(header().string("Set-Cookie", containsString("access_token=test-response-token")))
+                .andExpect(header().string("Set-Cookie", containsString("HttpOnly")))
+                .andExpect(content().string(""));
     }
 
     @Test
