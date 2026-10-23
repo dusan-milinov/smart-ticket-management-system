@@ -66,4 +66,9 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.resolveTicket(ticketID, summary, currentUserService.getCurrentUser().getId()));
     }
 
+    @PatchMapping("/cancel")
+    public ResponseEntity<TicketResponse> cancelTicket(@PathParam("ticketID") Long ticketID) {
+        return ResponseEntity.ok(ticketService.cancelTicket(ticketID, currentUserService.getCurrentUser().getId()));
+    }
+
 }

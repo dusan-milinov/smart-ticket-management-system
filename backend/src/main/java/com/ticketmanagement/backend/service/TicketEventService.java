@@ -10,6 +10,7 @@ import com.ticketmanagement.backend.model.TicketEvent;
 import com.ticketmanagement.backend.repository.TicketEventRepository;
 import com.ticketmanagement.backend.repository.TicketRepository;
 import com.ticketmanagement.backend.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class TicketEventService {
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
 
+    @Transactional
     public void recordEvent(Long ticketId, Long actorID, TicketEventType eventType, String oldValue, String newValue) {
 
         Ticket ticket = ticketRepository.findByTicketId(ticketId)
@@ -39,6 +41,9 @@ public class TicketEventService {
         event.setOldValue(oldValue);
         event.setNewValue(newValue);
         event.setEventType(eventType);
+
+        ticket.setUpdatedAt(java.time.Instant.now()); // Svaki event bi trebao da ažurira vreme poslednje izmene tiketa
+        ticketRepository.save(ticket);
 
         ticketEventRepository.save(event);
     }
