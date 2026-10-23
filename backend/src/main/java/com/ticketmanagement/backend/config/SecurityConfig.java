@@ -43,7 +43,9 @@ public class SecurityConfig {
                 return request -> {
                         // Public endpoints must not fail because of a stale cookie.
                         String path = request.getRequestURI().substring(request.getContextPath().length());
-                        if (path.startsWith("/auth/")
+                        if (path.equals("/auth/login")
+                                        || path.equals("/auth/register")
+                                        || path.equals("/auth/logout")
                                         || path.startsWith("/v3/api-docs")
                                         || path.startsWith("/swagger-ui")) {
                                 return null;

@@ -319,16 +319,8 @@ Important:
 - **Production:** set `security.jwt.cookie-secure=true` (HTTPS only). With the default `false`, the cookie also travels over plain HTTP.
 - **Frontend requests must send credentials.** Cross-origin calls need `withCredentials: true` (Angular `HttpClient`). The allowed origin is set by `app.cors.allowed-origins` and must be an explicit origin, never `*`.
 - **CSRF:** CSRF protection is disabled. Protection relies on `SameSite=Lax`, the CORS origin allow-list and JSON-only request bodies (which force a CORS preflight). Do not add state-changing `GET` endpoints. If the frontend and API end up on different sites, switch to `SameSite=None; Secure` and enable CSRF tokens.
-- **Token sources:** the API reads the JWT from the cookie first and falls back to the `Authorization: Bearer` header, so Swagger UI and curl still work. `/auth/**`, `/v3/api-docs/**` and `/swagger-ui/**` ignore the cookie, so a stale cookie cannot block login.
+- **Token sources:** the API reads the JWT from the cookie first and falls back to the `Authorization: Bearer` header, so Swagger UI and curl still work. Only public auth routes (`/auth/login`, `/auth/register`, `/auth/logout`) and documentation routes bypass token resolution, so a stale cookie cannot block login. `/auth/change-password` requires a valid cookie or Bearer token.
 - **Secret:** `SECRET_KEY` must be at least 32 bytes. The application refuses to start otherwise. Generate one with `openssl rand -base64 48`.
-
-Manual test with curl:
-
-```powershell
-curl.exe -i -c cookies.txt -H "Content-Type: application/json" -d '{\"email\":\"user@example.com\",\"password\":\"...\"}' http://localhost:8080/auth/login
-curl.exe -i -b cookies.txt http://localhost:8080/users/me
-curl.exe -i -b cookies.txt -c cookies.txt -X POST http://localhost:8080/auth/logout
-```
 
 ### FR-03 — Profile Management
 

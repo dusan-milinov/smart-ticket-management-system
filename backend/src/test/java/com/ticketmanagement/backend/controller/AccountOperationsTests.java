@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseCookie;
+import jakarta.servlet.http.Cookie;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,6 +29,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -50,7 +51,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest({AuthController.class, AdminController.class})
-@Import({SecurityConfig.class, UserService.class, CurrentUserService.class})
+@Import({SecurityConfig.class, UserService.class, CurrentUserService.class, JwtCookieService.class})
 class AccountOperationsTests {
 
     private static final String EMAIL = "owner@example.com";
@@ -67,7 +68,6 @@ class AccountOperationsTests {
     @MockitoBean private UserRepository users;
     @MockitoBean private AuthenticationManager authenticationManager;
     @MockitoBean private JwtService jwtService;
-    @MockitoBean private JwtCookieService jwtCookieService;
     @MockitoBean private JwtDecoder decoder;
 
     private AppUser owner;
@@ -159,6 +159,37 @@ class AccountOperationsTests {
         mvc.perform(post("/auth/change-password").header("Authorization", "Bearer invalid-token")
                         .contentType(MediaType.APPLICATION_JSON).content(PASSWORD_REQUEST))
                 .andExpect(status().isUnauthorized());
+        verifyNoInteractions(users);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"cookie", "header"})
+    void passwordChangeAuthenticatesThroughTheTokenResolver(String source) throws Exception {
+        Jwt token = Jwt.withTokenValue("valid-test-token")
+                .header("alg", "HS256").subject(EMAIL).claim("roles", List.of("ROLE_USER")).build();
+        when(decoder.decode("valid-test-token")).thenReturn(token);
+        var request = post("/auth/change-password")
+                .contentType(MediaType.APPLICATION_JSON).content(PASSWORD_REQUEST);
+        if (source.equals("cookie")) {
+            request.cookie(new Cookie("access_token", "valid-test-token"));
+        } else {
+            request.header("Authorization", "Bearer valid-test-token");
+        }
+
+        mvc.perform(request).andExpect(status().isNoContent());
+
+        verify(decoder).decode("valid-test-token");
+        assertThat(encoder.matches(NEW, owner.getPassword())).isTrue();
+        verify(users).save(owner);
+    }
+
+    @Test
+    void passwordChangeRejectsAnExpiredCookie() throws Exception {
+        when(decoder.decode("expired-test-token")).thenThrow(new BadJwtException("Expired JWT"));
+        mvc.perform(post("/auth/change-password").cookie(new Cookie("access_token", "expired-test-token"))
+                        .contentType(MediaType.APPLICATION_JSON).content(PASSWORD_REQUEST))
+                .andExpect(status().isUnauthorized());
+        verify(decoder).decode("expired-test-token");
         verifyNoInteractions(users);
     }
 
@@ -262,13 +293,22 @@ class AccountOperationsTests {
         when(authenticationManager.authenticate(any())).thenReturn(
                 UsernamePasswordAuthenticationToken.authenticated(EMAIL, null, List.of()));
         when(jwtService.generateToken(any())).thenReturn("test-response-token");
-        when(jwtCookieService.create("test-response-token"))
-                .thenReturn(ResponseCookie.from("access_token", "test-response-token").httpOnly(true).build());
-        mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content(AGENT_REQUEST))
+        mvc.perform(post("/auth/login").cookie(new Cookie("access_token", "stale-test-token"))
+                        .contentType(MediaType.APPLICATION_JSON).content(AGENT_REQUEST))
                 .andExpect(status().isNoContent())
                 .andExpect(header().string("Set-Cookie", containsString("access_token=test-response-token")))
                 .andExpect(header().string("Set-Cookie", containsString("HttpOnly")))
                 .andExpect(content().string(""));
+        verifyNoInteractions(decoder);
+    }
+
+    @Test
+    void logoutClearsEvenAStaleCookieWithoutAuthentication() throws Exception {
+        mvc.perform(post("/auth/logout").cookie(new Cookie("access_token", "stale-test-token")))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string("Set-Cookie", containsString("Max-Age=0")))
+                .andExpect(content().string(""));
+        verifyNoInteractions(decoder, users);
     }
 
     @Test
