@@ -53,14 +53,14 @@ public class UserService {
                 .trim()
                 .toLowerCase(Locale.ROOT);
 
-        Authentication aithentication = authenticationManager.authenticate(
+        Authentication authentication = authenticationManager.authenticate(
                 UsernamePasswordAuthenticationToken.unauthenticated(
                         email,
                         request.password()
                 )
         );
 
-        String token = jwtService.generateToken(aithentication);
+        String token = jwtService.generateToken(authentication);
         return new LoginResponse(token);
 
     }
