@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.ticketmanagement.backend.enums.TicketPriority;
 import com.ticketmanagement.backend.enums.TicketStatus;
 import com.ticketmanagement.backend.enums.TicketType;
+import com.ticketmanagement.backend.exception.IllegalStatusException;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -74,13 +75,26 @@ public class Ticket {
     }
 
     public void assignTo(AppUser agent) {
+        if(this.ticketStatus == TicketStatus.IN_QUEUE || this.ticketStatus == TicketStatus.FULFILLMENT) {
+            throw new IllegalStatusException("Cannot assign a ticket that is already resolved or cancelled.");
+        }
         changeStatus(TicketStatus.FULFILLMENT);
         this.assignee = agent;
     }
 
     public void resolve(String summary) {
+        if(this.ticketStatus == TicketStatus.RESOLVED || this.ticketStatus == TicketStatus.CANCELLED) {
+            throw new IllegalStatusException("Cannot resolve a ticket that is already resolved or cancelled.");
+        }
         changeStatus(TicketStatus.RESOLVED);
         this.resolutionSummary = summary;
+    }
+
+    public void cancel() {
+        if(this.ticketStatus == TicketStatus.RESOLVED || this.ticketStatus == TicketStatus.CANCELLED) {
+            throw new IllegalStatusException("Cannot cancel a ticket that is already resolved or cancelled.");
+        }
+        changeStatus(TicketStatus.CANCELLED);
     }
 
 }
