@@ -1,0 +1,313 @@
+package com.ticketmanagement.backend.controller;
+
+import com.ticketmanagement.backend.config.SecurityConfig;
+import com.ticketmanagement.backend.dto.auth.ChangePasswordRequest;
+import com.ticketmanagement.backend.dto.auth.RegisterSupportAgentRequest;
+import com.ticketmanagement.backend.enums.Role;
+import com.ticketmanagement.backend.model.AppUser;
+import com.ticketmanagement.backend.repository.UserRepository;
+import com.ticketmanagement.backend.security.JwtService;
+import com.ticketmanagement.backend.service.CurrentUserService;
+import com.ticketmanagement.backend.service.UserService;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.BadJwtException;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest({AuthController.class, AdminController.class})
+@Import({SecurityConfig.class, UserService.class, CurrentUserService.class})
+class AccountOperationsTests {
+
+    private static final String EMAIL = "owner@example.com";
+    private static final String CURRENT = "Current-password-1";
+    private static final String NEW = "Replacement-password-2";
+    private static final String PASSWORD_REQUEST =
+            "{\"currentPassword\":\"" + CURRENT + "\",\"newPassword\":\"" + NEW + "\"}";
+    private static final String AGENT_REQUEST =
+            "{\"email\":\"AGENT@example.com\",\"password\":\"" + NEW + "\"}";
+
+    @Autowired private MockMvc mvc;
+    @Autowired private UserService userService;
+    @Autowired private PasswordEncoder encoder;
+    @MockitoBean private UserRepository users;
+    @MockitoBean private AuthenticationManager authenticationManager;
+    @MockitoBean private JwtService jwtService;
+    @MockitoBean private JwtDecoder decoder;
+
+    private AppUser owner;
+    private String originalHash;
+
+    @BeforeEach
+    void setUp() {
+        originalHash = encoder.encode(CURRENT);
+        owner = new AppUser(EMAIL, originalHash, Role.USER);
+        owner.setId(41L);
+        when(users.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(users.save(any(AppUser.class))).thenAnswer(invocation -> {
+            AppUser user = invocation.getArgument(0);
+            if (user.getId() == null) {
+                user.setId(99L);
+            }
+            return user;
+        });
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"USER", "SUPPORT_AGENT", "ADMIN"})
+    void changesOnlyJwtSubjectPasswordForEveryRole(String role) throws Exception {
+        mvc.perform(post("/auth/change-password").with(identity(role))
+                        .contentType(MediaType.APPLICATION_JSON).content(PASSWORD_REQUEST))
+                .andExpect(status().isNoContent()).andExpect(content().string(""));
+
+        assertThat(encoder.matches(NEW, owner.getPassword())).isTrue();
+        assertThat(encoder.matches(CURRENT, owner.getPassword())).isFalse();
+        assertThat(owner.getPassword()).isNotEqualTo(NEW).isNotEqualTo(originalHash);
+        assertThat(owner.getId()).isEqualTo(41L);
+        assertThat(owner.getEmail()).isEqualTo(EMAIL);
+        assertThat(owner.getRole()).isEqualTo(Role.USER);
+        verify(users).findByEmail(EMAIL);
+        verify(users).save(owner);
+        verifyNoInteractions(jwtService);
+    }
+
+    @Test
+    void wrongCurrentPasswordDoesNotChangeAccount() throws Exception {
+        mvc.perform(post("/auth/change-password").with(identity("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"wrong-secret\",\"newPassword\":\"" + NEW + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Current password is incorrect"));
+        assertUnchanged();
+    }
+
+    @Test
+    void unchangedPasswordDoesNotChangeAccount() throws Exception {
+        mvc.perform(post("/auth/change-password").with(identity("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"" + CURRENT + "\",\"newPassword\":\"" + CURRENT + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("New password must differ from the current password"));
+        assertUnchanged();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{}", "{\"currentPassword\":\"\",\"newPassword\":\"valid-password\"}",
+            "{\"currentPassword\":\"password\",\"newPassword\":\"short\"}",
+            "{\"currentPassword\":\"password\",\"newPassword\":\"        \"}"
+    })
+    void rejectsInvalidPasswordRequests(String json) throws Exception {
+        mvc.perform(post("/auth/change-password").with(identity("USER"))
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(not(containsString(originalHash))));
+        verify(users, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/auth/change-password", "/admin/support-agents"})
+    void protectedEndpointsRejectAnonymousRequests(String path) throws Exception {
+        mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(users);
+    }
+
+    @Test
+    void rejectsInvalidBearerToken() throws Exception {
+        when(decoder.decode("invalid-token")).thenThrow(new BadJwtException("Invalid JWT"));
+        mvc.perform(post("/auth/change-password").header("Authorization", "Bearer invalid-token")
+                        .contentType(MediaType.APPLICATION_JSON).content(PASSWORD_REQUEST))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(users);
+    }
+
+    @Test
+    void jwtForMissingAccountCannotChangePassword() throws Exception {
+        when(users.findByEmail(EMAIL)).thenReturn(Optional.empty());
+        mvc.perform(post("/auth/change-password").with(identity("USER"))
+                        .contentType(MediaType.APPLICATION_JSON).content(PASSWORD_REQUEST))
+                .andExpect(status().isUnauthorized());
+        verify(users, never()).save(any());
+    }
+
+    @Test
+    void adminCreatesEncodedAgentWithSafeResponse() throws Exception {
+        mvc.perform(post("/admin/support-agents").with(identity("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON).content(AGENT_REQUEST))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(99))
+                .andExpect(jsonPath("$.email").value("agent@example.com"))
+                .andExpect(jsonPath("$.role").value("SUPPORT_AGENT"))
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(content().string(not(containsString(NEW))));
+        var saved = org.mockito.ArgumentCaptor.forClass(AppUser.class);
+        verify(users).save(saved.capture());
+        assertThat(encoder.matches(NEW, saved.getValue().getPassword())).isTrue();
+        assertThat(saved.getValue().getRole()).isEqualTo(Role.SUPPORT_AGENT);
+        verify(users).existsByEmail("agent@example.com");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"USER", "SUPPORT_AGENT"})
+    void nonAdminCannotRegisterAgent(String role) throws Exception {
+        mvc.perform(post("/admin/support-agents").with(identity(role))
+                        .contentType(MediaType.APPLICATION_JSON).content(AGENT_REQUEST))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(users);
+    }
+
+    @Test
+    void duplicateAgentEmailReturnsConflict() throws Exception {
+        when(users.existsByEmail("agent@example.com")).thenReturn(true);
+        mvc.perform(post("/admin/support-agents").with(identity("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON).content(AGENT_REQUEST))
+                .andExpect(status().isConflict())
+                .andExpect(content().string("User with email agent@example.com already exists."));
+        verify(users, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{}", "{\"email\":\"invalid\",\"password\":\"valid-password\"}",
+            "{\"email\":\"agent@example.com\",\"password\":\"short\"}",
+            "{\"email\":\"agent@example.com\",\"password\":\"        \"}"
+    })
+    void rejectsInvalidAgentRequests(String json) throws Exception {
+        mvc.perform(post("/admin/support-agents").with(identity("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isBadRequest());
+        verify(users, never()).save(any());
+    }
+
+    @Test
+    void directAdminServiceCallNormalizesEmailAndForcesRole() {
+        authenticate("ADMIN");
+        var response = userService.registerSupportAgent(
+                new RegisterSupportAgentRequest("Agent@Example.COM", NEW));
+        assertThat(response.email()).isEqualTo("agent@example.com");
+        assertThat(response.role()).isEqualTo("SUPPORT_AGENT");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"USER", "SUPPORT_AGENT"})
+    void methodAuthorizationRejectsNonAdminWithoutHttp(String role) {
+        authenticate(role);
+        assertThatThrownBy(() -> userService.registerSupportAgent(
+                new RegisterSupportAgentRequest("agent@example.com", NEW)))
+                .isInstanceOf(AccessDeniedException.class);
+        verifyNoInteractions(users);
+    }
+
+    @Test
+    void methodAuthorizationRejectsUnauthenticatedCallsWithoutHttp() {
+        SecurityContextHolder.clearContext();
+        assertThatThrownBy(() -> userService.changeOwnPassword(new ChangePasswordRequest(CURRENT, NEW)))
+                .isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+        assertThatThrownBy(() -> userService.registerSupportAgent(
+                new RegisterSupportAgentRequest("agent@example.com", NEW)))
+                .isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+        verifyNoInteractions(users);
+    }
+
+    @Test
+    void publicRegistrationStillCreatesOnlyRegularUsers() throws Exception {
+        mvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(AGENT_REQUEST))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.role").value("USER"));
+    }
+
+    @Test
+    void publicLoginRemainsAccessible() throws Exception {
+        when(authenticationManager.authenticate(any())).thenReturn(
+                UsernamePasswordAuthenticationToken.authenticated(EMAIL, null, List.of()));
+        when(jwtService.generateToken(any())).thenReturn("test-response-token");
+        mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content(AGENT_REQUEST))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.token").value("test-response-token"));
+    }
+
+    @Test
+    void suppliedAccountIdentifiersCannotOverrideJwtSubject() throws Exception {
+        String json = PASSWORD_REQUEST.substring(0, PASSWORD_REQUEST.length() - 1)
+                + ",\"userId\":999,\"email\":\"another@example.com\"}";
+        mvc.perform(post("/auth/change-password").with(identity("USER"))
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isNoContent());
+        verify(users).findByEmail(EMAIL);
+        verify(users, never()).findByEmail("another@example.com");
+        assertThat(encoder.matches(NEW, owner.getPassword())).isTrue();
+    }
+
+    @Test
+    void suppliedAdminRoleCannotOverrideSupportAgentRole() throws Exception {
+        String json = AGENT_REQUEST.substring(0, AGENT_REQUEST.length() - 1) + ",\"role\":\"ADMIN\"}";
+        mvc.perform(post("/admin/support-agents").with(identity("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.role").value("SUPPORT_AGENT"));
+    }
+
+    @Test
+    void serviceValidationRejectsInvalidAgentAndPasswordChangeRequests() {
+        authenticate("ADMIN");
+        assertThatThrownBy(() -> userService.registerSupportAgent(
+                new RegisterSupportAgentRequest("invalid", "short")))
+                .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
+        assertThatThrownBy(() -> userService.changeOwnPassword(new ChangePasswordRequest(CURRENT, "short")))
+                .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
+        verifyNoInteractions(users);
+    }
+
+    private RequestPostProcessor identity(String role) {
+        return jwt().jwt(token -> token.subject(EMAIL))
+                .authorities(new SimpleGrantedAuthority("ROLE_" + role));
+    }
+
+    private void authenticate(String role) {
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(EMAIL, null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + role))));
+    }
+
+    private void assertUnchanged() {
+        assertThat(owner.getPassword()).isEqualTo(originalHash);
+        verify(users, never()).save(any());
+    }
+}

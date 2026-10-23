@@ -33,10 +33,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-class UserSeedingConfigTests {
+class SeedingConfigTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withUserConfiguration(UserSeedingConfig.class, TestDependencies.class);
+            .withUserConfiguration(SeedingConfig.class, TestDependencies.class);
 
     @Test
     void disablesSeedingWithoutBothGuardsAndDoesNotRequirePassword() {
@@ -105,7 +105,7 @@ class UserSeedingConfigTests {
         UserSeeder users = mock(UserSeeder.class);
         TicketSeeder tickets = mock(TicketSeeder.class);
 
-        new UserSeedingConfig().userSeedingRunner(users, tickets).run(new DefaultApplicationArguments());
+        new SeedingConfig().userSeedingRunner(users, tickets).run(new DefaultApplicationArguments());
 
         var order = inOrder(users, tickets);
         order.verify(users).seed();
