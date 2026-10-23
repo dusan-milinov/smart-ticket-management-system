@@ -75,7 +75,7 @@ public class Ticket {
     }
 
     public void assignTo(AppUser agent) {
-        if(this.ticketStatus == TicketStatus.IN_QUEUE || this.ticketStatus == TicketStatus.FULFILLMENT) {
+        if(this.ticketStatus == TicketStatus.RESOLVED || this.ticketStatus == TicketStatus.CANCELLED) {
             throw new IllegalStatusException("Cannot assign a ticket that is already resolved or cancelled.");
         }
         changeStatus(TicketStatus.FULFILLMENT);
