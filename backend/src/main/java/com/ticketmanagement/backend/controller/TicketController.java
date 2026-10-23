@@ -41,12 +41,6 @@ public class TicketController {
 
     }
 
-    @DeleteMapping("/{ticketId}")
-    public ResponseEntity<String> deleteTicket(@PathVariable Long ticketId) {
-        ticketService.deleteTicket(ticketId);
-        return ResponseEntity.ok("Ticket deleted successfully.");
-    }
-
     @GetMapping("/status/{status}")
     public ResponseEntity<List<TicketResponse>> getTicketsByStatus(@PathVariable TicketStatus status) {
         return ResponseEntity.ok(ticketService.getTicketsByStatus(status));

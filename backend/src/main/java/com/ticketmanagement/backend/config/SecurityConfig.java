@@ -18,6 +18,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -27,6 +28,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
         private static void writeError(HttpServletResponse res, int status, String message) throws IOException {
@@ -41,7 +43,9 @@ public class SecurityConfig {
                 return request -> {
                         // Public endpoints must not fail because of a stale cookie.
                         String path = request.getRequestURI().substring(request.getContextPath().length());
-                        if (path.startsWith("/auth/")
+                        if (path.equals("/auth/login")
+                                        || path.equals("/auth/register")
+                                        || path.equals("/auth/logout")
                                         || path.startsWith("/v3/api-docs")
                                         || path.startsWith("/swagger-ui")) {
                                 return null;
@@ -63,7 +67,9 @@ public class SecurityConfig {
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(
                                                                 SessionCreationPolicy.STATELESS))
-                                .authorizeHttpRequests(auth -> auth.requestMatchers(
+                                .authorizeHttpRequests(auth -> auth
+                                        .requestMatchers("/auth/change-password").authenticated()
+                                        .requestMatchers(
                                                 "/auth/**",
                                                 "/v3/api-docs/**",
                                                 "/swagger-ui/**",

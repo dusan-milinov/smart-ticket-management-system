@@ -90,11 +90,6 @@ public class TicketService {
         return TicketResponse.from(t);
     }
 
-    public void deleteTicket(Long ticketId) {
-        Ticket t = ticketRepository.findByTicketId(ticketId).orElseThrow(() -> new TicketNotFoundException("Ticket with ID " + ticketId + " not found."));
-        ticketRepository.delete(t);
-    }
-
     public List<TicketResponse> getTicketsByStatus(TicketStatus status) {
         return toResponses(ticketRepository.findByTicketStatus(status));
     }
