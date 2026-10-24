@@ -1,0 +1,45 @@
+<header class="navbar">
+  <a class="brand" routerLink="/dashboard" (click)="closeMenu()">
+    <span class="brand-mark" aria-hidden="true">S</span>
+    Smart Ticket
+  </a>
+
+  <button
+    class="toggle"
+    type="button"
+    aria-controls="primary-menu"
+    aria-label="Toggle navigation"
+    [attr.aria-expanded]="menuOpen()"
+    (click)="toggleMenu()"
+  >
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  <div class="menu" id="primary-menu" [class.menu-open]="menuOpen()">
+    <nav class="links" aria-label="Main">
+      @for (item of navItems(); track item.path) {
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          ariaCurrentWhenActive="page"
+          (click)="closeMenu()"
+        >
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+
+    @if (user(); as currentUser) {
+      <div class="user">
+        <div class="user-info">
+          <span class="user-email" [title]="currentUser.email">{{ currentUser.email }}</span>
+          <span class="user-role">{{ roleLabel() }}</span>
+        </div>
+        <button class="logout" type="button" (click)="logout()">Log out</button>
+      </div>
+    }
+  </div>
+</header>
