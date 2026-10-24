@@ -9,17 +9,15 @@ import com.ticketmanagement.backend.exception.TicketNotFoundException;
 import com.ticketmanagement.backend.exception.UserNotFoundException;
 import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.model.Ticket;
-import com.ticketmanagement.backend.repository.TicketEventRepository;
 import com.ticketmanagement.backend.repository.TicketRepository;
 import com.ticketmanagement.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 
@@ -96,8 +94,9 @@ public class TicketService {
         return TicketResponse.from(ticket);
     }
 
-    public List<TicketResponse> getAllTickets() {
-        return toResponses(ticketRepository.findAll());
+    @Transactional(readOnly = true)
+    public Page<TicketResponse> getAllTickets(Pageable pageable) {
+        return ticketRepository.findAll(pageable).map(TicketResponse::from);
     }
 
     public TicketResponse getTicketById(Long ticketId) {
@@ -105,28 +104,29 @@ public class TicketService {
         return TicketResponse.from(t);
     }
 
-    public List<TicketResponse> getTicketsByStatus(TicketStatus status) {
-        return toResponses(ticketRepository.findByTicketStatus(status));
+    @Transactional(readOnly = true)
+    public Page<TicketResponse> getTicketsByStatus(TicketStatus status, Pageable pageable) {
+        return ticketRepository.findByTicketStatus(status, pageable).map(TicketResponse::from);
     }
 
-    public List<TicketResponse> getTicketsByUserId(Long userId) {
-        return toResponses(ticketRepository.findByCreatorId(userId));
+    @Transactional(readOnly = true)
+    public Page<TicketResponse> getTicketsByUserId(Long userId, Pageable pageable) {
+        return ticketRepository.findByCreatorId(userId, pageable).map(TicketResponse::from);
     }
 
-    public List<TicketResponse> getTicketsByAssigneeId(Long assigneeId) {
-        return toResponses(ticketRepository.findByAssigneeId(assigneeId));
+    @Transactional(readOnly = true)
+    public Page<TicketResponse> getTicketsByAssigneeId(Long assigneeId, Pageable pageable) {
+        return ticketRepository.findByAssigneeId(assigneeId, pageable).map(TicketResponse::from);
     }
 
-    public List<TicketResponse> getTicketsByUserIdAndStatus(Long userId, TicketStatus status) {
-        return toResponses(ticketRepository.findByCreatorIdAndTicketStatus(userId, status));
+    @Transactional(readOnly = true)
+    public Page<TicketResponse> getTicketsByUserIdAndStatus(Long userId, TicketStatus status, Pageable pageable) {
+        return ticketRepository.findByCreatorIdAndTicketStatus(userId, status, pageable).map(TicketResponse::from);
     }
 
-    public List<TicketResponse> getTicketsByAssigneeIdAndStatus(Long assigneeId, TicketStatus status) {
-        return toResponses(ticketRepository.findByAssigneeIdAndTicketStatus(assigneeId, status));
-    }
-
-    private List<TicketResponse> toResponses(List<Ticket> tickets) {
-        return tickets.stream().map(TicketResponse::from).toList();
+    @Transactional(readOnly = true)
+    public Page<TicketResponse> getTicketsByAssigneeIdAndStatus(Long assigneeId, TicketStatus status, Pageable pageable) {
+        return ticketRepository.findByAssigneeIdAndTicketStatus(assigneeId, status, pageable).map(TicketResponse::from);
     }
 
 }
