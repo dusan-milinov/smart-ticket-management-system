@@ -12,6 +12,18 @@ ng serve
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
+## Creating tickets
+
+After signing in, open `/tickets/new` (also linked as **Create Ticket** in the user
+navigation). The form submits to `POST /api/tickets/add` using the session cookie
+and the configured development proxy.
+
+All four fields are required: title, description, priority (`LOW`, `MEDIUM`, or
+`HIGH`), and type (`INCIDENT` or `SOFTWARE_REQUEST`). The backend assigns the
+creator, ticket number, and initial status. On success, the page displays the
+ticket number and resets for another submission. Failed submissions preserve
+the entered values and display an error so the user can retry.
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
