@@ -26,5 +26,7 @@ public interface TicketRepository extends JpaRepository<Ticket,Long> {
 
     List<Ticket> findByAssigneeId(Long assigneeId);
 
+    List<Ticket> findByAssigneeIdAndTicketStatus(Long assigneeId, TicketStatus status);
+
     long countByAssigneeIdAndTicketStatusIn(Long assigneeId, Collection<TicketStatus> statuses);
 }
