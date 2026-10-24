@@ -1,6 +1,8 @@
 package com.ticketmanagement.backend.controller;
 
 import com.ticketmanagement.backend.dto.auth.LoginRequest;
+import com.ticketmanagement.backend.dto.auth.ChangePasswordRequest;
+import com.ticketmanagement.backend.dto.auth.LoginResponse;
 import com.ticketmanagement.backend.dto.auth.RegisterRequest;
 import com.ticketmanagement.backend.dto.auth.UserResponse;
 import com.ticketmanagement.backend.security.JwtCookieService;
@@ -22,6 +24,12 @@ public class AuthController {
 
     private final UserService userService;
     private final JwtCookieService jwtCookieService;
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        userService.changeOwnPassword(request);
+        return ResponseEntity.noContent().build();
+    }
 
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(

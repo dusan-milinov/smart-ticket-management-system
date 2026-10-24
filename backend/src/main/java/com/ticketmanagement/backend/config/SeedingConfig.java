@@ -20,7 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 @Profile("dev")
 @ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true")
-public class UserSeedingConfig {
+public class SeedingConfig {
 
     @Bean
     public UserSeeder userSeeder(

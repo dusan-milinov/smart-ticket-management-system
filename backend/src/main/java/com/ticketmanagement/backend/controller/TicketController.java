@@ -41,12 +41,6 @@ public class TicketController {
 
     }
 
-    @DeleteMapping("/{ticketId}")
-    public ResponseEntity<String> deleteTicket(@PathVariable Long ticketId) {
-        ticketService.deleteTicket(ticketId);
-        return ResponseEntity.ok("Ticket deleted successfully.");
-    }
-
     @GetMapping("/status/{status}")
     public ResponseEntity<List<TicketResponse>> getTicketsByStatus(@PathVariable TicketStatus status) {
         return ResponseEntity.ok(ticketService.getTicketsByStatus(status));
@@ -70,6 +64,11 @@ public class TicketController {
     @PatchMapping("/resolve")
     public ResponseEntity<TicketResponse> resolveTicket(@PathParam("ticketID") Long ticketID, @PathParam("summary") String summary) {
         return ResponseEntity.ok(ticketService.resolveTicket(ticketID, summary, currentUserService.getCurrentUser().getId()));
+    }
+
+    @PatchMapping("/cancel")
+    public ResponseEntity<TicketResponse> cancelTicket(@PathParam("ticketID") Long ticketID) {
+        return ResponseEntity.ok(ticketService.cancelTicket(ticketID, currentUserService.getCurrentUser().getId()));
     }
 
 }
