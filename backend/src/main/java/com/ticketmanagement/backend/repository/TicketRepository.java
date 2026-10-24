@@ -18,12 +18,11 @@ public interface TicketRepository extends JpaRepository<Ticket,Long> {
     List<Ticket> findAll();
     Optional<Ticket> findByTicketId(Long ticketId);
 
-    @NullMarked
-    void delete(Ticket ticket);
-
     List<Ticket> findByTicketStatus(TicketStatus status);
 
     List<Ticket> findByCreatorId(Long creatorId);
+
+    List<Ticket> findByCreatorIdAndTicketStatus(Long creatorId, TicketStatus status);
 
     List<Ticket> findByAssigneeId(Long assigneeId);
 

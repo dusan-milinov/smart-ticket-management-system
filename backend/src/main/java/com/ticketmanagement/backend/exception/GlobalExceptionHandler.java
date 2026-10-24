@@ -63,4 +63,10 @@ public class GlobalExceptionHandler {
     public ErrorResponse handleNotFoundException(RuntimeException ex) {
         return new ErrorResponse(ex.getMessage());
     }
+
+    @ExceptionHandler(IllegalStatusException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleIllegalStatusException(IllegalStatusException ex) {
+        return new ErrorResponse(ex.getMessage());
+    }
 }

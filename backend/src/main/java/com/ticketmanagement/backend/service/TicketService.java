@@ -86,6 +86,16 @@ public class TicketService {
         return TicketResponse.from(ticket);
     }
 
+
+    @Transactional
+    public TicketResponse cancelTicket(long ticketID, long actorID){
+        Ticket ticket = ticketRepository.findByTicketId(ticketID).orElseThrow(() -> new TicketNotFoundException("Ticket with ID " + ticketID + " not found."));
+
+        ticketEventService.recordEvent(ticketID, actorID, TicketEventType.CLOSED, null, null);
+        ticket.cancel();
+        return TicketResponse.from(ticket);
+    }
+
     public List<TicketResponse> getAllTickets() {
         return toResponses(ticketRepository.findAll());
     }
@@ -107,7 +117,16 @@ public class TicketService {
         return toResponses(ticketRepository.findByAssigneeId(assigneeId));
     }
 
+    public List<TicketResponse> getTicketsByUserIdAndStatus(Long userId, TicketStatus status) {
+        return toResponses(ticketRepository.findByCreatorIdAndTicketStatus(userId, status));
+    }
+
+    public List<TicketResponse> getTicketsByAssigneeIdAndStatus(Long assigneeId, TicketStatus status) {
+        return toResponses(ticketRepository.findByAssigneeIdAndTicketStatus(assigneeId, status));
+    }
+
     private List<TicketResponse> toResponses(List<Ticket> tickets) {
         return tickets.stream().map(TicketResponse::from).toList();
     }
+
 }
