@@ -1,0 +1,16 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.content {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 24px 16px 40px;
+  }
+}

@@ -1,3 +1,46 @@
 import { Routes } from '@angular/router';
+import { authGuard, roleMatch } from './core/auth.guard';
+import { ROLES } from './core/roles';
+import { LoginComponent } from './features/login/login.component';
+import { MainLayoutComponent } from './layout/main-layout/main-layout.component';
 
-export const routes: Routes = [];
+export const routes: Routes = [
+    {
+        path: 'login',
+        component: LoginComponent
+    },
+    {
+        path: '',
+        component: MainLayoutComponent,
+        canActivate: [authGuard],
+        children: [
+            {
+                path: 'dashboard',
+                canMatch: [roleMatch(ROLES.ADMIN)],
+                loadComponent: () => import('./features/dashboard/admin-dashboard/admin-dashboard.component')
+                    .then(m => m.AdminDashboardComponent)
+            },
+            {
+                path: 'dashboard',
+                canMatch: [roleMatch(ROLES.SUPPORT_AGENT)],
+                loadComponent: () => import('./features/dashboard/support-agent-dashboard/support-agent-dashboard.component')
+                    .then(m => m.SupportAgentDashboardComponent)
+            },
+            {
+                path: 'dashboard',
+                canMatch: [roleMatch(ROLES.USER)],
+                loadComponent: () => import('./features/dashboard/user-dashboard/user-dashboard.component')
+                    .then(m => m.UserDashboardComponent)
+            },
+            {
+                path: '',
+                pathMatch: 'full',
+                redirectTo: 'dashboard'
+            }
+        ]
+    },
+    {
+        path: '**',
+        redirectTo: 'dashboard'
+    }
+];
