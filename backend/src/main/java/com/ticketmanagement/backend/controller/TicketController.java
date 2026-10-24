@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,14 @@ import org.springframework.web.bind.annotation.*;
 public class TicketController {
     private final TicketService ticketService;
     private final CurrentUserService currentUserService;
+
+    @GetMapping("/my")
+    public ResponseEntity<Page<TicketResponse>> getMyTickets(
+            @ParameterObject @PageableDefault(size = 5, sort = "ticketId", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(ticketService.getTicketsByUserId(currentUserService.getCurrentUser().getId(), pageable));
+    }
+
 
     @PostMapping("/add")
     public ResponseEntity<TicketResponse> addTicket(

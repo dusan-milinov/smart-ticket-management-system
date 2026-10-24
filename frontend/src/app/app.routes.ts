@@ -15,6 +15,11 @@ export const routes: Routes = [
         canActivate: [authGuard],
         children: [
             {
+                path: 'tickets/new',
+                loadComponent: () => import('./features/tickets/create-ticket/create-ticket.component')
+                    .then(m => m.CreateTicketComponent)
+            },
+            {
                 path: 'dashboard',
                 canMatch: [roleMatch(ROLES.ADMIN)],
                 loadComponent: () => import('./features/dashboard/admin-dashboard/admin-dashboard.component')
@@ -31,6 +36,12 @@ export const routes: Routes = [
                 canMatch: [roleMatch(ROLES.USER)],
                 loadComponent: () => import('./features/dashboard/user-dashboard/user-dashboard.component')
                     .then(m => m.UserDashboardComponent)
+            },
+            {
+                path: 'tickets',
+                canMatch: [roleMatch(ROLES.USER)],
+                loadComponent: () => import('./features/tickets/my-tickets/my-tickets.component')
+                    .then(m => m.MyTicketsComponent)
             },
             {
                 path: '',

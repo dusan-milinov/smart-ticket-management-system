@@ -1,0 +1,84 @@
+<app-page-header heading="My Tickets" description="Tickets you have submitted and their current status." />
+
+@if (loading()) {
+  <p class="state" role="status">Loading tickets…</p>
+} @else if (error()) {
+  <div class="state state-error" role="alert">
+    <p>{{ error() }}</p>
+    <button type="button" class="btn" (click)="load(page())">Try again</button>
+  </div>
+} @else {
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Ticket #</th>
+          <th scope="col">Title</th>
+          <th scope="col">Status</th>
+          <th scope="col">Priority</th>
+          <th scope="col">Type</th>
+          <th scope="col">Created At</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (ticket of tickets(); track ticket.ticketId) {
+          <tr>
+            <td data-label="Ticket #" class="number">{{ ticket.ticketNumber }}</td>
+            <td data-label="Title" class="title">{{ ticket.title }}</td>
+            <td data-label="Status">
+              <span class="badge status-{{ ticket.ticketStatus.toLowerCase() }}">{{ label(ticket.ticketStatus) }}</span>
+            </td>
+            <td data-label="Priority">
+              <span class="badge priority-{{ ticket.ticketPriority.toLowerCase() }}">{{ label(ticket.ticketPriority) }}</span>
+            </td>
+            <td data-label="Type">{{ label(ticket.ticketType) }}</td>
+            <td data-label="Created At">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
+            <td data-label="Actions">
+              <div class="actions">
+                <button type="button" class="btn" (click)="viewDetails(ticket)">View Details</button>
+                @if (canCancel(ticket)) {
+                  <button type="button" class="btn btn-warn" (click)="openCancelDialog(ticket)">Cancel Ticket</button>
+                }
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td class="empty" colspan="7">You have not submitted any tickets yet.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <app-pagination [page]="page()" [totalPages]="totalPages()" (pageChange)="load($event)" />
+}
+
+@if (ticketToCancel(); as ticket) {
+  <div class="overlay" (click)="closeCancelDialog()">
+    <div
+      class="dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancel-title"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="cancel-title">Cancel ticket?</h2>
+      <p>
+        Ticket <strong>{{ ticket.ticketNumber }}</strong> will be cancelled. This cannot be undone.
+      </p>
+
+      @if (cancelError()) {
+        <p class="dialog-error" role="alert">{{ cancelError() }}</p>
+      }
+
+      <div class="dialog-actions">
+        <button type="button" class="btn" [disabled]="cancelling()" (click)="closeCancelDialog()">Keep ticket</button>
+        <button type="button" class="btn btn-warn-solid" [disabled]="cancelling()" (click)="confirmCancel()">
+          {{ cancelling() ? 'Cancelling…' : 'Cancel ticket' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

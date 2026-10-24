@@ -1,0 +1,269 @@
+.state {
+  padding: 40px 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.state p {
+  margin: 0 0 12px;
+}
+
+.state-error {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+
+.state-error p {
+  font-weight: 500;
+}
+
+.table-card {
+  overflow-x: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  padding: 14px 16px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+th {
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+td {
+  border-bottom: 1px solid var(--color-border);
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+tbody tr:hover {
+  background: var(--color-bg);
+}
+
+.number {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.title {
+  min-width: 200px;
+  font-weight: 500;
+}
+
+.empty {
+  padding: 40px 16px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-in_queue,
+.priority-high {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+
+.status-fulfillment,
+.priority-medium {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.status-resolved {
+  background: #e3e9f3;
+  color: var(--color-navy);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn {
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-navy);
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-warn {
+  color: var(--color-accent-text);
+}
+
+.btn-warn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+
+.btn-warn-solid {
+  border-color: var(--color-accent-text);
+  background: var(--color-accent-text);
+  color: #fff;
+}
+
+.btn-warn-solid:hover:not(:disabled) {
+  border-color: #92400e;
+  background: #92400e;
+  color: #fff;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 39, 71, 0.4);
+}
+
+.dialog {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.dialog h2 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+}
+
+.dialog p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.dialog-error {
+  margin-top: 12px !important;
+  padding: 8px 12px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text) !important;
+  font-size: 0.875rem;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+@media (max-width: 720px) {
+  .table-card {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  thead {
+    display: none;
+  }
+
+  table,
+  tbody,
+  tr,
+  td {
+    display: block;
+  }
+
+  tr {
+    margin-bottom: 12px;
+    padding: 4px 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+  }
+
+  td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 16px;
+    border-bottom: 0;
+    text-align: right;
+  }
+
+  td::before {
+    content: attr(data-label);
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .empty {
+    display: block;
+    text-align: center;
+  }
+
+  .empty::before {
+    content: none;
+  }
+
+  .title {
+    min-width: 0;
+  }
+
+  .actions {
+    justify-content: flex-end;
+  }
+}
