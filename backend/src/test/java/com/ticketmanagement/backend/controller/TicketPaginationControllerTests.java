@@ -3,6 +3,7 @@ package com.ticketmanagement.backend.controller;
 import com.ticketmanagement.backend.config.SecurityConfig;
 import com.ticketmanagement.backend.dto.ticket.TicketResponse;
 import com.ticketmanagement.backend.enums.TicketStatus;
+import com.ticketmanagement.backend.repository.UserRepository;
 import com.ticketmanagement.backend.security.JwtCookieService;
 import com.ticketmanagement.backend.service.CurrentUserService;
 import com.ticketmanagement.backend.service.TicketService;
@@ -39,18 +40,19 @@ class TicketPaginationControllerTests {
     @MockitoBean private TicketService tickets;
     @MockitoBean private CurrentUserService currentUser;
     @MockitoBean private JwtDecoder decoder;
+    @MockitoBean private UserRepository users;
 
     @ParameterizedTest
     @ValueSource(strings = {"/tickets", "/tickets/status/IN_QUEUE", "/tickets/creator/11", "/tickets/assignee/12"})
     void usesBoundedAndDeterministicallySortedDefaults(String path) throws Exception {
-        Pageable pageable = PageRequest.of(0, 20, Sort.by("ticketId"));
+        Pageable pageable = PageRequest.of(0, 5, Sort.by("ticketId"));
         stub(path, pageable, Page.empty(pageable));
 
         mvc.perform(get(path).with(jwt().authorities(() -> "ROLE_USER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.number").value(0))
-                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.size").value(5))
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0));
 
