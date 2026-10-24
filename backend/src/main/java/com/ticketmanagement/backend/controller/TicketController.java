@@ -9,12 +9,13 @@ import com.ticketmanagement.backend.service.TicketService;
 import jakarta.validation.Valid;
 import jakarta.websocket.server.PathParam;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/tickets")
@@ -31,8 +32,10 @@ public class TicketController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TicketResponse>> getAllTickets() {
-        return ResponseEntity.ok(ticketService.getAllTickets());
+    public ResponseEntity<Page<TicketResponse>> getAllTickets(
+            @ParameterObject @PageableDefault(size = 5, sort = "ticketId") Pageable pageable
+    ) {
+        return ResponseEntity.ok(ticketService.getAllTickets(pageable));
     }
 
     @GetMapping("/{ticketId}")
@@ -42,18 +45,27 @@ public class TicketController {
     }
 
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<TicketResponse>> getTicketsByStatus(@PathVariable TicketStatus status) {
-        return ResponseEntity.ok(ticketService.getTicketsByStatus(status));
+    public ResponseEntity<Page<TicketResponse>> getTicketsByStatus(
+            @PathVariable TicketStatus status,
+            @ParameterObject @PageableDefault(size = 5, sort = "ticketId") Pageable pageable
+    ) {
+        return ResponseEntity.ok(ticketService.getTicketsByStatus(status, pageable));
     }
 
     @GetMapping("/creator/{creatorId}")
-    public ResponseEntity<List<TicketResponse>> getTicketsByUserId(@PathVariable Long creatorId) {
-        return ResponseEntity.ok(ticketService.getTicketsByUserId(creatorId));
+    public ResponseEntity<Page<TicketResponse>> getTicketsByUserId(
+            @PathVariable Long creatorId,
+            @ParameterObject @PageableDefault(size = 5, sort = "ticketId") Pageable pageable
+    ) {
+        return ResponseEntity.ok(ticketService.getTicketsByUserId(creatorId, pageable));
     }
 
     @GetMapping("/assignee/{assigneeId}")
-    public ResponseEntity<List<TicketResponse>> getTicketsByAssigneeId(@PathVariable Long assigneeId) {
-        return ResponseEntity.ok(ticketService.getTicketsByAssigneeId(assigneeId));
+    public ResponseEntity<Page<TicketResponse>> getTicketsByAssigneeId(
+            @PathVariable Long assigneeId,
+            @ParameterObject @PageableDefault(size = 5, sort = "ticketId") Pageable pageable
+    ) {
+        return ResponseEntity.ok(ticketService.getTicketsByAssigneeId(assigneeId, pageable));
     }
 
     @PatchMapping("/reassign")

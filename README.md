@@ -15,6 +15,25 @@ The system has three roles:
 - **Administrator** — manages users, agents, and all tickets.
 
 
+## Ticket list pagination
+
+`GET /tickets`, `GET /tickets/status/{status}`, `GET /tickets/creator/{creatorId}`,
+and `GET /tickets/assignee/{assigneeId}` accept Spring Data pagination parameters:
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `page` | `0` | Zero-based page index |
+| `size` | `5` | Tickets per page (maximum `2000`) |
+| `sort` | `ticketId,asc` | Entity property and direction; repeat for multiple sort fields |
+
+For example: `/tickets/status/IN_QUEUE?page=1&size=10&sort=createdAt,desc&sort=ticketId,asc`.
+Use a unique field such as `ticketId` as the final sort field for predictable ordering.
+
+List responses are now page objects rather than bare arrays. Tickets are in
+`content`, with `number`, `size`, `totalElements`, `totalPages`, `first`, and
+`last` describing the page. An out-of-range page has empty `content` but retains
+the matching total. Single-ticket and mutation responses are unchanged.
+
 ## Running with Docker
 
 MySQL and Spring Boot run in Docker containers. Angular currently runs locally.
