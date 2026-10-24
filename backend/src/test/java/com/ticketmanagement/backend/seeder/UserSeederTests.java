@@ -64,6 +64,7 @@ class UserSeederTests {
         EXPECTED_ACCOUNTS.forEach((email, role) -> {
             AppUser user = accounts.get(email);
             assertThat(user.getRole()).isEqualTo(role);
+            assertThat(user.isActive()).isTrue();
             assertThat(user.getId()).isNull();
             assertThat(user.getPassword()).isNotEqualTo(PASSWORD);
             assertThat(passwordEncoder.matches(PASSWORD, user.getPassword())).isTrue();
@@ -97,6 +98,7 @@ class UserSeederTests {
         existingAdmin.setId(42L);
         AppUser existingAgent = new AppUser("nikola@example.com", "existing-agent-hash", Role.ADMIN);
         existingAgent.setId(99L);
+        existingAgent.deactivate();
         accounts.put(existingAdmin.getEmail(), existingAdmin);
         accounts.put(existingAgent.getEmail(), existingAgent);
 
@@ -111,6 +113,8 @@ class UserSeederTests {
         assertThat(existingAgent.getId()).isEqualTo(99L);
         assertThat(existingAgent.getPassword()).isEqualTo("existing-agent-hash");
         assertThat(existingAgent.getRole()).isEqualTo(Role.ADMIN);
+        assertThat(existingAgent.isActive()).isFalse();
+        assertThat(existingAdmin.isActive()).isTrue();
         verify(userRepository, times(4)).save(any(AppUser.class));
         verify(passwordEncoder, times(4)).encode(PASSWORD);
     }

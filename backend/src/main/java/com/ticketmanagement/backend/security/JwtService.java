@@ -14,6 +14,8 @@ import java.util.List;
 @Service
 public class JwtService {
 
+    public static final String TOKEN_VERSION_CLAIM = "token_version";
+
     private final JwtEncoder jwtEncoder;
     private final long expirationSeconds;
 
@@ -26,7 +28,11 @@ public class JwtService {
         this.expirationSeconds = expirationSeconds;
     }
 
+    /** Issues a JWT for a successful login; the principal must carry the account's token version. */
     public String generateToken(Authentication authentication) {
+        if (!(authentication.getPrincipal() instanceof AppUserPrincipal principal)) {
+            throw new IllegalStateException("Tokens can only be issued for application accounts");
+        }
         Instant now = Instant.now();
 
         List<String> roles = authentication.getAuthorities().stream()
@@ -39,6 +45,7 @@ public class JwtService {
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(expirationSeconds))
                 .claim("roles", roles)
+                .claim(TOKEN_VERSION_CLAIM, principal.getTokenVersion())
                 .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();

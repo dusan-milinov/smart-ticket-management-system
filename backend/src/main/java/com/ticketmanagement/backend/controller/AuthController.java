@@ -25,10 +25,14 @@ public class AuthController {
     private final UserService userService;
     private final JwtCookieService jwtCookieService;
 
+    /** Changes the password, then expires the cookie: every issued JWT is revoked, so the client must log in again. */
     @PostMapping("/change-password")
     public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         userService.changeOwnPassword(request);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity
+                .noContent()
+                .header(HttpHeaders.SET_COOKIE, jwtCookieService.clear().toString())
+                .build();
     }
 
     @PostMapping("/register")

@@ -28,7 +28,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({
             UserAlreadyExistsException.class,
-            TicketAlreadyExistsException.class
+            TicketAlreadyExistsException.class,
+            UserDeactivationException.class,
+            InactiveAssigneeException.class
     })
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleConflictException(RuntimeException ex) {

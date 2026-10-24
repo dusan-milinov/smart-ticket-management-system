@@ -4,6 +4,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.authentication.AuthenticationManager;
+import com.ticketmanagement.backend.repository.UserRepository;
+import com.ticketmanagement.backend.security.ActiveAccountJwtAuthenticationConverter;
 import com.ticketmanagement.backend.security.JwtCookieService;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
@@ -59,7 +61,7 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain securityFilterChain(
                         HttpSecurity http,
-                        JwtAuthenticationConverter jwtAuthenticationConverter,
+                        ActiveAccountJwtAuthenticationConverter jwtAuthenticationConverter,
                         BearerTokenResolver bearerTokenResolver) {
                 return http
                                 .cors(Customizer.withDefaults())
@@ -118,6 +120,13 @@ public class SecurityConfig {
                 JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
                 authenticationConverter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
                 return authenticationConverter;
+        }
+
+        @Bean
+        public ActiveAccountJwtAuthenticationConverter activeAccountJwtAuthenticationConverter(
+                        UserRepository userRepository,
+                        JwtAuthenticationConverter jwtAuthenticationConverter) {
+                return new ActiveAccountJwtAuthenticationConverter(userRepository, jwtAuthenticationConverter);
         }
 
         @Bean
