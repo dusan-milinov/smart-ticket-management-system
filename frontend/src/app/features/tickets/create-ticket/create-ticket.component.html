@@ -1,0 +1,82 @@
+<app-page-header
+  heading="Create Ticket"
+  description="Tell us what you need help with. All fields are required."
+/>
+
+<section class="ticket-panel" aria-label="New ticket">
+  @if (createdTicketNumber(); as ticketNumber) {
+    <div class="notice success" role="status">
+      Ticket <strong>{{ ticketNumber }}</strong> was created successfully and is in the queue.
+      You can submit another ticket below.
+    </div>
+  }
+
+  @if (submitError(); as error) {
+    <div class="notice error" role="alert">
+      {{ error }}
+      <a routerLink="/login">Sign in</a>
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" [attr.aria-busy]="submitting()" novalidate>
+    <div class="field">
+      <label for="title">Title</label>
+      <input id="title" type="text" formControlName="title" required
+        placeholder="Briefly summarize your request"
+        [attr.aria-invalid]="form.controls.title.touched && form.controls.title.invalid"
+        [attr.aria-describedby]="form.controls.title.touched && form.controls.title.invalid ? 'title-error' : null" />
+      @if (form.controls.title.touched && form.controls.title.invalid) {
+        <p id="title-error" class="field-error">Enter a ticket title.</p>
+      }
+    </div>
+
+    <div class="field">
+      <label for="description">Description</label>
+      <textarea id="description" formControlName="description" rows="7" required
+        placeholder="Describe the issue or software you need, including any relevant details."
+        [attr.aria-invalid]="form.controls.description.touched && form.controls.description.invalid"
+        [attr.aria-describedby]="form.controls.description.touched && form.controls.description.invalid ? 'description-error' : null"></textarea>
+      @if (form.controls.description.touched && form.controls.description.invalid) {
+        <p id="description-error" class="field-error">Enter a ticket description.</p>
+      }
+    </div>
+
+    <div class="field-grid">
+      <div class="field">
+        <label for="ticketType">Ticket type</label>
+        <select id="ticketType" formControlName="ticketType" required
+          [attr.aria-invalid]="form.controls.ticketType.touched && form.controls.ticketType.invalid"
+          [attr.aria-describedby]="form.controls.ticketType.touched && form.controls.ticketType.invalid ? 'type-error' : null">
+          <option value="" disabled>Select a type</option>
+          <option value="INCIDENT">Incident</option>
+          <option value="SOFTWARE_REQUEST">Software request</option>
+        </select>
+        @if (form.controls.ticketType.touched && form.controls.ticketType.invalid) {
+          <p id="type-error" class="field-error">Select a ticket type.</p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="ticketPriority">Priority</label>
+        <select id="ticketPriority" formControlName="ticketPriority" required
+          [attr.aria-invalid]="form.controls.ticketPriority.touched && form.controls.ticketPriority.invalid"
+          [attr.aria-describedby]="form.controls.ticketPriority.touched && form.controls.ticketPriority.invalid ? 'priority-error' : null">
+          <option value="" disabled>Select a priority</option>
+          <option value="LOW">Low</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HIGH">High</option>
+        </select>
+        @if (form.controls.ticketPriority.touched && form.controls.ticketPriority.invalid) {
+          <p id="priority-error" class="field-error">Select a priority.</p>
+        }
+      </div>
+    </div>
+
+    <div class="actions">
+      <a routerLink="/dashboard">Back to dashboard</a>
+      <button type="submit" [disabled]="submitting()">
+        {{ submitting() ? 'Creating ticket...' : 'Create ticket' }}
+      </button>
+    </div>
+  </form>
+</section>
