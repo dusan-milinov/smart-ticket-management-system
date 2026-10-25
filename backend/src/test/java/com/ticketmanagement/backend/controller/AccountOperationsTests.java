@@ -4,7 +4,9 @@ import com.ticketmanagement.backend.config.SecurityConfig;
 import com.ticketmanagement.backend.dto.auth.ChangePasswordRequest;
 import com.ticketmanagement.backend.dto.auth.RegisterSupportAgentRequest;
 import com.ticketmanagement.backend.enums.Role;
+import com.ticketmanagement.backend.enums.TicketStatus;
 import com.ticketmanagement.backend.model.AppUser;
+import com.ticketmanagement.backend.repository.TicketRepository;
 import com.ticketmanagement.backend.repository.UserRepository;
 import com.ticketmanagement.backend.security.JwtCookieService;
 import com.ticketmanagement.backend.security.JwtService;
@@ -47,6 +49,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -66,6 +69,7 @@ class AccountOperationsTests {
     @Autowired private UserService userService;
     @Autowired private PasswordEncoder encoder;
     @MockitoBean private UserRepository users;
+    @MockitoBean private TicketRepository tickets;
     @MockitoBean private AuthenticationManager authenticationManager;
     @MockitoBean private JwtService jwtService;
     @MockitoBean private JwtDecoder decoder;
@@ -98,8 +102,11 @@ class AccountOperationsTests {
     void changesOnlyJwtSubjectPasswordForEveryRole(String role) throws Exception {
         mvc.perform(post("/auth/change-password").with(identity(role))
                         .contentType(MediaType.APPLICATION_JSON).content(PASSWORD_REQUEST))
-                .andExpect(status().isNoContent()).andExpect(content().string(""));
+                .andExpect(status().isNoContent()).andExpect(content().string(""))
+                .andExpect(header().string("Set-Cookie", containsString("access_token=")))
+                .andExpect(header().string("Set-Cookie", containsString("Max-Age=0")));
 
+        assertThat(owner.getTokenVersion()).isEqualTo(1L);
         assertThat(encoder.matches(NEW, owner.getPassword())).isTrue();
         assertThat(encoder.matches(CURRENT, owner.getPassword())).isFalse();
         assertThat(owner.getPassword()).isNotEqualTo(NEW).isNotEqualTo(originalHash);
@@ -165,9 +172,7 @@ class AccountOperationsTests {
     @ParameterizedTest
     @ValueSource(strings = {"cookie", "header"})
     void passwordChangeAuthenticatesThroughTheTokenResolver(String source) throws Exception {
-        Jwt token = Jwt.withTokenValue("valid-test-token")
-                .header("alg", "HS256").subject(EMAIL).claim("roles", List.of("ROLE_USER")).build();
-        when(decoder.decode("valid-test-token")).thenReturn(token);
+        when(decoder.decode("valid-test-token")).thenReturn(rawToken("valid-test-token", 0L));
         var request = post("/auth/change-password")
                 .contentType(MediaType.APPLICATION_JSON).content(PASSWORD_REQUEST);
         if (source.equals("cookie")) {
@@ -210,6 +215,7 @@ class AccountOperationsTests {
                 .andExpect(jsonPath("$.id").value(99))
                 .andExpect(jsonPath("$.email").value("agent@example.com"))
                 .andExpect(jsonPath("$.role").value("SUPPORT_AGENT"))
+                .andExpect(jsonPath("$.active").value(true))
                 .andExpect(jsonPath("$.password").doesNotExist())
                 .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(content().string(not(containsString(NEW))));
@@ -285,7 +291,148 @@ class AccountOperationsTests {
     @Test
     void publicRegistrationStillCreatesOnlyRegularUsers() throws Exception {
         mvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(AGENT_REQUEST))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.role").value("USER"));
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.role").value("USER"))
+                .andExpect(jsonPath("$.active").doesNotExist());
+    }
+
+    @Test
+    void adminDeactivatesUserAndRepeatedRequestChangesNothing() throws Exception {
+        AppUser admin = actingAdmin();
+        AppUser target = account(7L, "target@example.com", Role.SUPPORT_AGENT);
+        when(users.findByIdForUpdate(7L)).thenReturn(Optional.of(target));
+
+        mvc.perform(patch("/admin/users/7/deactivate").with(identity("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(7))
+                .andExpect(jsonPath("$.email").value("target@example.com"))
+                .andExpect(jsonPath("$.active").value(false))
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.tokenVersion").doesNotExist());
+        assertThat(target.isActive()).isFalse();
+        verify(users).save(target);
+
+        mvc.perform(patch("/admin/users/7/deactivate").with(identity("ADMIN")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.active").value(false));
+        verify(users).save(target);
+        verify(tickets).countByAssigneeIdAndTicketStatusIn(7L, TicketStatus.UNRESOLVED);
+        assertThat(admin.isActive()).isTrue();
+    }
+
+    @Test
+    void deactivatingUnknownUserReturnsNotFound() throws Exception {
+        actingAdmin();
+        when(users.findByIdForUpdate(404L)).thenReturn(Optional.empty());
+        mvc.perform(patch("/admin/users/404/deactivate").with(identity("ADMIN")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("User with ID 404 not found."));
+        verify(users, never()).save(any());
+    }
+
+    @Test
+    void administratorCannotDeactivateOwnAccount() throws Exception {
+        AppUser admin = actingAdmin();
+        when(users.findByIdForUpdate(41L)).thenReturn(Optional.of(admin));
+        mvc.perform(patch("/admin/users/41/deactivate").with(identity("ADMIN")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Administrators cannot deactivate their own account"));
+        assertThat(admin.isActive()).isTrue();
+        verify(users, never()).save(any());
+    }
+
+    @Test
+    void administratorCannotDeactivateAnotherAdministrator() throws Exception {
+        actingAdmin();
+        AppUser otherAdmin = account(8L, "other-admin@example.com", Role.ADMIN);
+        when(users.findByIdForUpdate(8L)).thenReturn(Optional.of(otherAdmin));
+        mvc.perform(patch("/admin/users/8/deactivate").with(identity("ADMIN")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Administrator accounts cannot be deactivated"));
+        assertThat(otherAdmin.isActive()).isTrue();
+        verify(users, never()).save(any());
+    }
+
+    @Test
+    void agentWithUnresolvedTicketsCannotBeDeactivated() throws Exception {
+        actingAdmin();
+        AppUser agent = account(9L, "busy-agent@example.com", Role.SUPPORT_AGENT);
+        when(users.findByIdForUpdate(9L)).thenReturn(Optional.of(agent));
+        when(tickets.countByAssigneeIdAndTicketStatusIn(9L, TicketStatus.UNRESOLVED)).thenReturn(2L);
+        mvc.perform(patch("/admin/users/9/deactivate").with(identity("ADMIN")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(
+                        "User has 2 unresolved assigned ticket(s); reassign them before deactivation"));
+        assertThat(agent.isActive()).isTrue();
+        verify(users, never()).save(any());
+    }
+
+    @Test
+    void unresolvedTicketsAreQueuedOrInFulfillment() {
+        assertThat(TicketStatus.UNRESOLVED)
+                .containsExactlyInAnyOrder(TicketStatus.IN_QUEUE, TicketStatus.FULFILLMENT);
+    }
+
+    @Test
+    void anonymousDeactivationIsRejected() throws Exception {
+        mvc.perform(patch("/admin/users/7/deactivate")).andExpect(status().isUnauthorized());
+        verifyNoInteractions(users, tickets);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"USER", "SUPPORT_AGENT"})
+    void nonAdminCannotDeactivateUsers(String role) throws Exception {
+        mvc.perform(patch("/admin/users/7/deactivate").with(identity(role)))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(users, tickets);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"USER", "SUPPORT_AGENT"})
+    void deactivationServiceRejectsNonAdminWithoutHttp(String role) {
+        authenticate(role);
+        assertThatThrownBy(() -> userService.deactivateUser(7L)).isInstanceOf(AccessDeniedException.class);
+        SecurityContextHolder.clearContext();
+        assertThatThrownBy(() -> userService.deactivateUser(7L))
+                .isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+        verifyNoInteractions(users, tickets);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"cookie", "header"})
+    void unexpiredJwtOfInactiveAccountIsRejected(String source) throws Exception {
+        owner.deactivate();
+        when(decoder.decode("inactive-test-token")).thenReturn(rawToken("inactive-test-token", 0L));
+        mvc.perform(withToken(post("/auth/change-password"), source, "inactive-test-token")
+                        .contentType(MediaType.APPLICATION_JSON).content(PASSWORD_REQUEST))
+                .andExpect(status().isUnauthorized());
+        assertUnchanged();
+    }
+
+    @Test
+    void inactiveAccountIsRejectedEvenWhenTokenConversionIsBypassed() throws Exception {
+        owner.deactivate();
+        mvc.perform(post("/auth/change-password").with(identity("USER"))
+                        .contentType(MediaType.APPLICATION_JSON).content(PASSWORD_REQUEST))
+                .andExpect(status().isUnauthorized());
+        assertUnchanged();
+    }
+
+    @Test
+    void jwtIssuedBeforePasswordChangeIsRejected() throws Exception {
+        when(decoder.decode("old-test-token")).thenReturn(rawToken("old-test-token", 0L));
+        when(decoder.decode("legacy-test-token")).thenReturn(rawToken("legacy-test-token", null));
+        mvc.perform(withToken(post("/auth/change-password"), "cookie", "old-test-token")
+                        .contentType(MediaType.APPLICATION_JSON).content(PASSWORD_REQUEST))
+                .andExpect(status().isNoContent());
+        assertThat(owner.getTokenVersion()).isEqualTo(1L);
+
+        for (String token : List.of("old-test-token", "legacy-test-token")) {
+            mvc.perform(withToken(post("/auth/change-password"), "header", token)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"currentPassword\":\"" + NEW + "\",\"newPassword\":\"Third-password-3\"}"))
+                    .andExpect(status().isUnauthorized());
+        }
+        assertThat(encoder.matches(NEW, owner.getPassword())).isTrue();
+        verify(users).save(owner);
     }
 
     @Test
@@ -346,6 +493,35 @@ class AccountOperationsTests {
     private RequestPostProcessor identity(String role) {
         return jwt().jwt(token -> token.subject(EMAIL))
                 .authorities(new SimpleGrantedAuthority("ROLE_" + role));
+    }
+
+    private AppUser actingAdmin() {
+        AppUser admin = account(41L, EMAIL, Role.ADMIN);
+        when(users.findByEmail(EMAIL)).thenReturn(Optional.of(admin));
+        return admin;
+    }
+
+    private AppUser account(long id, String email, Role role) {
+        AppUser user = new AppUser(email, originalHash, role);
+        user.setId(id);
+        return user;
+    }
+
+    private Jwt rawToken(String value, Long tokenVersion) {
+        var builder = Jwt.withTokenValue(value).header("alg", "HS256")
+                .subject(EMAIL).claim("roles", List.of("ROLE_USER"));
+        if (tokenVersion != null) {
+            builder.claim("token_version", tokenVersion);
+        }
+        return builder.build();
+    }
+
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withToken(
+            org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request,
+            String source, String token) {
+        return source.equals("cookie")
+                ? request.cookie(new Cookie("access_token", token))
+                : request.header("Authorization", "Bearer " + token);
     }
 
     private void authenticate(String role) {

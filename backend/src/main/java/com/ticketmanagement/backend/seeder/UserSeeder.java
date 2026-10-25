@@ -35,6 +35,7 @@ public class UserSeeder {
 
     /**
      * Inserts missing development accounts in one transaction, leaving existing accounts unchanged.
+     * New accounts are active by default.
      * Persistence and encoding failures propagate and roll back the transaction.
      */
     @Transactional

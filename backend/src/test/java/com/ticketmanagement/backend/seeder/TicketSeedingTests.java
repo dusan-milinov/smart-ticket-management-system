@@ -39,7 +39,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 
-@SpringBootTest(properties = {"app.seed.enabled=false", "spring.jpa.hibernate.ddl-auto=validate"})
+@SpringBootTest(properties = "app.seed.enabled=false")
 @Import(TicketSeedingTests.SeedTestConfiguration.class)
 class TicketSeedingTests {
 
@@ -204,6 +204,23 @@ class TicketSeedingTests {
     }
 
     @Test
+    void inactiveAssignedAgentFailsClearlyWithoutReactivation() {
+        inRollbackTransaction(status -> {
+            prepareFixtures();
+            String agentEmail = TicketSeeder.FIXTURES.getFirst().initialAgentEmail();
+            AppUser agent = users.findByEmail(agentEmail).orElseThrow();
+            agent.deactivate();
+            entityManager.flush();
+
+            assertThatThrownBy(() -> fixtureSeeder.seed(TicketSeeder.FIXTURES.getFirst()))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Seed agent " + agentEmail + " is inactive and cannot be assigned tickets");
+            assertThat(agent.isActive()).isFalse();
+            assertThat(fixtureTickets()).isEmpty();
+        });
+    }
+
+    @Test
     void lateHistoryFailureRollsBackActualTicketCommentAndEventWrites() {
         List<String> before = new TransactionTemplate(transactionManager).execute(status -> snapshot());
         AtomicBoolean writesObserved = new AtomicBoolean();
@@ -359,6 +376,10 @@ class TicketSeedingTests {
             user.setRole(role);
         });
         entityManager.flush();
+        // AppUser exposes no reactivation, so the rollback-only transaction resets the flag in bulk.
+        entityManager.createQuery("update AppUser u set u.active = true where u.email in :emails")
+                .setParameter("emails", required.keySet()).executeUpdate();
+        entityManager.clear();
     }
 
     private List<Ticket> fixtureTickets() {

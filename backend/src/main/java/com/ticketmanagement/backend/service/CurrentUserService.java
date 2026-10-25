@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -26,8 +27,13 @@ public class CurrentUserService {
         }
 
 
-        return userRepository.findByEmail(authentication.getName())
+        AppUser user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new BadCredentialsException("Authenticated account is unavailable"));
+        // Defense in depth: the JWT converter already rejects inactive accounts for HTTP requests.
+        if (!user.isActive()) {
+            throw new DisabledException("Authenticated account is inactive");
+        }
+        return user;
     }
 
 }

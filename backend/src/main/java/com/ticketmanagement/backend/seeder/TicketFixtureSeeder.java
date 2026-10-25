@@ -28,9 +28,9 @@ public class TicketFixtureSeeder {
         }
         AppUser creator = requireUser(fixture.creatorEmail(), Role.USER);
         AppUser admin = requireUser(TicketSeeder.ADMIN, Role.ADMIN);
-        AppUser initialAgent = requireUser(fixture.initialAgentEmail(), Role.SUPPORT_AGENT);
+        AppUser initialAgent = requireAssignableAgent(fixture.initialAgentEmail());
         AppUser finalAgent = fixture.reassignedAgentEmail() == null
-                ? initialAgent : requireUser(fixture.reassignedAgentEmail(), Role.SUPPORT_AGENT);
+                ? initialAgent : requireAssignableAgent(fixture.reassignedAgentEmail());
         Instant timestamp = Instant.parse("2026-01-01T09:00:00Z").plusSeconds(fixture.number() * 86400L);
 
         Ticket ticket = new Ticket();
@@ -89,6 +89,15 @@ public class TicketFixtureSeeder {
             return Role.ADMIN;
         }
         return email.equals(fixture.creatorEmail()) ? Role.USER : Role.SUPPORT_AGENT;
+    }
+
+    // Inactive agents must not receive assignments, so the fixture fails instead of reactivating them.
+    private AppUser requireAssignableAgent(String email) {
+        AppUser agent = requireUser(email, Role.SUPPORT_AGENT);
+        if (!agent.isActive()) {
+            throw new IllegalStateException("Seed agent " + email + " is inactive and cannot be assigned tickets");
+        }
+        return agent;
     }
 
     private AppUser requireUser(String email, Role expectedRole) {

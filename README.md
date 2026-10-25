@@ -170,7 +170,7 @@ Resolution uses a single `RESOLVED` event rather than a duplicate status event.
 
 Each ticket, its assignment, comments, and complete history are saved in one transaction. A failure rolls back that entire fixture and stops further seeding; earlier completed fixtures remain. Existing ticket numbers and all their children are skipped unchanged, even if their history is incomplete.
 
-**Activation state is deferred:** `AppUser` does not yet support active/inactive accounts. All three agents currently behave alike; `agent3@example.com` is reserved for the future inactive-agent scenario.
+**Activation state:** Seeded accounts are created active, and existing accounts keep their activation state. `agent3@example.com` stays active because ticket fixtures are assigned to it. To try the inactive-agent scenario, deactivate it through the admin endpoint after its fixtures are resolved or reassigned. A fixture whose agent is inactive fails clearly; the seeder never reactivates accounts.
 
 **IntelliJ:** In the Spring Boot run configuration, set the active profile to
 `dev`. Add environment variables `APP_SEED_ENABLED=true` and
@@ -321,7 +321,12 @@ The system shall support:
 - Logout by having the server expire the authentication cookie (`POST /auth/logout`).
 - Password reset through email verification.
 
-**JWT clarification:** Expiring the cookie ends that client's local authenticated state. It does not invalidate an already-issued JWT on the server. Token lifetime and any server-side revocation or refresh-token behavior remain to be defined.
+**JWT clarification:** Plain logout only expires the cookie; it does not invalidate an already-issued JWT on the server. Every authenticated request checks the token's account, so a JWT is rejected with `401` when:
+
+- the account was deactivated, or
+- the account's password was changed after the token was issued (the `token_version` claim no longer matches).
+
+Tokens issued before the `token_version` claim existed are also rejected, so users must log in again once. Refresh-token behavior remains to be defined.
 
 #### Authentication Cookie
 
@@ -329,6 +334,7 @@ The system shall support:
 |---|---|
 | `POST /auth/login` | Returns `204 No Content` and sets the `access_token` cookie. The token is never in the response body. |
 | `POST /auth/logout` | Returns `204 No Content` and expires the cookie (`Max-Age=0`). |
+| `POST /auth/change-password` | Body `{currentPassword, newPassword}`. Returns `204 No Content`, expires the cookie and revokes every JWT issued for the account. The frontend must then redirect to the login page. |
 | `GET /users/me` | Returns the current user. The frontend calls it to restore the session after a page reload, because JavaScript cannot read the cookie. |
 
 Cookie attributes: `HttpOnly`, `SameSite=Lax`, `Path=/`, lifetime equal to `security.jwt.expiration-seconds`, and `Secure` controlled by `security.jwt.cookie-secure`.
@@ -345,7 +351,21 @@ Important:
 
 The system shall support profile management operations, originally described as CRUD: create, read, update, and delete.
 
-Account creation is covered by FR-01. Editable profile fields, deletion/deactivation behavior, and permissions for each operation remain to be defined.
+Account creation is covered by FR-01.
+
+**Account deactivation (soft delete):** `PATCH /admin/users/{userId}/deactivate` (ADMIN only) returns `200` with `{id, email, role, active}`.
+
+- The account row and all tickets, comments, and events referencing it are preserved.
+- Inactive accounts cannot log in, and their unexpired JWTs are rejected with `401`.
+- Inactive support agents cannot be assigned or reassigned tickets (`409`).
+- Repeating the request for an inactive account returns `200` without changes.
+- An unknown user returns `404`.
+- These cases return `409`:
+  - deactivating an administrator, including yourself (this also protects the last administrator);
+  - deactivating an agent that still has unresolved (`IN_QUEUE` or `FULFILLMENT`) assigned tickets.
+- Reactivation is not supported yet.
+- `active` is exposed only in admin responses (`POST /admin/support-agents` and deactivation), not in public registration.
+- Schema change: `ddl-auto=update` adds `active` (default `true`, so existing accounts stay active) and `token_version` (default `0`).
 
 ### FR-04 — Ticket Creation
 
@@ -497,11 +517,8 @@ It must be decided whether resolution and closure produce both a `STATUS_CHANGED
 
 These items clarify incomplete requirements; they do not introduce additional committed functionality.
 
-1. **Status lifecycle:** Final statuses, allowed transitions, who starts fulfillment, and who closes tickets.
-2. **Automatic assignment:** Active-ticket definition, availability criteria, tie-breaking, no-agent handling, and concurrency behavior.
-3. **Reassignment:** Manual replacement selection versus automatic selection, and whether support levels exist in the baseline.
-4. **Ticket forms:** Required fields and validation for Incident and Software Request.
-5. **Profiles and administration:** Editable fields, permitted management operations, and deletion/deactivation behavior.
-6. **Authentication:** Email verification behavior, password-reset flow, JWT expiry, and logout/revocation semantics.
-7. **Role capabilities:** Whether agents and administrators may also submit personal tickets; any additional agent status permissions.
-8. **History:** How specialized status events relate to `STATUS_CHANGED`.
+1. **Automatic assignment:** Active-ticket definition, availability criteria, tie-breaking, no-agent handling, and concurrency behavior.
+2. **Reassignment:** Manual replacement selection versus automatic selection, and whether support levels exist in the baseline.
+3. **Ticket forms:** Required fields and validation for Incident and Software Request.
+4. **Authentication:** Email verification behavior, password-reset flow, JWT expiry, and logout/revocation semantics.
+5. **History:** How specialized status events relate to `STATUS_CHANGED`.

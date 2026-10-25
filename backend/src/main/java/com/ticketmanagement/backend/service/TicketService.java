@@ -4,6 +4,7 @@ import com.ticketmanagement.backend.dto.ticket.CreateTicketRequest;
 import com.ticketmanagement.backend.dto.ticket.TicketResponse;
 import com.ticketmanagement.backend.enums.TicketEventType;
 import com.ticketmanagement.backend.enums.TicketStatus;
+import com.ticketmanagement.backend.exception.InactiveAssigneeException;
 import com.ticketmanagement.backend.exception.TicketNotFoundException;
 import com.ticketmanagement.backend.exception.UserNotFoundException;
 import com.ticketmanagement.backend.model.AppUser;
@@ -64,7 +65,11 @@ public class TicketService {
     @Transactional
     public TicketResponse reassign(long ticketID, long assigneeID, long actorID) {
         Ticket ticket = ticketRepository.findByTicketId(ticketID).orElseThrow(() -> new TicketNotFoundException("Ticket with ID " + ticketID + " not found."));
-        AppUser assignee = userRepository.findById(assigneeID).orElseThrow(() -> new UserNotFoundException("User with ID " + assigneeID + " not found."));
+        // Locking the assignee serializes this check with a concurrent deactivation of the same account.
+        AppUser assignee = userRepository.findByIdForUpdate(assigneeID).orElseThrow(() -> new UserNotFoundException("User with ID " + assigneeID + " not found."));
+        if (!assignee.isActive()) {
+            throw new InactiveAssigneeException(assigneeID);
+        }
         ticketEventService.recordEvent(ticketID, actorID, TicketEventType.REASSIGNED, ticket.getAssignee() == null ? null : ticket.getAssignee().getId().toString(), assigneeID + "");
         ticket.assignTo(assignee);
         return TicketResponse.from(ticket);
