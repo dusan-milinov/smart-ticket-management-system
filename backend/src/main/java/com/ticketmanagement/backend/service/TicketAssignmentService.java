@@ -5,6 +5,7 @@ import com.ticketmanagement.backend.enums.TicketPriority;
 import com.ticketmanagement.backend.enums.TicketStatus;
 import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.model.Ticket;
+import com.ticketmanagement.backend.repository.AssignmentLockRepository;
 import com.ticketmanagement.backend.repository.TicketRepository;
 import com.ticketmanagement.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +20,11 @@ public class TicketAssignmentService {
 
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
+    private final AssignmentLockRepository assignmentLockRepository;
 
 
     public AppUser findLeastLoadedAgent() {
+        assignmentLockRepository.lockAssignment().orElseThrow(()-> new IllegalStateException("Failed to acquire assignment lock"));
         List<AppUser> agents = userRepository.findByRoleAndActiveTrue(Role.SUPPORT_AGENT);
         return agents.stream()
                 .min(Comparator.comparingInt(this::calculateWorkload)
