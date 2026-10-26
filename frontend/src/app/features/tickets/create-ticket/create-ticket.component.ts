@@ -5,7 +5,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
-import { TicketPriority, TicketService, TicketType } from '../ticket.service';
+import { TicketService} from '../services/ticket.service';
+import type { TicketPriority, TicketType } from '../models/create-ticket-request.model';
 
 @Component({
   selector: 'app-create-ticket',
