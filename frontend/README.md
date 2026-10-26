@@ -24,6 +24,25 @@ creator, ticket number, and initial status. On success, the page displays the
 ticket number and resets for another submission. Failed submissions preserve
 the entered values and display an error so the user can retry.
 
+## Assigned tickets
+
+Support agents can open **Assigned Tickets** from the navigation at
+`/tickets/assigned`. The page lists only tickets assigned to the signed-in agent,
+newest first, with ten tickets per page. It shares the My Tickets table styles,
+status and priority badges, responsive mobile layout, and dashboard page header.
+Loading, empty, and error states are displayed, with a retry button on failure.
+
+The page uses `GET /api/tickets/assigned?page=0&size=10` with the session cookie.
+The backend derives the assignee from the authenticated account and restricts
+the endpoint to support agents. The list includes all ticket statuses.
+
+Each row includes a **View Details** placeholder (navigation is not implemented
+yet). Open tickets also have a **Resolve Ticket** action, which opens a popup
+requiring a non-blank resolution message. Submission calls
+`PATCH /api/tickets/resolve` with `ticketID` and `summary` query parameters, then
+refreshes the current page. Failed submissions keep the message for retry.
+Resolved and cancelled tickets cannot be resolved again.
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:

@@ -27,6 +27,7 @@ public class TicketService {
     private final TicketEventService ticketEventService;
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final TicketAssignmentService ticketAssignmentService;
 
     @Transactional
     public TicketResponse createTicket(
@@ -45,12 +46,14 @@ public class TicketService {
         ticket.setCreatedAt(now);
         ticket.setUpdatedAt(now);
         ticket.setCreator(creator);
-        ticket.setAssignee(null);
+        ticket.setAssignee(ticketAssignmentService.findLeastLoadedAgent());
         ticket.setTicketType(request.ticketType());
 
         Ticket savedTicket = ticketRepository.save(ticket);
 
         ticketEventService.recordEvent(savedTicket.getTicketId(), creator.getId(), TicketEventType.CREATED, null, null);
+        ticketEventService.recordEvent(savedTicket.getTicketId(), creator.getId(), TicketEventType.ASSIGNED, null, savedTicket.getAssignee().getId().toString());
+
         return TicketResponse.from(savedTicket);
     }
 
