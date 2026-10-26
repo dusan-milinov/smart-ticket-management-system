@@ -1,10 +1,59 @@
-<app-page-header
-  heading="Dashboard"
-  description="Track the tickets you have submitted and see where they stand."
-/>
+<div class="dashboard-heading">
+  <app-page-header
+    heading="Your dashboard"
+    description="A quick overview of the support requests you have submitted."
+  />
+  <a class="primary-link" routerLink="/tickets/new">Create a ticket</a>
+</div>
 
-<section class="stat-grid">
-  <app-stat-card label="Open tickets" />
-  <app-stat-card label="In progress" />
-  <app-stat-card label="Resolved" />
+<section class="overview" aria-label="Ticket overview">
+  <article class="total-card">
+    <div class="total-number">{{ loading() || error() ? '—' : totalTickets() }}</div>
+    <div class="total-copy">
+      <h2>Tickets submitted</h2>
+      <p>Your requests, all in one place.</p>
+    </div>
+  </article>
+  <article class="help-card">
+    <h2>Need help with something new?</h2>
+    <p>Send a request to the support team and follow its progress here.</p>
+    <a class="secondary-link" routerLink="/tickets/new">Submit a request</a>
+  </article>
+</section>
+
+<section aria-labelledby="recent-heading">
+  <div class="section-heading">
+    <h2 id="recent-heading">Recent tickets</h2>
+    <a class="all-tickets-link" routerLink="/tickets">View all tickets</a>
+  </div>
+
+  @if (loading()) {
+    <p class="state" role="status">Loading your recent tickets…</p>
+  } @else if (error()) {
+    <div class="state state-error" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" class="retry-button" (click)="loadRecentTickets()">Try again</button>
+    </div>
+  } @else if (tickets().length === 0) {
+    <div class="state">
+      <p>You have not submitted any tickets yet.</p>
+      <a class="secondary-link" routerLink="/tickets/new">Create your first ticket</a>
+    </div>
+  } @else {
+    <div class="recent-card">
+      @for (ticket of tickets(); track ticket.ticketId) {
+        <article class="ticket-row">
+          <div>
+            <span class="ticket-title">{{ ticket.title }}</span>
+            <span class="ticket-number">{{ ticket.ticketNumber }}</span>
+          </div>
+          <div class="ticket-meta">
+            <span class="badge status-{{ ticket.ticketStatus.toLowerCase() }}">{{ label(ticket.ticketStatus) }}</span>
+            <span class="badge priority-{{ ticket.ticketPriority.toLowerCase() }}">{{ label(ticket.ticketPriority) }}</span>
+          </div>
+          <time class="ticket-date" [attr.datetime]="ticket.createdAt">{{ ticket.createdAt | date: 'MMM d, y' }}</time>
+        </article>
+      }
+    </div>
+  }
 </section>

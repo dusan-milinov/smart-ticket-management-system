@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../../../core/api';
 import { Page } from '../models/page.model';
 import { Ticket } from '../models/ticket.model';
-
+import { CreateTicketRequest } from '../models/create-ticket-request.model';
+    
 @Service()
 export class TicketService {
 
@@ -20,4 +21,8 @@ export class TicketService {
         const params = new HttpParams().set('ticketID', ticketId);
         return this.http.patch<Ticket>(`${API_BASE_URL}/tickets/cancel`, null, { params, withCredentials: true });
     }
+
+      createTicket(request: CreateTicketRequest) {
+        return this.http.post<Ticket>(`${API_BASE_URL}/tickets/add`, request, { withCredentials: true });
+      }
 }
