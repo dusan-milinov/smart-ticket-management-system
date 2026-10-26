@@ -1,0 +1,10 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+*.auto.tfvars
+.env
+.env.*
+crash.log
+# Commit .terraform.lock.hcl after terraform init.
