@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -32,6 +33,14 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getTicketsByUserId(currentUserService.getCurrentUser().getId(), pageable));
     }
 
+
+    @GetMapping("/assigned")
+    @PreAuthorize("hasRole('SUPPORT_AGENT')")
+    public ResponseEntity<Page<TicketResponse>> getAssignedTickets(
+            @ParameterObject @PageableDefault(size = 5, sort = "ticketId", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(ticketService.getTicketsByAssigneeId(currentUserService.getCurrentUser().getId(), pageable));
+    }
 
     @PostMapping("/add")
     public ResponseEntity<TicketResponse> addTicket(

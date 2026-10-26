@@ -1,0 +1,102 @@
+<app-page-header
+  heading="Assigned Tickets"
+  description="Tickets assigned to you and their current status."
+/>
+
+@if (loading()) {
+  <p class="state" role="status">Loading tickets...</p>
+} @else if (error()) {
+  <div class="state state-error" role="alert">
+    <p>{{ error() }}</p>
+    <button type="button" class="btn" (click)="load(page())">Try again</button>
+  </div>
+} @else {
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Ticket #</th>
+          <th scope="col">Title</th>
+          <th scope="col">Status</th>
+          <th scope="col">Priority</th>
+          <th scope="col">Type</th>
+          <th scope="col">Created At</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (ticket of tickets(); track ticket.ticketId) {
+          <tr>
+            <td data-label="Ticket #" class="number">{{ ticket.ticketNumber }}</td>
+            <td data-label="Title" class="title">{{ ticket.title }}</td>
+            <td data-label="Status">
+              <span class="badge status-{{ ticket.ticketStatus.toLowerCase() }}">{{ label(ticket.ticketStatus) }}</span>
+            </td>
+            <td data-label="Priority">
+              <span class="badge priority-{{ ticket.ticketPriority.toLowerCase() }}">{{ label(ticket.ticketPriority) }}</span>
+            </td>
+            <td data-label="Type">{{ label(ticket.ticketType) }}</td>
+            <td data-label="Created At">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
+            <td data-label="Actions">
+              <div class="actions">
+                <button type="button" class="btn" (click)="viewDetails(ticket)">View Details</button>
+                @if (canResolve(ticket)) {
+                  <button type="button" class="btn btn-resolve" (click)="openResolveDialog(ticket)">Resolve Ticket</button>
+                }
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td class="empty" colspan="7">You do not have any assigned tickets yet.</td>
+          </tr>
+        }
+
+        @if (ticketToResolve(); as ticket) {
+          <div class="overlay" (click)="closeResolveDialog()">
+            <form
+              class="dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="resolve-title"
+              aria-describedby="resolve-description"
+              (click)="$event.stopPropagation()"
+              (ngSubmit)="confirmResolve()"
+            >
+              <h2 id="resolve-title">Resolve ticket?</h2>
+              <p id="resolve-description">
+                Add a resolution message for ticket <strong>{{ ticket.ticketNumber }}</strong>.
+              </p>
+
+              <label for="resolution-message">Resolution message</label>
+              <textarea
+                id="resolution-message"
+                name="resolution"
+                rows="4"
+                required
+                [ngModel]="resolution()"
+                (ngModelChange)="resolution.set($event)"
+                [disabled]="resolving()"
+                [attr.aria-invalid]="resolveError() ? 'true' : null"
+                [attr.aria-describedby]="resolveError() ? 'resolve-error' : null"
+              ></textarea>
+
+              @if (resolveError()) {
+                <p id="resolve-error" class="dialog-error" role="alert">{{ resolveError() }}</p>
+              }
+
+              <div class="dialog-actions">
+                <button type="button" class="btn" [disabled]="resolving()" (click)="closeResolveDialog()">Cancel</button>
+                <button type="submit" class="btn btn-primary" [disabled]="resolving() || !resolution().trim()">
+                  {{ resolving() ? 'Resolving...' : 'Resolve ticket' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <app-pagination [page]="page()" [totalPages]="totalPages()" (pageChange)="load($event)" />
+}

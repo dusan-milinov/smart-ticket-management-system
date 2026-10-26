@@ -3,11 +3,14 @@ package com.ticketmanagement.backend.controller;
 import com.ticketmanagement.backend.config.SecurityConfig;
 import com.ticketmanagement.backend.dto.ticket.TicketResponse;
 import com.ticketmanagement.backend.enums.TicketStatus;
+import com.ticketmanagement.backend.enums.Role;
+import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.repository.UserRepository;
 import com.ticketmanagement.backend.security.JwtCookieService;
 import com.ticketmanagement.backend.service.CurrentUserService;
 import com.ticketmanagement.backend.service.TicketService;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -41,6 +44,62 @@ class TicketPaginationControllerTests {
     @MockitoBean private CurrentUserService currentUser;
     @MockitoBean private JwtDecoder decoder;
     @MockitoBean private UserRepository users;
+
+    @Test
+    void assignedTicketsUseTheCurrentAgentAndNewestFirstDefaults() throws Exception {
+        AppUser agent = new AppUser("agent@example.com", "password", Role.SUPPORT_AGENT);
+        agent.setId(12L);
+        when(currentUser.getCurrentUser()).thenReturn(agent);
+        Pageable pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "ticketId"));
+        when(tickets.getTicketsByAssigneeId(12L, pageable)).thenReturn(Page.empty(pageable));
+
+        mvc.perform(get("/tickets/assigned").with(jwt().authorities(() -> "ROLE_SUPPORT_AGENT")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.size").value(5));
+
+        verify(tickets).getTicketsByAssigneeId(12L, pageable);
+        verifyNoMoreInteractions(tickets);
+    }
+
+    @Test
+    void assignedTicketsForwardPagingAndReturnTicketContent() throws Exception {
+        AppUser agent = new AppUser("agent@example.com", "password", Role.SUPPORT_AGENT);
+        agent.setId(12L);
+        when(currentUser.getCurrentUser()).thenReturn(agent);
+        Pageable pageable = PageRequest.of(1, 10, Sort.by(Sort.Direction.DESC, "ticketId"));
+        TicketResponse ticket = new TicketResponse(42L, "TKT-TEST", "Title", "Description",
+                TicketStatus.FULFILLMENT, null, null, null, null, 11L, 12L, null);
+        when(tickets.getTicketsByAssigneeId(12L, pageable))
+                .thenReturn(new PageImpl<>(List.of(ticket), pageable, 11));
+
+        mvc.perform(get("/tickets/assigned").with(jwt().authorities(() -> "ROLE_SUPPORT_AGENT"))
+                        .param("page", "1").param("size", "10").param("assigneeId", "99"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].ticketId").value(42))
+                .andExpect(jsonPath("$.content[0].assigneeId").value(12))
+                .andExpect(jsonPath("$.number").value(1))
+                .andExpect(jsonPath("$.totalElements").value(11))
+                .andExpect(jsonPath("$.totalPages").value(2));
+
+        verify(tickets).getTicketsByAssigneeId(12L, pageable);
+        verifyNoMoreInteractions(tickets);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ROLE_USER", "ROLE_ADMIN"})
+    void assignedTicketsRejectOtherRoles(String role) throws Exception {
+        mvc.perform(get("/tickets/assigned").with(jwt().authorities(() -> role)))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(tickets, currentUser);
+    }
+
+    @Test
+    void assignedTicketsRequireAuthentication() throws Exception {
+        mvc.perform(get("/tickets/assigned"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(tickets, currentUser);
+    }
 
     @ParameterizedTest
     @ValueSource(strings = {"/tickets", "/tickets/status/IN_QUEUE", "/tickets/creator/11", "/tickets/assignee/12"})
