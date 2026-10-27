@@ -17,60 +17,71 @@
     </button>
   </h2>
 
-  <div class="panel" [id]="panelId()" [hidden]="!expanded()">
-    @if (loading()) {
-      <p class="message" role="status">Loading comments...</p>
-    } @else if (loadError()) {
-      <div class="message error" role="alert">
-        <p>{{ loadError() }}</p>
-        <button type="button" class="btn secondary" (click)="retry()">Try again</button>
-      </div>
-    } @else {
-      <ol class="timeline" aria-label="Comments, oldest first">
-        @for (comment of timeline(); track comment.id) {
-          <li class="timeline-item" [class]="comment.side">
-            <span class="marker" aria-hidden="true"></span>
-            <article class="comment-card">
-              <header class="comment-header">
-                <span class="author">{{ comment.author }}</span>
-                <span class="role">{{ comment.role }}</span>
-              </header>
-              <p class="content">{{ comment.content }}</p>
-              <time [attr.datetime]="comment.createdAt">{{ comment.createdAt | date: 'MMM d, y, HH:mm' }}</time>
-            </article>
-          </li>
-        } @empty {
-          <li class="message">No comments yet. Start the conversation below.</li>
+  <div
+    class="collapsible"
+    [id]="panelId()"
+    [class.open]="expanded()"
+    [attr.inert]="expanded() ? null : ''"
+  >
+    <div class="collapsible-inner">
+      <div class="panel">
+        @if (loading()) {
+          <p class="message" role="status">Loading comments...</p>
+        } @else if (loadError()) {
+          <div class="message error" role="alert">
+            <p>{{ loadError() }}</p>
+            <button type="button" class="btn secondary" (click)="retry()">Try again</button>
+          </div>
+        } @else {
+          <ol class="timeline" aria-label="Comments, oldest first">
+            @for (comment of timeline(); track comment.id) {
+              <li class="timeline-item" [class]="comment.side">
+                <span class="marker" aria-hidden="true"></span>
+                <article class="comment-card">
+                  <header class="comment-header">
+                    <span class="author">{{ comment.author }}</span>
+                    <span class="role">{{ comment.role }}</span>
+                  </header>
+                  <p class="content">{{ comment.content }}</p>
+                  <time [attr.datetime]="comment.createdAt">{{
+                    comment.createdAt | date: 'MMM d, y, HH:mm'
+                  }}</time>
+                </article>
+              </li>
+            } @empty {
+              <li class="message">No comments yet. Start the conversation below.</li>
+            }
+          </ol>
         }
-      </ol>
-    }
 
-    <form class="composer" (submit)="$event.preventDefault(); postComment()">
-      <label [for]="inputId()">Add a comment</label>
-      <textarea
-        #commentInput
-        [id]="inputId()"
-        name="comment"
-        rows="4"
-        placeholder="Write your comment..."
-        [value]="draft()"
-        (input)="draft.set(commentInput.value); posted.set(false)"
-        [disabled]="posting() || !signedIn()"
-        [attr.aria-describedby]="postError() ? inputId() + '-error' : null"
-        required
-      ></textarea>
-      @if (!signedIn()) {
-        <p class="error" role="alert">Sign in to post a comment.</p>
-      }
-      @if (postError()) {
-        <p class="error" [id]="inputId() + '-error'" role="alert">{{ postError() }}</p>
-      }
-      @if (posted()) {
-        <p class="message success" role="status">Comment posted.</p>
-      }
-      <button class="btn" type="submit" [disabled]="!canPost()">
-        {{ posting() ? 'Posting...' : 'Post comment' }}
-      </button>
-    </form>
+        <form class="composer" (submit)="$event.preventDefault(); postComment()">
+          <label [for]="inputId()">Add a comment</label>
+          <textarea
+            #commentInput
+            [id]="inputId()"
+            name="comment"
+            rows="4"
+            placeholder="Write your comment..."
+            [value]="draft()"
+            (input)="draft.set(commentInput.value); posted.set(false)"
+            [disabled]="posting() || !signedIn()"
+            [attr.aria-describedby]="postError() ? inputId() + '-error' : null"
+            required
+          ></textarea>
+          @if (!signedIn()) {
+            <p class="error" role="alert">Sign in to post a comment.</p>
+          }
+          @if (postError()) {
+            <p class="error" [id]="inputId() + '-error'" role="alert">{{ postError() }}</p>
+          }
+          @if (posted()) {
+            <p class="message success" role="status">Comment posted.</p>
+          }
+          <button class="btn" type="submit" [disabled]="!canPost()">
+            {{ posting() ? 'Posting...' : 'Post comment' }}
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
 </section>

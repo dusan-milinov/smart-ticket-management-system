@@ -6,6 +6,7 @@ import { RouterLink } from '@angular/router';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { AdminDashboardService, AdminDashboardSummary } from './admin-dashboard.service';
 import { RecentTicketsComponent } from '../recent-tickets/recent-tickets.component';
+import { ticketLabel } from '../../tickets/ticket-presentation';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -30,12 +31,13 @@ export class AdminDashboardComponent implements OnInit {
     return data?.totalTickets ? data.ticketsByStatus.RESOLVED / data.totalTickets * 100 : 0;
   });
   protected readonly statuses = [
-    { key: 'IN_QUEUE', label: 'In queue', color: '#b45309' },
-    { key: 'FULFILLMENT', label: 'In fulfillment', color: '#2563eb' },
-    { key: 'RESOLVED', label: 'Resolved', color: '#15803d' },
-    { key: 'CANCELLED', label: 'Cancelled', color: '#64748b' },
+    { key: 'IN_QUEUE', color: '#b45309' },
+    { key: 'FULFILLMENT', color: '#2563eb' },
+    { key: 'RESOLVED', color: '#15803d' },
+    { key: 'CANCELLED', color: '#64748b' },
   ] as const;
   protected readonly priorities = ['HIGH', 'MEDIUM', 'LOW'] as const;
+  protected readonly label = ticketLabel;
 
   ngOnInit(): void { this.load(); }
 
@@ -63,8 +65,4 @@ export class AdminDashboardComponent implements OnInit {
     return total > 0 ? count / total * 100 : 0;
   }
 
-  protected label(value: string): string {
-    const text = value.replace(/_/g, ' ').toLowerCase();
-    return text.charAt(0).toUpperCase() + text.slice(1);
-  }
 }

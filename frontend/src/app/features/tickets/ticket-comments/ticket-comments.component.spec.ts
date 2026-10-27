@@ -84,13 +84,18 @@ describe('TicketCommentsComponent', () => {
     load();
     write('Keep this draft');
     const toggle = element.querySelector<HTMLButtonElement>('.comments-header')!;
+    const panel = element.querySelector<HTMLElement>('.collapsible')!;
     toggle.click();
     render();
-    expect(element.querySelector<HTMLElement>('.panel')?.hidden).toBe(true);
-    expect(toggle.getAttribute('aria-controls')).toBe(element.querySelector('.panel')?.id);
+    expect(panel.classList.contains('open')).toBe(false);
+    expect(panel.hasAttribute('inert')).toBe(true);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.getAttribute('aria-controls')).toBe(panel.id);
     toggle.click();
     render();
-    expect(element.querySelector<HTMLElement>('.panel')?.hidden).toBe(false);
+    expect(panel.classList.contains('open')).toBe(true);
+    expect(panel.hasAttribute('inert')).toBe(false);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(element.querySelector('textarea')?.value).toBe('Keep this draft');
   });
 

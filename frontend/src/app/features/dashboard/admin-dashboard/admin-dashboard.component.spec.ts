@@ -47,9 +47,13 @@ describe('AdminDashboardComponent', () => {
     const element: HTMLElement = fixture.nativeElement;
     expect(element.querySelector('[data-stat=total] .metric-value')?.textContent).toBe('28');
     expect(element.querySelector('[data-stat=open] .metric-value')?.textContent).toBe('14');
+    expect(Array.from(element.querySelectorAll('.status-list dt'), item => item.textContent?.trim()))
+      .toEqual(['Pending', 'In Progress', 'Resolved', 'Cancelled']);
+    expect(element.querySelector('[data-stat=open] .metric-caption')?.textContent)
+      .toContain('2 Pending · 12 In Progress');
     expect(element.querySelector('[data-stat=resolved]')?.textContent).toContain('35.7%');
     expect(element.querySelector('[data-stat=agents] .metric-value')?.textContent).toBe('3');
-    expect(element.querySelector('.assignment-note')?.textContent).toContain('2 unassigned');
+    expect(element.querySelector('.assignment-note')).toBeNull();
     const viewLink = element.querySelector<HTMLAnchorElement>('.ticket-view');
     expect(viewLink?.textContent?.trim()).toBe('View');
     const destination = new URL(viewLink!.getAttribute('href')!, 'http://localhost');
@@ -57,6 +61,8 @@ describe('AdminDashboardComponent', () => {
     expect(destination.searchParams.get('returnTo')).toBe('/dashboard');
     expect(viewLink?.getAttribute('aria-label')).toBe('View ticket TKT-SEED-0028');
     expect(element.querySelector('.ticket-title')?.textContent).toBe('Install the review tool');
+    expect(element.querySelector('.ticket-title')?.tagName).toBe('SPAN');
+    expect(element.querySelectorAll('.ticket-row a')).toHaveLength(1);
     expect(element.querySelector('.ticket-row .status-resolved')?.textContent).toBe('Resolved');
     expect(element.querySelector('.ticket-row .priority-high')?.textContent).toBe('High');
     expect(element.querySelector('.team-counts')?.textContent).toContain('Regular users4');
@@ -70,7 +76,6 @@ describe('AdminDashboardComponent', () => {
       openTicketsByPriority: { HIGH: 0, MEDIUM: 0, LOW: 0 }, unassignedOpenTickets: 0 });
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('No tickets yet.');
-    expect(fixture.nativeElement.textContent).toContain('No open tickets are waiting for assignment.');
     expect(fixture.nativeElement.textContent).not.toMatch(/NaN|Infinity/);
     expect(fixture.nativeElement.querySelector('[data-stat=resolved]').textContent).toContain('0%');
   });

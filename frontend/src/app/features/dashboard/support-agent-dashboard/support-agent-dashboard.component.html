@@ -48,7 +48,8 @@
                   {{ ticket.ticketStatus === 'IN_QUEUE' ? 'Pending' : 'In Progress' }}
                 </span>
               </div>
-              <a class="queue-open" [routerLink]="['/tickets', ticket.ticketId]">Open</a>
+              <a class="btn queue-view" [routerLink]="['/tickets', ticket.ticketId]"
+                [attr.aria-label]="'View ticket ' + ticket.ticketNumber">View</a>
             </article>
           }
         </div>

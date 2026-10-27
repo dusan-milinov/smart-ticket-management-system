@@ -40,7 +40,7 @@ from `GET /admin/dashboard`, protected by both HTTP and service-level admin
 authorization. Other roles retain their own dashboards.
 
 The overview shows all-time ticket counts by status, open tickets by priority,
-unassigned open tickets, active support agents, account totals, and the five
+active support agents, account totals, and the five
 newest tickets (ordered by creation time, then ID). The resolved
 percentage is resolved tickets divided by all tickets, including cancelled ones.
 Account totals include inactive accounts and administrators; the regular-user
