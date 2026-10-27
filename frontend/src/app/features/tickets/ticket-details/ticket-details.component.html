@@ -8,27 +8,86 @@
     <button type="button" class="btn" (click)="load()">Try again</button>
   </div>
 } @else if (ticket(); as t) {
-  <app-page-header [heading]="t.title" [description]="t.ticketNumber" />
+  <article class="card">
+    <header class="ticket-header">
+      <p class="ticket-number">{{ t.ticketNumber }}</p>
+      <h1>{{ t.title }}</h1>
+      <div class="badges">
+        <span class="badge status-{{ t.ticketStatus.toLowerCase() }}">{{ label(t.ticketStatus) }}</span>
+        <span class="badge priority-{{ t.ticketPriority.toLowerCase() }}">{{ label(t.ticketPriority) }} priority</span>
+        <span class="badge badge-type">{{ label(t.ticketType) }}</span>
+      </div>
+    </header>
 
-  <section class="card">
-    <div class="badges">
-      <span class="badge status-{{ t.ticketStatus.toLowerCase() }}">{{ label(t.ticketStatus) }}</span>
-      <span class="badge priority-{{ t.ticketPriority.toLowerCase() }}">{{ label(t.ticketPriority) }} priority</span>
+    <div class="body">
+      <div class="main">
+        <section>
+          <h2>Description</h2>
+          <p class="text">{{ t.description }}</p>
+        </section>
+
+        @if (t.resolutionSummary) {
+          <section class="resolution">
+            <h2>Resolution</h2>
+            <p class="text">{{ t.resolutionSummary }}</p>
+          </section>
+        }
+      </div>
+
+      <dl class="meta">
+        <div><dt>Created</dt><dd>{{ t.createdAt | date: 'MMM d, y, HH:mm' }}</dd></div>
+        <div><dt>Last updated</dt><dd>{{ t.updatedAt | date: 'MMM d, y, HH:mm' }}</dd></div>
+        <div><dt>Assigned to</dt><dd>{{ t.assigneeId ? 'Support agent' : 'Not assigned yet' }}</dd></div>
+      </dl>
     </div>
+  </article>
 
-    <h2>Description</h2>
-    <p class="text">{{ t.description }}</p>
+  <section class="card history">
+    <button
+      type="button"
+      class="history-header"
+      aria-controls="history-panel"
+      [attr.aria-expanded]="historyOpen()"
+      (click)="toggleHistory()"
+    >
+      <span class="history-title">
+        Event history
+        @if (!eventsLoading() && !eventsError()) {
+          <span class="count">{{ timeline().length }}</span>
+        }
+      </span>
+      <span class="chevron" aria-hidden="true"></span>
+    </button>
 
-    @if (t.resolutionSummary) {
-      <h2>Resolution</h2>
-      <p class="text">{{ t.resolutionSummary }}</p>
-    }
-
-    <dl class="meta">
-      <div><dt>Type</dt><dd>{{ label(t.ticketType) }}</dd></div>
-      <div><dt>Created</dt><dd>{{ t.createdAt | date: 'MMM d, y, HH:mm' }}</dd></div>
-      <div><dt>Last updated</dt><dd>{{ t.updatedAt | date: 'MMM d, y, HH:mm' }}</dd></div>
-      <div><dt>Assigned to</dt><dd>{{ t.assigneeId ? 'Support agent' : 'Not assigned yet' }}</dd></div>
-    </dl>
+    <div id="history-panel" class="collapsible" [class.open]="historyOpen()" [attr.inert]="historyOpen() ? null : ''">
+      <div class="collapsible-inner">
+        <div class="history-body">
+          @if (eventsLoading()) {
+            <p class="history-message" role="status">Loading history…</p>
+          } @else if (eventsError()) {
+            <p class="history-message history-error" role="alert">{{ eventsError() }}</p>
+          } @else {
+            <ol class="timeline">
+              @for (entry of timeline(); track entry.id) {
+                <li class="timeline-item">
+                  <span class="timeline-icon icon-{{ entry.type.toLowerCase() }}" aria-hidden="true">{{ entry.icon }}</span>
+                  <div class="timeline-content">
+                    <p class="timeline-title">{{ entry.title }}</p>
+                    @if (entry.detail) {
+                      <p class="timeline-detail">{{ entry.detail }}</p>
+                    }
+                    <time class="timeline-time" [attr.datetime]="entry.createdAt">
+                      {{ entry.createdAt | date: 'MMM d, y, HH:mm' }}
+                    </time>
+                  </div>
+                </li>
+              } @empty {
+                <li class="history-message">No events recorded yet.</li>
+              }
+            </ol>
+          }
+        </div>
+      </div>
+    </div>
   </section>
 }

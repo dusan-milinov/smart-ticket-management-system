@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../../../core/api';
 import { Page } from '../models/page.model';
 import { Ticket } from '../models/ticket.model';
 import { CreateTicketRequest } from '../models/create-ticket-request.model';
+import { TicketEvent } from '../models/ticket-event.model';
 
 @Service()
 export class TicketService {
@@ -39,5 +40,9 @@ export class TicketService {
 
     getTicketById(ticketId: number): Observable<Ticket> {
         return this.http.get<Ticket>(`${API_BASE_URL}/tickets/${ticketId}`, { withCredentials: true });
+    }
+
+    getTicketEvents(ticketId: number): Observable<TicketEvent[]> {
+        return this.http.get<TicketEvent[]>(`${API_BASE_URL}/ticket-events/${ticketId}`, { withCredentials: true });
     }
 }
