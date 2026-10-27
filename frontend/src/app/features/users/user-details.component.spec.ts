@@ -19,12 +19,27 @@ describe('UserDetailsComponent', () => {
   let reassignResult: Observable<Ticket>;
   let deactivateResult: Observable<AccountDirectoryEntry>;
 
-  const ticketPage = {
-    content: [
-      { ticketId: 1, ticketNumber: 'T-1', title: 'Broken printer', ticketStatus: 'IN_QUEUE' },
-    ],
-    number: 0, size: 10, totalElements: 1, totalPages: 1, first: true, last: true, empty: false,
-  } as unknown as Page<Ticket>;
+  let ticketPage: Page<Ticket>;
+
+  beforeEach(() => {
+    ticketPage = {
+      content: [{
+        ticketId: 1,
+        ticketNumber: 'T-1',
+        title: 'Broken printer',
+        description: 'Printer is offline',
+        ticketStatus: 'IN_QUEUE',
+        ticketPriority: 'LOW',
+        resolutionSummary: null,
+        createdAt: '2026-10-26T10:00:00Z',
+        updatedAt: '2026-10-26T10:00:00Z',
+        creatorId: 2,
+        assigneeId: null,
+        ticketType: 'INCIDENT',
+      }],
+      number: 0, size: 10, totalElements: 1, totalPages: 1, first: true, last: true, empty: false,
+    };
+  });
 
   function setup(role: string, account: AccountDirectoryEntry): void {
     deactivations = [];
@@ -73,10 +88,6 @@ describe('UserDetailsComponent', () => {
   }
 
   it('shows account details and ticket submission time with a View action', () => {
-    ticketPage.content[0] = {
-      ...ticketPage.content[0],
-      createdAt: '2026-10-26T10:00:00Z',
-    } as Ticket;
     setup(ROLES.ADMIN, { id: 2, email: 'user@example.com', role: 'USER', active: true });
 
     const root = fixture.nativeElement as HTMLElement;
@@ -86,8 +97,33 @@ describe('UserDetailsComponent', () => {
     expect(text).toContain('In Queue');
     expect(text).toContain('Submitted');
     expect(root.querySelector<HTMLAnchorElement>('td[data-label="Actions"] a')?.getAttribute('href'))
-      .toBe('/tickets/1');
+      .toBe('/tickets/1?returnTo=%2Fusers%2F2');
+    expect(root.querySelector('td[data-label="Submitted"]')?.textContent).toMatch(/Oct 26, 2026/);
+    expect(root.querySelectorAll('thead th')).toHaveLength(5);
+    expect(root.querySelectorAll('tbody tr:first-child td')).toHaveLength(5);
+    expect(root.querySelector('td[data-label="Actions"] button')?.textContent?.trim()).toBe('Reassign');
     expect(fixture.nativeElement.querySelector('.badge-active')).not.toBeNull();
+  });
+
+  it.each(['IN_QUEUE', 'FULFILLMENT', 'RESOLVED', 'CANCELLED'])(
+    'keeps View available for %s tickets and only offers reassignment for open tickets',
+    (status) => {
+      ticketPage.content[0].ticketStatus = status;
+      setup(ROLES.ADMIN, { id: 2, email: 'user@example.com', role: 'USER', active: true });
+
+      const actions = (fixture.nativeElement as HTMLElement).querySelector('td[data-label="Actions"]')!;
+      expect(actions.querySelector('a')?.getAttribute('href')).toBe('/tickets/1?returnTo=%2Fusers%2F2');
+      expect(actions.querySelector('button') !== null).toBe(['IN_QUEUE', 'FULFILLMENT'].includes(status));
+    },
+  );
+
+  it('spans all ticket columns when there are no related tickets', () => {
+    ticketPage = { ...ticketPage, content: [], totalElements: 0, totalPages: 0, empty: true };
+    setup(ROLES.ADMIN, { id: 2, email: 'user@example.com', role: 'USER', active: true });
+
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('.empty')?.getAttribute('colspan')).toBe(String(root.querySelectorAll('thead th').length));
+    expect(root.querySelector('.empty')?.textContent).toContain('No tickets found.');
   });
 
   it('lets administrators reassign an open ticket through a confirmation popup', () => {

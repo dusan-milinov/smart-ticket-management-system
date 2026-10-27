@@ -28,16 +28,28 @@ describe('TicketDetailsComponent', () => {
   let http: HttpTestingController;
   let element: HTMLElement;
   let currentUser: ReturnType<typeof signal<CurrentUser | null>>;
+  let queryParams: Record<string, string>;
 
   beforeEach(async () => {
     currentUser = signal({ email: 'user@example.com', role: 'ROLE_USER' });
+    queryParams = {};
     await TestBed.configureTestingModule({
       imports: [TicketDetailsComponent],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '42' }) } } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: convertToParamMap({ id: '42' }),
+              get queryParamMap() {
+                return convertToParamMap(queryParams);
+              },
+            },
+          },
+        },
         { provide: AuthService, useValue: { user: currentUser.asReadonly() } },
       ],
     }).compileComponents();
@@ -104,14 +116,20 @@ describe('TicketDetailsComponent', () => {
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(element.querySelector<HTMLButtonElement>('.dialog button[type="submit"]')!.disabled).toBe(false);
+    expect(
+      element.querySelector<HTMLButtonElement>('.dialog button[type="submit"]')!.disabled,
+    ).toBe(false);
     element.querySelector('.dialog')!.dispatchEvent(new Event('submit', { cancelable: true }));
 
     const request = http.expectOne((r) => r.url === '/api/tickets/resolve');
     expect(request.request.method).toBe('PATCH');
     expect(request.request.params.get('ticketID')).toBe('42');
     expect(request.request.params.get('summary')).toBe('VPN access restored.');
-    request.flush({ ...ticket, ticketStatus: 'RESOLVED', resolutionSummary: 'VPN access restored.' });
+    request.flush({
+      ...ticket,
+      ticketStatus: 'RESOLVED',
+      resolutionSummary: 'VPN access restored.',
+    });
     fixture.detectChanges();
     http.expectOne('/api/ticket-events/42').flush([]);
     fixture.detectChanges();
@@ -119,6 +137,34 @@ describe('TicketDetailsComponent', () => {
     expect(element.querySelector('.status-resolved')?.textContent).toBe('Resolved');
     expect(element.querySelector('.ticket-actions')).toBeNull();
     expect(element.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it('returns administrators to the user whose ticket they opened', () => {
+    currentUser.set({ email: 'admin@example.com', role: 'ROLE_ADMIN' });
+    queryParams = { returnTo: '/users/11' };
+    loadTicket();
+
+    expect(element.querySelector('.back')?.getAttribute('href')).toBe('/users/11');
+    expect(element.querySelector('.back')?.textContent).toContain('Back to user');
+  });
+
+  it.each([undefined, '/tickets', '//example.com', '/users/invalid'])(
+    'returns administrators to the users directory for returnTo=%s',
+    (returnTo) => {
+      currentUser.set({ email: 'admin@example.com', role: 'ROLE_ADMIN' });
+      queryParams = returnTo === undefined ? {} : { returnTo };
+      loadTicket();
+
+      expect(element.querySelector('.back')?.getAttribute('href')).toBe('/users');
+      expect(element.querySelector('.back')?.textContent).toContain('Back to users');
+    },
+  );
+
+  it('does not send regular users to an admin-only return destination', () => {
+    queryParams = { returnTo: '/users/11' };
+    loadTicket();
+
+    expect(element.querySelector('.back')?.getAttribute('href')).toBe('/tickets');
   });
 
   it('does not offer actions for terminal tickets', () => {
@@ -136,7 +182,9 @@ describe('TicketDetailsComponent', () => {
 
   it('renders comments directly after Event History', () => {
     loadTicket();
-    expect(element.querySelector('.history')?.nextElementSibling?.tagName).toBe('APP-TICKET-COMMENTS');
+    expect(element.querySelector('.history')?.nextElementSibling?.tagName).toBe(
+      'APP-TICKET-COMMENTS',
+    );
     expect(element.querySelector('app-ticket-comments')?.textContent).toContain('No comments yet.');
   });
 
