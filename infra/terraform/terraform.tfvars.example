@@ -1,0 +1,4 @@
+region        = "us-east-1"
+name          = "smart-ticket"
+audience_cidr = "203.0.113.10/32"
+# certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/..."

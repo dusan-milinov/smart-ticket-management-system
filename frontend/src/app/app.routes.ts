@@ -20,6 +20,30 @@ export const routes: Routes = [
                     .then(m => m.CreateTicketComponent)
             },
             {
+                path: 'users',
+                canMatch: [roleMatch(ROLES.ADMIN)],
+                loadComponent: () => import('./features/users/user-directory.component')
+                    .then(m => m.UserDirectoryComponent)
+            },
+            {
+                path: 'users/:id',
+                canMatch: [roleMatch(ROLES.ADMIN)],
+                loadComponent: () => import('./features/users/user-details.component')
+                    .then(m => m.UserDetailsComponent)
+            },
+            {
+                path: 'users',
+                canMatch: [roleMatch(ROLES.SUPPORT_AGENT)],
+                loadComponent: () => import('./features/users/user-directory.component')
+                    .then(m => m.UserDirectoryComponent)
+            },
+            {
+                path: 'users/:id',
+                canMatch: [roleMatch(ROLES.SUPPORT_AGENT)],
+                loadComponent: () => import('./features/users/user-details.component')
+                    .then(m => m.UserDetailsComponent)
+            },
+            {
                 path: 'dashboard',
                 canMatch: [roleMatch(ROLES.ADMIN)],
                 loadComponent: () => import('./features/dashboard/admin-dashboard/admin-dashboard.component')

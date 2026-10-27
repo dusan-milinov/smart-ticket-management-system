@@ -292,7 +292,7 @@ class AccountOperationsTests {
     void publicRegistrationStillCreatesOnlyRegularUsers() throws Exception {
         mvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(AGENT_REQUEST))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.role").value("USER"))
-                .andExpect(jsonPath("$.active").doesNotExist());
+                .andExpect(jsonPath("$.active").value(true));
     }
 
     @Test

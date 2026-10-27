@@ -7,6 +7,8 @@ import com.ticketmanagement.backend.dto.auth.LoginResponse;
 import com.ticketmanagement.backend.dto.auth.RegisterRequest;
 import com.ticketmanagement.backend.dto.auth.RegisterSupportAgentRequest;
 import com.ticketmanagement.backend.dto.auth.UserResponse;
+import com.ticketmanagement.backend.dto.ticket.TicketResponse;
+import com.ticketmanagement.backend.model.Ticket;
 import com.ticketmanagement.backend.enums.Role;
 import com.ticketmanagement.backend.enums.TicketStatus;
 import com.ticketmanagement.backend.exception.PasswordChangeException;
@@ -19,6 +21,8 @@ import com.ticketmanagement.backend.repository.UserRepository;
 import com.ticketmanagement.backend.security.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -106,6 +110,58 @@ public class UserService {
         target.deactivate();
         userRepository.save(target);
         return AdminUserResponse.from(target);
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('SUPPORT_AGENT')")
+    public Page<UserResponse> getNonAdminUsers(Pageable pageable) {
+        return userRepository.findByRoleNot(Role.ADMIN, pageable).map(UserResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public Page<AdminUserResponse> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable).map(AdminUserResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public Page<AdminUserResponse> getSupportAgents(Pageable pageable) {
+        return userRepository.findByRole(Role.SUPPORT_AGENT, pageable).map(AdminUserResponse::from);
+    }
+
+    /**
+     * Returns account details. Administrators can view any account; support agents can view
+     * non-admin accounts, and an administrator target is reported as not found.
+     */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN','SUPPORT_AGENT')")
+    public AdminUserResponse getUserDetails(long userId) {
+        return AdminUserResponse.from(findVisibleUser(userId, currentUserService.getCurrentUser()));
+    }
+
+    /**
+     * Lists tickets tied to an account (created by it or assigned to it). Administrators see all of them;
+     * support agents see only those assigned to themselves, since agents are limited to their own assignments.
+     */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN','SUPPORT_AGENT')")
+    public Page<TicketResponse> getUserTickets(long userId, Pageable pageable) {
+        AppUser actor = currentUserService.getCurrentUser();
+        findVisibleUser(userId, actor);
+        Page<Ticket> tickets = actor.getRole() == Role.ADMIN
+                ? ticketRepository.findByCreatorIdOrAssigneeId(userId, userId, pageable)
+                : ticketRepository.findByCreatorIdAndAssigneeId(userId, actor.getId(), pageable);
+        return tickets.map(TicketResponse::from);
+    }
+
+    private AppUser findVisibleUser(long userId, AppUser actor) {
+        AppUser target = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User with ID " + userId + " not found."));
+        if (actor.getRole() != Role.ADMIN && target.getRole() == Role.ADMIN) {
+            throw new UserNotFoundException("User with ID " + userId + " not found.");
+        }
+        return target;
     }
 
     private AppUser createAccount(String suppliedEmail, String password, Role role) {

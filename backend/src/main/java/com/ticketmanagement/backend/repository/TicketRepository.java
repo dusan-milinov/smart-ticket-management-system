@@ -22,6 +22,10 @@ public interface TicketRepository extends JpaRepository<Ticket,Long> {
 
     Page<Ticket> findByCreatorIdAndTicketStatus(Long creatorId, TicketStatus status, Pageable pageable);
 
+    Page<Ticket> findByCreatorIdOrAssigneeId(Long creatorId, Long assigneeId, Pageable pageable);
+
+    Page<Ticket> findByCreatorIdAndAssigneeId(Long creatorId, Long assigneeId, Pageable pageable);
+
     Page<Ticket> findByAssigneeId(Long assigneeId, Pageable pageable);
 
     List<Ticket> findByAssigneeIdAndTicketStatus(Long assigneeId, TicketStatus status);
