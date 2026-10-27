@@ -77,6 +77,11 @@ export const routes: Routes = [
                 path: '',
                 pathMatch: 'full',
                 redirectTo: 'dashboard'
+            },
+            {
+                path: 'tickets/:id',
+                loadComponent: () => import('./features/tickets/ticket-details/ticket-details.component')
+                    .then(m => m.TicketDetailsComponent)
             }
         ]
     },
