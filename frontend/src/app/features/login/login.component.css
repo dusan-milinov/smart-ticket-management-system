@@ -83,3 +83,15 @@ button:disabled {
   font-size: 0.875rem;
   font-weight: 500;
 }
+
+.account-link {
+  margin: 20px 0 0;
+  color: var(--color-text-muted);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.account-link a {
+  color: var(--color-primary);
+  font-weight: 600;
+}
