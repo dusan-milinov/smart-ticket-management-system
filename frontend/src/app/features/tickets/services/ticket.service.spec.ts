@@ -47,7 +47,28 @@ describe('TicketService', () => {
     expect(req.request.method).toBe('GET');
     expect(req.request.params.get('page')).toBe('2');
     expect(req.request.params.get('size')).toBe('10');
+    expect(req.request.params.has('status')).toBe(false);
     req.flush({ content: [], number: 2, size: 10, totalElements: 0, totalPages: 0, first: false, last: true, empty: true });
+  });
+
+  it('should send only the active my-ticket filters', () => {
+    service.getMyTickets(0, 10, { status: 'RESOLVED', priority: 'LOW', search: 'vpn' }).subscribe();
+
+    const req = http.expectOne((r) => r.url === '/api/tickets/my');
+    expect(req.request.params.get('status')).toBe('RESOLVED');
+    expect(req.request.params.get('priority')).toBe('LOW');
+    expect(req.request.params.get('search')).toBe('vpn');
+    req.flush({ content: [] });
+  });
+
+  it('should request my-ticket status counts', () => {
+    service.getMyTicketStatusCounts({ priority: 'HIGH' }).subscribe();
+
+    const req = http.expectOne((r) => r.url === '/api/tickets/my/status-counts');
+    expect(req.request.withCredentials).toBe(true);
+    expect(req.request.params.get('priority')).toBe('HIGH');
+    expect(req.request.params.has('search')).toBe(false);
+    req.flush({});
   });
 
   it('should resolve a ticket with the backend query parameters and credentials', () => {

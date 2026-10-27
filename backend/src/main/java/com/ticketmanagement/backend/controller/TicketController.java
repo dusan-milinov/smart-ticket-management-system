@@ -3,6 +3,7 @@ package com.ticketmanagement.backend.controller;
 
 import com.ticketmanagement.backend.dto.ticket.CreateTicketRequest;
 import com.ticketmanagement.backend.dto.ticket.TicketResponse;
+import com.ticketmanagement.backend.enums.TicketPriority;
 import com.ticketmanagement.backend.enums.TicketStatus;
 import com.ticketmanagement.backend.service.CurrentUserService;
 import com.ticketmanagement.backend.service.TicketService;
@@ -19,6 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/tickets")
 @RequiredArgsConstructor
@@ -28,9 +31,22 @@ public class TicketController {
 
     @GetMapping("/my")
     public ResponseEntity<Page<TicketResponse>> getMyTickets(
+            @RequestParam(required = false) TicketStatus status,
+            @RequestParam(required = false) TicketPriority priority,
+            @RequestParam(required = false) String search,
             @ParameterObject @PageableDefault(size = 5, sort = "ticketId", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ResponseEntity.ok(ticketService.getTicketsByUserId(currentUserService.getCurrentUser().getId(), pageable));
+        return ResponseEntity.ok(ticketService.searchTicketsByCreator(
+                currentUserService.getCurrentUser().getId(), status, priority, search, pageable));
+    }
+
+    @GetMapping("/my/status-counts")
+    public ResponseEntity<Map<TicketStatus, Long>> getMyTicketStatusCounts(
+            @RequestParam(required = false) TicketPriority priority,
+            @RequestParam(required = false) String search
+    ) {
+        return ResponseEntity.ok(ticketService.countTicketsByCreator(
+                currentUserService.getCurrentUser().getId(), priority, search));
     }
 
 
