@@ -5,6 +5,7 @@ import com.ticketmanagement.backend.dto.ticket.TicketResponse;
 import com.ticketmanagement.backend.enums.TicketEventType;
 import com.ticketmanagement.backend.enums.TicketStatus;
 import com.ticketmanagement.backend.exception.InactiveAssigneeException;
+import com.ticketmanagement.backend.exception.IllegalStatusException;
 import com.ticketmanagement.backend.exception.TicketNotFoundException;
 import com.ticketmanagement.backend.exception.UserNotFoundException;
 import com.ticketmanagement.backend.model.AppUser;
@@ -14,6 +15,7 @@ import com.ticketmanagement.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,6 +86,25 @@ public class TicketService {
 
         ticketEventService.recordEvent(ticketID, actorID, TicketEventType.RESOLVED, ticket.getResolutionSummary(), summary);
         ticket.resolve(summary);
+        return TicketResponse.from(ticket);
+    }
+
+    @Transactional
+    public TicketResponse startTicketProcessing(long ticketID, long actorID) {
+        Ticket ticket = ticketRepository.findByTicketId(ticketID)
+                .orElseThrow(() -> new TicketNotFoundException("Ticket with ID " + ticketID + " not found."));
+        if (ticket.getAssignee() == null || !ticket.getAssignee().getId().equals(actorID)) {
+            throw new AccessDeniedException("Only the assigned agent can start this ticket.");
+        }
+
+        if (ticket.getTicketStatus() == TicketStatus.IN_QUEUE) {
+            ticket.changeStatus(TicketStatus.FULFILLMENT);
+            ticketEventService.recordEvent(ticketID, actorID, TicketEventType.STATUS_CHANGED,
+                    TicketStatus.IN_QUEUE.name(), TicketStatus.FULFILLMENT.name());
+        } else if (ticket.getTicketStatus() != TicketStatus.FULFILLMENT) {
+            throw new IllegalStatusException("Only tickets in queue can be started.");
+        }
+
         return TicketResponse.from(ticket);
     }
 

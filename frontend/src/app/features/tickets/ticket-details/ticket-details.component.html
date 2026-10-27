@@ -1,4 +1,6 @@
-<a class="back" routerLink="/tickets">← Back to my tickets</a>
+<a class="back" [routerLink]="isAgent() ? '/tickets/assigned' : '/tickets'">
+  {{ isAgent() ? '← Back to assigned tickets' : '← Back to my tickets' }}
+</a>
 
 @if (loading()) {
   <p class="state" role="status">Loading ticket…</p>
@@ -10,13 +12,25 @@
 } @else if (ticket(); as t) {
   <article class="card">
     <header class="ticket-header">
-      <p class="ticket-number">{{ t.ticketNumber }}</p>
-      <h1>{{ t.title }}</h1>
-      <div class="badges">
-        <span class="badge status-{{ t.ticketStatus.toLowerCase() }}">{{ label(t.ticketStatus) }}</span>
-        <span class="badge priority-{{ t.ticketPriority.toLowerCase() }}">{{ label(t.ticketPriority) }} priority</span>
-        <span class="badge badge-type">{{ label(t.ticketType) }}</span>
+      <div class="ticket-heading">
+        <p class="ticket-number">{{ t.ticketNumber }}</p>
+        <h1>{{ t.title }}</h1>
+        <div class="badges">
+          <span class="badge status-{{ t.ticketStatus.toLowerCase() }}">{{ label(t.ticketStatus) }}</span>
+          <span class="badge priority-{{ t.ticketPriority.toLowerCase() }}">{{ label(t.ticketPriority) }} priority</span>
+          <span class="badge badge-type">{{ label(t.ticketType) }}</span>
+        </div>
       </div>
+      @if (canCancel(t) || canResolve(t)) {
+        <div class="ticket-actions">
+          @if (canCancel(t)) {
+            <button type="button" class="btn btn-warn-solid" (click)="openActionDialog('cancel')">Cancel ticket</button>
+          }
+          @if (canResolve(t)) {
+            <button type="button" class="btn btn-primary" (click)="openActionDialog('resolve')">Resolve ticket</button>
+          }
+        </div>
+      }
     </header>
 
     <div class="body">
@@ -90,4 +104,57 @@
       </div>
     </div>
   </section>
+
+  @if (action(); as currentAction) {
+    <div class="overlay" (click)="closeActionDialog()">
+      <form
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-labelledby]="currentAction + '-title'"
+        (click)="$event.stopPropagation()"
+        (ngSubmit)="confirmAction()"
+      >
+        <h2 [id]="currentAction + '-title'">
+          {{ currentAction === 'cancel' ? 'Cancel ticket?' : 'Resolve ticket?' }}
+        </h2>
+        @if (currentAction === 'cancel') {
+          <p>Ticket <strong>{{ t.ticketNumber }}</strong> will be cancelled. This cannot be undone.</p>
+        } @else {
+          <p>Add a resolution message for ticket <strong>{{ t.ticketNumber }}</strong>.</p>
+          <label for="resolution-message">Resolution message</label>
+          <textarea
+            id="resolution-message"
+            name="resolution"
+            rows="4"
+            required
+            [value]="resolution()"
+            (input)="updateResolution($event)"
+            [disabled]="actionInProgress()"
+          ></textarea>
+        }
+
+        @if (actionError()) {
+          <p class="dialog-error" role="alert">{{ actionError() }}</p>
+        }
+
+        <div class="dialog-actions">
+          <button type="button" class="btn" [disabled]="actionInProgress()" (click)="closeActionDialog()">Keep ticket</button>
+          <button
+            type="submit"
+            class="btn"
+            [class.btn-warn-solid]="currentAction === 'cancel'"
+            [class.btn-primary]="currentAction === 'resolve'"
+            [disabled]="actionInProgress() || (currentAction === 'resolve' && !resolution().trim())"
+          >
+            @if (actionInProgress()) {
+              {{ currentAction === 'cancel' ? 'Cancelling...' : 'Resolving...' }}
+            } @else {
+              {{ currentAction === 'cancel' ? 'Cancel ticket' : 'Resolve ticket' }}
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
 }

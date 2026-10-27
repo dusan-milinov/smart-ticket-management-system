@@ -1,10 +1,15 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/auth.service';
+import { ROLES } from '../../../core/roles';
 import { TicketEvent, TicketEventType } from '../models/ticket-event.model';
 import { Ticket } from '../models/ticket.model';
 import { TicketService } from '../services/ticket.service';
+
+type TicketAction = 'cancel' | 'resolve';
 
 // Histories up to this length start expanded.
 const EXPANDED_BY_DEFAULT_MAX = 5;
@@ -30,14 +35,16 @@ interface TimelineEntry {
 }
 
 @Component({
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, FormsModule, RouterLink],
   selector: 'app-ticket-details',
   styleUrl: './ticket-details.component.css',
   templateUrl: './ticket-details.component.html',
+  host: { '(document:keydown.escape)': 'closeActionDialog()' },
 })
 export class TicketDetailsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly ticketService = inject(TicketService);
+  private readonly auth = inject(AuthService);
 
   protected readonly ticket = signal<Ticket | null>(null);
   protected readonly loading = signal(true);
@@ -47,6 +54,10 @@ export class TicketDetailsComponent implements OnInit {
   protected readonly eventsLoading = signal(false);
   protected readonly eventsError = signal<string | null>(null);
   protected readonly historyOpen = signal(true);
+  protected readonly action = signal<TicketAction | null>(null);
+  protected readonly resolution = signal('');
+  protected readonly actionInProgress = signal(false);
+  protected readonly actionError = signal<string | null>(null);
 
   // Newest first; the API does not guarantee any order.
   protected readonly timeline = computed<TimelineEntry[]>(() =>
@@ -115,6 +126,71 @@ export class TicketDetailsComponent implements OnInit {
 
   protected toggleHistory(): void {
     this.historyOpen.update((open) => !open);
+  }
+
+  protected isAgent(): boolean {
+    return this.auth.user()?.role === ROLES.SUPPORT_AGENT;
+  }
+
+  protected canCancel(ticket: Ticket): boolean {
+    return this.auth.user()?.role === ROLES.USER
+      && !['RESOLVED', 'CANCELLED'].includes(ticket.ticketStatus);
+  }
+
+  protected canResolve(ticket: Ticket): boolean {
+    return this.isAgent() && !['RESOLVED', 'CANCELLED'].includes(ticket.ticketStatus);
+  }
+
+  protected openActionDialog(action: TicketAction): void {
+    this.action.set(action);
+    this.resolution.set('');
+    this.actionError.set(null);
+  }
+
+  protected updateResolution(event: Event): void {
+    if (event.target instanceof HTMLTextAreaElement) {
+      this.resolution.set(event.target.value);
+    }
+  }
+
+  protected closeActionDialog(): void {
+    if (!this.actionInProgress()) {
+      this.action.set(null);
+    }
+  }
+
+  protected confirmAction(): void {
+    const ticket = this.ticket();
+    const action = this.action();
+    const summary = this.resolution().trim();
+    if (!ticket || !action || this.actionInProgress()) {
+      return;
+    }
+    if (action === 'resolve' && !summary) {
+      this.actionError.set('A resolution message is required.');
+      return;
+    }
+
+    this.actionInProgress.set(true);
+    this.actionError.set(null);
+    const request = action === 'resolve'
+      ? this.ticketService.resolveTicket(ticket.ticketId, summary)
+      : this.ticketService.cancelTicket(ticket.ticketId);
+
+    request.subscribe({
+      next: (updatedTicket) => {
+        this.ticket.set(updatedTicket);
+        this.actionInProgress.set(false);
+        this.action.set(null);
+        this.loadEvents(updatedTicket.ticketId);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.actionInProgress.set(false);
+        this.actionError.set(
+          err.status === 0 ? 'Cannot reach the server.' : (err.error?.message ?? `Could not ${action} the ticket.`),
+        );
+      },
+    });
   }
 
   // IN_QUEUE -> "In queue"

@@ -96,6 +96,12 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.resolveTicket(ticketID, summary, currentUserService.getCurrentUser().getId()));
     }
 
+    @PatchMapping("/{ticketId}/start")
+    @PreAuthorize("hasRole('SUPPORT_AGENT')")
+    public ResponseEntity<TicketResponse> startTicketProcessing(@PathVariable Long ticketId) {
+        return ResponseEntity.ok(ticketService.startTicketProcessing(ticketId, currentUserService.getCurrentUser().getId()));
+    }
+
     @PatchMapping("/cancel")
     public ResponseEntity<TicketResponse> cancelTicket(@PathParam("ticketID") Long ticketID) {
         return ResponseEntity.ok(ticketService.cancelTicket(ticketID, currentUserService.getCurrentUser().getId()));
