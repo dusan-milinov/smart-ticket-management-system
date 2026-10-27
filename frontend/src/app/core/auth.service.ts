@@ -20,6 +20,10 @@ export class AuthService {
         return this.http.post<void>(`${API_BASE_URL}/auth/login`, { email, password }, {withCredentials: true});
     }
 
+    register(email: string, password: string) {
+        return this.http.post<void>(`${API_BASE_URL}/auth/register`, { email, password });
+    }
+
     getCurrentUser() {
         return this.http.get<CurrentUser>(`${API_BASE_URL}/users/me`, {withCredentials: true})
             .pipe(tap((user) => this._user.set(user)));

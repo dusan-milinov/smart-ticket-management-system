@@ -2,12 +2,17 @@ import { Routes } from '@angular/router';
 import { authGuard, roleMatch } from './core/auth.guard';
 import { ROLES } from './core/roles';
 import { LoginComponent } from './features/login/login.component';
+import { RegisterComponent } from './features/register/register.component';
 import { MainLayoutComponent } from './layout/main-layout/main-layout.component';
 
 export const routes: Routes = [
     {
         path: 'login',
         component: LoginComponent
+    },
+    {
+        path: 'register',
+        component: RegisterComponent
     },
     {
         path: '',
