@@ -6,6 +6,8 @@ import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.LinkedHashMap;
@@ -35,7 +37,11 @@ class UserSeederTests {
             "nikola@example.com", Role.SUPPORT_AGENT,
             "agent3@example.com", Role.SUPPORT_AGENT,
             "petar.petrovic@example.com", Role.USER,
-            "vojin.vojinovic@example.com", Role.USER
+            "vojin.vojinovic@example.com", Role.USER,
+            "andjela.petrovic@example.com", Role.SUPPORT_AGENT,
+            "emily.wilson@example.com", Role.SUPPORT_AGENT,
+            "vesna.jovanovic@example.com", Role.USER,
+            "sarah.parker@example.com", Role.USER
     );
 
     private final UserRepository userRepository = mock(UserRepository.class);
@@ -70,7 +76,7 @@ class UserSeederTests {
             assertThat(passwordEncoder.matches(PASSWORD, user.getPassword())).isTrue();
             verify(userRepository).existsByEmail(email);
         });
-        verify(userRepository, times(6)).save(any(AppUser.class));
+        verify(userRepository, times(10)).save(any(AppUser.class));
         verify(userRepository, never()).count();
     }
 
@@ -92,11 +98,12 @@ class UserSeederTests {
         verifyNoInteractions(passwordEncoder);
     }
 
-    @Test
-    void fillsPartialDataWithoutChangingExistingPasswordsRolesOrIds() {
+    @ParameterizedTest
+    @ValueSource(strings = {"nikola@example.com", "andjela.petrovic@example.com", "emily.wilson@example.com"})
+    void fillsPartialDataWithoutChangingExistingPasswordsRolesOrIds(String agentEmail) {
         AppUser existingAdmin = new AppUser("admin@example.com", "existing-admin-hash", Role.USER);
         existingAdmin.setId(42L);
-        AppUser existingAgent = new AppUser("nikola@example.com", "existing-agent-hash", Role.ADMIN);
+        AppUser existingAgent = new AppUser(agentEmail, "existing-agent-hash", Role.ADMIN);
         existingAgent.setId(99L);
         existingAgent.deactivate();
         accounts.put(existingAdmin.getEmail(), existingAdmin);
@@ -104,7 +111,7 @@ class UserSeederTests {
 
         seeder.seed();
 
-        assertThat(accounts).hasSize(6);
+        assertThat(accounts).hasSize(10);
         assertThat(accounts.get(existingAdmin.getEmail())).isSameAs(existingAdmin);
         assertThat(existingAdmin.getId()).isEqualTo(42L);
         assertThat(existingAdmin.getPassword()).isEqualTo("existing-admin-hash");
@@ -115,8 +122,8 @@ class UserSeederTests {
         assertThat(existingAgent.getRole()).isEqualTo(Role.ADMIN);
         assertThat(existingAgent.isActive()).isFalse();
         assertThat(existingAdmin.isActive()).isTrue();
-        verify(userRepository, times(4)).save(any(AppUser.class));
-        verify(passwordEncoder, times(4)).encode(PASSWORD);
+        verify(userRepository, times(8)).save(any(AppUser.class));
+        verify(passwordEncoder, times(8)).encode(PASSWORD);
     }
 
     @Test

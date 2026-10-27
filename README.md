@@ -150,6 +150,10 @@ seed password.
 | `agent3@example.com` | `SUPPORT_AGENT` |
 | `petar.petrovic@example.com` | `USER` |
 | `vojin.vojinovic@example.com` | `USER` |
+| `andjela.petrovic@example.com` | `SUPPORT_AGENT` |
+| `emily.wilson@example.com` | `SUPPORT_AGENT` |
+| `vesna.jovanovic@example.com` | `USER` |
+| `sarah.parker@example.com` | `USER` |
 
 Each email is checked independently. Only missing accounts are inserted, in
 one transaction. Restarting or changing the seed password does not overwrite
@@ -157,7 +161,7 @@ existing passwords, roles, or other account data.
 
 The same runner seeds users first, validates the existing `INCIDENT` and
 `SOFTWARE_REQUEST` enum types (there are no type rows to insert), then creates
-eight tickets numbered `TKT-SEED-0001` through `TKT-SEED-0008`. Seed assignments are not workload-based, and users are resolved by email with their actual roles checked. A missing user or unexpected role fails seeding.
+28 tickets numbered `TKT-SEED-0001` through `TKT-SEED-0028`. The original eight fixtures are preserved; tickets 9–28 add 20 deterministic scenarios across all four regular users and five support agents. Both ticket types and all `TicketPriority` values (`LOW`, `MEDIUM`, `HIGH`) are represented. Seed assignments are not workload-based, and users are resolved by email with their actual roles checked. A missing user or unexpected role fails seeding.
 
 | Tickets | Final status | Comments per ticket | Special history |
 | --- | --- | --- | --- |
@@ -165,7 +169,15 @@ eight tickets numbered `TKT-SEED-0001` through `TKT-SEED-0008`. Seed assignments
 | 3–5 | `FULFILLMENT` | 1 each | Ticket 4 reassigned |
 | 6–7 | `FULFILLMENT` | 0 | Initial assignment |
 | 8 | `CANCELLED` | 0 | Admin cancellation |
+| 9, 12, 15, 18, 21, 23, 26, 28 | `RESOLVED` | 3, 2, 1, 2, 3, 2, 1, 3 | Resolution summaries; 9, 12, 21, 28 reassigned |
+| 10, 11, 13, 16, 17, 20, 22, 25, 27 | `FULFILLMENT` | 1, 0, 2, 2, 0, 0, 1, 1, 0 | 16 and 25 reassigned |
+| 14, 19, 24 | `CANCELLED` | 1, 2, 0 | Admin cancellation; 19 reassigned |
 
+On an empty database this creates 10 accounts, 28 tickets (14 in fulfillment,
+10 resolved, 4 cancelled), 35 comments, and 142 history events, including nine
+reassignments. Comments come from the ticket creator, assigned agent, or admin.
+Each ticket has chronological, fixed timestamps for creation, assignment, comments,
+and any reassignment or final status change; its last event matches `updatedAt`.
 Resolution uses a single `RESOLVED` event rather than a duplicate status event.
 
 Each ticket, its assignment, comments, and complete history are saved in one transaction. A failure rolls back that entire fixture and stops further seeding; earlier completed fixtures remain. Existing ticket numbers and all their children are skipped unchanged, even if their history is incomplete.

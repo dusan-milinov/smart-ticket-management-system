@@ -16,7 +16,11 @@ public class UserSeeder {
             new SeedAccount("nikola@example.com", Role.SUPPORT_AGENT),
             new SeedAccount("agent3@example.com", Role.SUPPORT_AGENT),
             new SeedAccount("petar.petrovic@example.com", Role.USER),
-            new SeedAccount("vojin.vojinovic@example.com", Role.USER)
+            new SeedAccount("vojin.vojinovic@example.com", Role.USER),
+            new SeedAccount("andjela.petrovic@example.com", Role.SUPPORT_AGENT),
+            new SeedAccount("emily.wilson@example.com", Role.SUPPORT_AGENT),
+            new SeedAccount("vesna.jovanovic@example.com", Role.USER),
+            new SeedAccount("sarah.parker@example.com", Role.USER)
     );
 
     private final UserRepository userRepository;
