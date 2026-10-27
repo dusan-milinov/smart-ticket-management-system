@@ -1,6 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
+import { vi } from 'vitest';
 import { AssignedTicketsComponent } from './assigned-tickets.component';
 import { Page } from '../models/page.model';
 import { Ticket } from '../models/ticket.model';
@@ -36,7 +38,7 @@ describe('AssignedTicketsComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AssignedTicketsComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(AssignedTicketsComponent);
@@ -54,7 +56,7 @@ describe('AssignedTicketsComponent', () => {
     );
   }
 
-  it('shows loading then renders ticket fields and badges without user cancellation actions', () => {
+  it('shows loading then renders ticket fields and only the Open action', () => {
     expect(element.querySelector('[role="status"]')?.textContent).toContain('Loading tickets');
     request().flush(result([ticket]));
     fixture.detectChanges();
@@ -66,9 +68,10 @@ describe('AssignedTicketsComponent', () => {
     expect(element.textContent).toContain('Oct 26, 2026');
     expect(element.querySelector('.status-fulfillment')?.textContent).toBe('Fulfillment');
     expect(element.querySelector('.priority-high')?.textContent).toBe('High');
-    expect(element.textContent).toContain('View Details');
-    expect(element.textContent).toContain('Resolve Ticket');
-    expect(element.textContent).not.toContain('Cancel Ticket');
+    expect(element.querySelector('.btn-open')?.textContent?.trim()).toBe('Open');
+    expect(element.querySelectorAll('.actions button').length).toBe(1);
+    expect(element.textContent).not.toContain('Resolve ticket');
+    expect(element.textContent).not.toContain('Cancel ticket');
     expect(element.querySelector('[role="status"]')).toBeNull();
   });
 
@@ -118,104 +121,64 @@ describe('AssignedTicketsComponent', () => {
       .toContain('Could not load your assigned tickets.');
   });
 
-  async function openResolve() {
-    request().flush(result([ticket]));
-    fixture.detectChanges();
-    element.querySelector<HTMLButtonElement>('.btn-resolve')!.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-  }
-
-  function enterResolution(text: string) {
-    const textarea = element.querySelector<HTMLTextAreaElement>('textarea')!;
-    textarea.value = text;
-    textarea.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-  }
-
-  function submitResolution() {
-    element.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
-    fixture.detectChanges();
-  }
-
-  it('only offers resolution on open tickets but always offers View Details', () => {
+  it('shows only an Open button for every ticket regardless of status', () => {
     request().flush(result([
       ticket,
       { ...ticket, ticketId: 43, ticketStatus: 'RESOLVED' },
       { ...ticket, ticketId: 44, ticketStatus: 'CANCELLED' },
     ]));
     fixture.detectChanges();
-    expect(element.querySelectorAll('.btn-resolve').length).toBe(1);
-    expect(Array.from(element.querySelectorAll('button'))
-      .filter((button) => button.textContent === 'View Details').length).toBe(3);
+    expect(element.querySelectorAll('.btn-open').length).toBe(3);
+    expect(element.querySelectorAll('.actions button').length).toBe(3);
   });
 
-  it('requires a non-blank resolution message', async () => {
-    await openResolve();
-    expect(element.querySelector('[role="dialog"]')?.textContent).toContain('TKT-TEST');
-    expect(element.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
-    enterResolution('   ');
-    submitResolution();
-    expect(element.querySelector('[role="alert"]')?.textContent).toContain('A resolution message is required.');
-    http.expectNone((r) => r.url === '/api/tickets/resolve');
+  it('opens the selected ticket details page', () => {
+    request().flush(result([ticket]));
+    fixture.detectChanges();
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    element.querySelector<HTMLButtonElement>('.btn-open')!.click();
+
+    expect(navigate).toHaveBeenCalledWith(['/tickets', ticket.ticketId]);
   });
 
-  it('submits the trimmed message once, prevents dismissal while saving, and refreshes the page', async () => {
-    await openResolve();
-    enterResolution('  VPN access restored.  ');
-    submitResolution();
-    const resolve = http.expectOne((r) => r.url === '/api/tickets/resolve');
-    expect(resolve.request.params.get('ticketID')).toBe('42');
-    expect(resolve.request.params.get('summary')).toBe('VPN access restored.');
-    await fixture.whenStable();
-    expect(element.querySelector<HTMLTextAreaElement>('textarea')!.disabled).toBe(true);
-    expect(element.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
-    expect(element.textContent).toContain('Resolving...');
-
-    element.querySelector<HTMLElement>('.overlay')!.click();
-    element.ownerDocument.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    submitResolution();
-    http.expectNone((r) => r.url === '/api/tickets/resolve');
-    expect(element.querySelector('[role="dialog"]')).not.toBeNull();
-
-    resolve.flush({ ...ticket, ticketStatus: 'RESOLVED', resolutionSummary: 'VPN access restored.' });
+  it('starts an in-queue ticket before opening its details page', () => {
+    const queuedTicket = { ...ticket, ticketStatus: 'IN_QUEUE' };
+    request().flush(result([queuedTicket]));
     fixture.detectChanges();
-    request().flush(result([{ ...ticket, ticketStatus: 'RESOLVED' }]));
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    element.querySelector<HTMLButtonElement>('.btn-open')!.click();
     fixture.detectChanges();
-    expect(element.querySelector('[role="dialog"]')).toBeNull();
-    expect(element.querySelector('.status-resolved')?.textContent).toBe('Resolved');
-    expect(element.querySelector('.btn-resolve')).toBeNull();
+
+    const start = http.expectOne(`/api/tickets/${ticket.ticketId}/start`);
+    expect(start.request.method).toBe('PATCH');
+    expect(element.querySelector<HTMLButtonElement>('.btn-open')?.disabled).toBe(true);
+    expect(element.querySelector('.btn-open')?.textContent).toContain('Opening');
+
+    start.flush({ ...queuedTicket, ticketStatus: 'FULFILLMENT' });
+    fixture.detectChanges();
+
+    expect(element.querySelector('.status-fulfillment')?.textContent).toBe('Fulfillment');
+    expect(navigate).toHaveBeenCalledWith(['/tickets', ticket.ticketId]);
   });
 
-  it('keeps the message after an error and allows retrying', async () => {
-    await openResolve();
-    enterResolution('VPN access restored.');
-    submitResolution();
-    http.expectOne((r) => r.url === '/api/tickets/resolve')
-      .flush({ message: 'Could not save resolution.' }, { status: 500, statusText: 'Server error' });
+  it('reports start errors and stays on the assigned tickets page', () => {
+    const queuedTicket = { ...ticket, ticketStatus: 'IN_QUEUE' };
+    request().flush(result([queuedTicket]));
     fixture.detectChanges();
-    expect(element.querySelector('[role="alert"]')?.textContent).toContain('Could not save resolution.');
-    expect(element.querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('VPN access restored.');
-    expect(element.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(false);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
-    submitResolution();
-    http.expectOne((r) => r.url === '/api/tickets/resolve').error(new ProgressEvent('error'));
+    element.querySelector<HTMLButtonElement>('.btn-open')!.click();
+    http.expectOne(`/api/tickets/${ticket.ticketId}/start`)
+      .flush({ message: 'Ticket is no longer available.' }, { status: 400, statusText: 'Bad Request' });
     fixture.detectChanges();
-    expect(element.querySelector('[role="alert"]')?.textContent).toContain('Cannot reach the server.');
+
+    expect(element.querySelector('[role="alert"]')?.textContent).toContain('Ticket is no longer available.');
+    expect(navigate).not.toHaveBeenCalled();
+    expect(element.querySelector<HTMLButtonElement>('.btn-open')?.disabled).toBe(false);
   });
 
-  it('dismisses with Escape or Cancel and resets the message when reopened', async () => {
-    await openResolve();
-    enterResolution('Draft');
-    element.ownerDocument.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    fixture.detectChanges();
-    expect(element.querySelector('[role="dialog"]')).toBeNull();
-    element.querySelector<HTMLButtonElement>('.btn-resolve')!.click();
-    fixture.detectChanges();
-    expect(element.querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('');
-    element.querySelector<HTMLButtonElement>('.dialog button[type="button"]')!.click();
-    fixture.detectChanges();
-    expect(element.querySelector('[role="dialog"]')).toBeNull();
-    http.expectNone((r) => r.url === '/api/tickets/resolve');
-  });
 });

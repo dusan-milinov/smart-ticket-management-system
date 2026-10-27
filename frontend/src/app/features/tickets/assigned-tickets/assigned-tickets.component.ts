@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { Ticket } from '../models/ticket.model';
@@ -11,24 +11,21 @@ const PAGE_SIZE = 10;
 
 @Component({
   selector: 'app-assigned-tickets',
-  imports: [DatePipe, FormsModule, PageHeaderComponent, PaginationComponent],
+  imports: [DatePipe, PageHeaderComponent, PaginationComponent],
   styleUrls: ['../ticket-list.css', './assigned-tickets.component.css'],
   templateUrl: './assigned-tickets.component.html',
-  host: { '(document:keydown.escape)': 'closeResolveDialog()' },
 })
 export class AssignedTicketsComponent implements OnInit {
   private readonly ticketService = inject(TicketService);
+  private readonly router = inject(Router);
 
   protected readonly tickets = signal<Ticket[]>([]);
   protected readonly page = signal(0);
   protected readonly totalPages = signal(0);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
-  protected readonly ticketToResolve = signal<Ticket | null>(null);
-  protected readonly resolution = signal('');
-  protected readonly resolving = signal(false);
-  protected readonly resolveError = signal<string | null>(null);
-
+  protected readonly openingTicketId = signal<number | null>(null);
+  protected readonly openError = signal<string | null>(null);
   ngOnInit(): void {
     this.load(0);
   }
@@ -53,47 +50,24 @@ export class AssignedTicketsComponent implements OnInit {
   }
 
   protected viewDetails(ticket: Ticket): void {
-    // TODO: navigate to `/tickets/${ticket.ticketId}` once a ticket details page exists.
-  }
-
-  protected canResolve(ticket: Ticket): boolean {
-    return !['RESOLVED', 'CANCELLED'].includes(ticket.ticketStatus);
-  }
-
-  protected openResolveDialog(ticket: Ticket): void {
-    this.resolution.set('');
-    this.resolveError.set(null);
-    this.ticketToResolve.set(ticket);
-  }
-
-  protected closeResolveDialog(): void {
-    if (!this.resolving()) {
-      this.ticketToResolve.set(null);
-    }
-  }
-
-  protected confirmResolve(): void {
-    const ticket = this.ticketToResolve();
-    const summary = this.resolution().trim();
-    if (!ticket || this.resolving()) {
-      return;
-    }
-    if (!summary) {
-      this.resolveError.set('A resolution message is required.');
+    this.openError.set(null);
+    if (ticket.ticketStatus !== 'IN_QUEUE') {
+      this.router.navigate(['/tickets', ticket.ticketId]);
       return;
     }
 
-    this.resolving.set(true);
-    this.resolveError.set(null);
-    this.ticketService.resolveTicket(ticket.ticketId, summary).subscribe({
-      next: () => {
-        this.resolving.set(false);
-        this.ticketToResolve.set(null);
-        this.load(this.page());
+    this.openingTicketId.set(ticket.ticketId);
+    this.ticketService.startTicketProcessing(ticket.ticketId).subscribe({
+      next: (updatedTicket) => {
+        this.tickets.update((tickets) => tickets.map((current) =>
+          current.ticketId === updatedTicket.ticketId ? updatedTicket : current,
+        ));
+        this.openingTicketId.set(null);
+        this.router.navigate(['/tickets', ticket.ticketId]);
       },
       error: (err: HttpErrorResponse) => {
-        this.resolving.set(false);
-        this.resolveError.set(this.errorMessage(err, 'Could not resolve the ticket.'));
+        this.openingTicketId.set(null);
+        this.openError.set(this.errorMessage(err, 'Could not open the ticket.'));
       },
     });
   }

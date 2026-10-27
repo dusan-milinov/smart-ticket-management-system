@@ -11,6 +11,10 @@
     <button type="button" class="btn" (click)="load(page())">Try again</button>
   </div>
 } @else {
+  @if (openError()) {
+    <p class="state state-error" role="alert">{{ openError() }}</p>
+  }
+
   <div class="table-card">
     <table>
       <thead>
@@ -39,10 +43,14 @@
             <td data-label="Created At">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
             <td data-label="Actions">
               <div class="actions">
-                <button type="button" class="btn" (click)="viewDetails(ticket)">View Details</button>
-                @if (canResolve(ticket)) {
-                  <button type="button" class="btn btn-resolve" (click)="openResolveDialog(ticket)">Resolve Ticket</button>
-                }
+                <button
+                  type="button"
+                  class="btn btn-open"
+                  [disabled]="openingTicketId() !== null"
+                  (click)="viewDetails(ticket)"
+                >
+                  {{ openingTicketId() === ticket.ticketId ? 'Opening...' : 'Open' }}
+                </button>
               </div>
             </td>
           </tr>
@@ -52,48 +60,6 @@
           </tr>
         }
 
-        @if (ticketToResolve(); as ticket) {
-          <div class="overlay" (click)="closeResolveDialog()">
-            <form
-              class="dialog"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="resolve-title"
-              aria-describedby="resolve-description"
-              (click)="$event.stopPropagation()"
-              (ngSubmit)="confirmResolve()"
-            >
-              <h2 id="resolve-title">Resolve ticket?</h2>
-              <p id="resolve-description">
-                Add a resolution message for ticket <strong>{{ ticket.ticketNumber }}</strong>.
-              </p>
-
-              <label for="resolution-message">Resolution message</label>
-              <textarea
-                id="resolution-message"
-                name="resolution"
-                rows="4"
-                required
-                [ngModel]="resolution()"
-                (ngModelChange)="resolution.set($event)"
-                [disabled]="resolving()"
-                [attr.aria-invalid]="resolveError() ? 'true' : null"
-                [attr.aria-describedby]="resolveError() ? 'resolve-error' : null"
-              ></textarea>
-
-              @if (resolveError()) {
-                <p id="resolve-error" class="dialog-error" role="alert">{{ resolveError() }}</p>
-              }
-
-              <div class="dialog-actions">
-                <button type="button" class="btn" [disabled]="resolving()" (click)="closeResolveDialog()">Cancel</button>
-                <button type="submit" class="btn btn-primary" [disabled]="resolving() || !resolution().trim()">
-                  {{ resolving() ? 'Resolving...' : 'Resolve ticket' }}
-                </button>
-              </div>
-            </form>
-          </div>
-        }
       </tbody>
     </table>
   </div>
