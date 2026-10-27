@@ -29,19 +29,47 @@ the entered values and display an error so the user can retry.
 Support agents can open **Assigned Tickets** from the navigation at
 `/tickets/assigned`. The page lists only tickets assigned to the signed-in agent,
 newest first, with ten tickets per page. It shares the My Tickets table styles,
-status and priority badges, responsive mobile layout, and dashboard page header.
+status and priority badges, column order, View button, responsive mobile layout,
+and dashboard page header. Status tabs show counts for the signed-in agent,
+respecting search and priority but not the selected status or sort order.
 Loading, empty, and error states are displayed, with a retry button on failure.
 
 The page uses `GET /api/tickets/assigned?page=0&size=10` with the session cookie.
 The backend derives the assignee from the authenticated account and restricts
 the endpoint to support agents. The list includes all ticket statuses.
+Counts use `GET /api/tickets/assigned/status-counts` with optional `priority` and
+`search` parameters. A count failure is shown separately and can be retried
+without losing the list or its filters.
 
-Each row includes a **View Details** placeholder (navigation is not implemented
-yet). Open tickets also have a **Resolve Ticket** action, which opens a popup
-requiring a non-blank resolution message. Submission calls
+After changing backend endpoints, rebuild and restart the backend as well as
+refreshing the frontend. An older backend may silently ignore filter parameters
+it does not recognize; reloading the browser alone cannot update the API.
+
+Each row includes a **View** link to Ticket Details. Open tickets have a
+**Resolve ticket** action on the details page, which opens a popup requiring
+a non-blank resolution message. Submission calls
 `PATCH /api/tickets/resolve` with `ticketID` and `summary` query parameters, then
 refreshes the current page. Failed submissions keep the message for retry.
 Resolved and cancelled tickets cannot be resolved again.
+
+## Ticket display and list controls
+
+My Tickets, Assigned Tickets, related tickets on account details, and the dashboard
+ticket preview share status tabs, priority filtering, title/number search
+(debounced by 300 ms), and newest/oldest sorting. Filters reset paginated lists to
+the first page and apply on the server before pagination. Sorting uses `createdAt`
+with `ticketId` as a stable tie-breaker. The dashboard continues to show at most
+five matching tickets; its overview total is not a filtered count.
+
+Ticket badges use the My Tickets palette everywhere, including Ticket Details
+and reassignment dialogs: pending is amber, in progress blue, resolved green,
+cancelled gray; low priority is teal, medium purple, and high red.
+The API still uses `IN_QUEUE` and `FULFILLMENT`, but the UI displays **Pending**
+and **In Progress**, including status changes in event history.
+
+List endpoints accept optional `status`, `priority`, `search`, and Spring pageable
+`sort` parameters. Assigned tickets always remain scoped to the current agent;
+account-related tickets remain restricted to administrators.
 
 ## Ticket comments
 

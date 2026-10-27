@@ -8,6 +8,7 @@ import { ROLES } from '../../../core/roles';
 import { TicketEvent, TicketEventType } from '../models/ticket-event.model';
 import { Ticket } from '../models/ticket.model';
 import { TicketService } from '../services/ticket.service';
+import { ticketLabel } from '../ticket-presentation';
 import { TicketCommentsComponent } from '../ticket-comments/ticket-comments.component';
 
 type TicketAction = 'cancel' | 'resolve';
@@ -38,7 +39,7 @@ interface TimelineEntry {
 @Component({
   imports: [DatePipe, FormsModule, RouterLink, TicketCommentsComponent],
   selector: 'app-ticket-details',
-  styleUrl: './ticket-details.component.css',
+  styleUrls: ['./ticket-details.component.css', '../ticket-badges.css'],
   templateUrl: './ticket-details.component.html',
   host: { '(document:keydown.escape)': 'closeActionDialog()' },
 })
@@ -194,11 +195,7 @@ export class TicketDetailsComponent implements OnInit {
     });
   }
 
-  // IN_QUEUE -> "In queue"
-  protected label(value: string): string {
-    const text = value.replace(/_/g, ' ').toLowerCase();
-    return text.charAt(0).toUpperCase() + text.slice(1);
-  }
+  protected readonly label = ticketLabel;
 
   private describe(event: TicketEvent): { title: string; detail: string | null } {
     switch (event.eventType) {

@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { ROLES } from '../../core/roles';
@@ -8,16 +9,18 @@ import { PageHeaderComponent } from '../../shared/page-header/page-header.compon
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { Ticket } from '../tickets/models/ticket.model';
 import { TicketService } from '../tickets/services/ticket.service';
+import { TicketFiltersComponent } from '../tickets/ticket-filters/ticket-filters.component';
+import { TicketFilters, ticketLabel } from '../tickets/ticket-presentation';
 import { AccountDirectoryEntry } from './account-directory-entry.model';
 import { UserDirectoryService } from './user-directory.service';
 
 const PAGE_SIZE = 10;
 
 @Component({
-  imports: [DatePipe, PageHeaderComponent, PaginationComponent, RouterLink],
+  imports: [DatePipe, PageHeaderComponent, PaginationComponent, RouterLink, TicketFiltersComponent],
   selector: 'app-user-details',
   host: { '(document:keydown.escape)': 'closeDialogs()' },
-  styleUrl: './user-details.component.css',
+  styleUrls: ['../tickets/ticket-list.css', './user-details.component.css', '../tickets/ticket-badges.css'],
   templateUrl: './user-details.component.html',
 })
 export class UserDetailsComponent implements OnInit, OnDestroy {
@@ -27,6 +30,9 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
   private readonly ticketService = inject(TicketService);
 
   private userId = 0;
+  private filters: TicketFilters = { sort: 'newest' };
+  private ticketsRequest?: Subscription;
+  protected readonly ticketLabel = ticketLabel;
 
   protected readonly isAdmin = computed(() => this.authService.user()?.role === ROLES.ADMIN);
   protected readonly account = signal<AccountDirectoryEntry | null>(null);
@@ -36,6 +42,7 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
   protected readonly totalPages = signal(0);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+  protected readonly ticketsError = signal<string | null>(null);
   protected readonly actionError = signal<string | null>(null);
   protected readonly confirming = signal(false);
   protected readonly reassigning = signal<Ticket | null>(null);
@@ -69,18 +76,29 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     clearTimeout(this.noticeTimer);
+    this.ticketsRequest?.unsubscribe();
+  }
+
+  protected filtersChanged(filters: TicketFilters): void {
+    this.filters = filters;
+    this.loadTickets(0);
   }
 
   protected loadTickets(page: number): void {
     this.loading.set(true);
-    this.directoryService.getUserTickets(this.userId, page, PAGE_SIZE).subscribe({
+    this.ticketsError.set(null);
+    this.ticketsRequest?.unsubscribe();
+    this.ticketsRequest = this.directoryService.getUserTickets(this.userId, page, PAGE_SIZE, this.filters).subscribe({
       next: (response) => {
         this.tickets.set(response.content);
         this.page.set(response.number);
         this.totalPages.set(response.totalPages);
         this.loading.set(false);
       },
-      error: (err: HttpErrorResponse) => this.fail(err),
+      error: (err: HttpErrorResponse) => {
+        this.ticketsError.set(err.status === 0 ? 'Cannot reach the server.' : (err.error?.message ?? 'Could not load tickets.'));
+        this.loading.set(false);
+      },
     });
   }
 

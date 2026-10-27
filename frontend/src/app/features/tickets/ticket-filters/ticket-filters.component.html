@@ -1,0 +1,38 @@
+<div class="toolbar">
+  <div class="tabs" role="tablist" aria-label="Filter by status">
+    @for (tab of tabs; track tab.label) {
+      <button type="button" role="tab" class="tab"
+        [class.active]="(filters().status ?? null) === tab.value"
+        [attr.aria-selected]="(filters().status ?? null) === tab.value"
+        (click)="update({ status: tab.value })">
+        {{ tab.label }}
+        @if (count(tab.value) !== null) {
+          <span class="tab-count">{{ count(tab.value) }}</span>
+        }
+      </button>
+    }
+  </div>
+  <div class="filters">
+    <div class="search">
+      <svg class="search-icon" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+        <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+        <path d="M13 13l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+      <input type="search" placeholder="Search tickets..." aria-label="Search tickets by number or title"
+        autocomplete="off" [value]="searchText()" (input)="onSearch($event)" />
+      @if (searchText()) {
+        <button type="button" class="search-clear" aria-label="Clear search" (click)="clearSearch()">&times;</button>
+      }
+    </div>
+    <select aria-label="Filter by priority" [value]="filters().priority ?? ''" (change)="selectPriority($event)">
+      <option value="">All priorities</option>
+      @for (priority of priorities; track priority) {
+        <option [value]="priority">{{ label(priority) }}</option>
+      }
+    </select>
+    <select aria-label="Sort tickets" [value]="filters().sort ?? 'newest'" (change)="selectSort($event)">
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+    </select>
+  </div>
+</div>

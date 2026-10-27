@@ -21,7 +21,10 @@ describe('UserDetailsComponent', () => {
 
   const ticketPage = {
     content: [
-      { ticketId: 1, ticketNumber: 'T-1', title: 'Broken printer', ticketStatus: 'IN_QUEUE' },
+      {
+        ticketId: 1, ticketNumber: 'T-1', title: 'Broken printer', ticketStatus: 'IN_QUEUE',
+        ticketPriority: 'HIGH', ticketType: 'INCIDENT',
+      },
     ],
     number: 0, size: 10, totalElements: 1, totalPages: 1, first: true, last: true, empty: false,
   } as unknown as Page<Ticket>;
@@ -83,7 +86,8 @@ describe('UserDetailsComponent', () => {
     const text = root.textContent;
     expect(text).toContain('user@example.com');
     expect(text).toContain('Broken printer');
-    expect(text).toContain('In Queue');
+    expect(root.querySelector('.status-in_queue')?.textContent?.trim()).toBe('Pending');
+    expect(root.querySelector('.priority-high')?.textContent?.trim()).toBe('High');
     expect(text).toContain('Submitted');
     expect(root.querySelector<HTMLAnchorElement>('td[data-label="Actions"] a')?.getAttribute('href'))
       .toBe('/tickets/1');
@@ -110,6 +114,20 @@ describe('UserDetailsComponent', () => {
     expect(reassignments).toEqual([[1, 9]]);
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('T-1 reassigned to agent9@example.com.');
+  });
+
+  it('passes filters and sorting to account-related ticket requests', () => {
+    setup(ROLES.ADMIN, { id: 2, email: 'user@example.com', role: 'USER', active: true });
+    const request = vi.spyOn(TestBed.inject(UserDirectoryService), 'getUserTickets');
+    const root = fixture.nativeElement as HTMLElement;
+    root.querySelector<HTMLButtonElement>('.tab:nth-child(2)')!.click();
+    const priority = root.querySelector<HTMLSelectElement>('select[aria-label="Filter by priority"]')!;
+    priority.value = 'HIGH';
+    priority.dispatchEvent(new Event('change'));
+    const sort = root.querySelector<HTMLSelectElement>('select[aria-label="Sort tickets"]')!;
+    sort.value = 'oldest';
+    sort.dispatchEvent(new Event('change'));
+    expect(request).toHaveBeenLastCalledWith(2, 0, 10, { status: 'IN_QUEUE', priority: 'HIGH', sort: 'oldest' });
   });
 
   it('keeps the popup open and shows the server message when reassignment fails', () => {
