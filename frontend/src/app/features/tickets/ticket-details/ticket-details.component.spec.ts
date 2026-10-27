@@ -1,10 +1,11 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
 import { signal } from '@angular/core';
 import { AuthService, CurrentUser } from '../../../core/auth.service';
 import { Ticket } from '../models/ticket.model';
+import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { TicketDetailsComponent } from './ticket-details.component';
 
 const ticket: Ticket = {
@@ -35,10 +36,8 @@ describe('TicketDetailsComponent', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        {
-          provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: { get: () => '42' } } },
-        },
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '42' }) } } },
         { provide: AuthService, useValue: { user: currentUser.asReadonly() } },
       ],
     }).compileComponents();
@@ -55,6 +54,8 @@ describe('TicketDetailsComponent', () => {
     fixture.detectChanges();
     http.expectOne('/api/ticket-events/42').flush([]);
     fixture.detectChanges();
+    http.expectOne('/api/comments/42').flush([]);
+    fixture.detectChanges();
   }
 
   it('offers cancellation to users and updates the ticket after cancellation', () => {
@@ -69,7 +70,7 @@ describe('TicketDetailsComponent', () => {
     element.querySelector<HTMLButtonElement>('.ticket-actions button')!.click();
     fixture.detectChanges();
     expect(element.querySelector('[role="dialog"]')?.textContent).toContain('TKT-TEST');
-    element.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    element.querySelector('.dialog')!.dispatchEvent(new Event('submit', { cancelable: true }));
 
     const request = http.expectOne('/api/tickets/cancel?ticketID=42');
     expect(request.request.method).toBe('PATCH');
@@ -96,13 +97,13 @@ describe('TicketDetailsComponent', () => {
     element.querySelector<HTMLButtonElement>('.ticket-actions button')!.click();
     fixture.detectChanges();
     expect(element.querySelector('[role="dialog"]')).not.toBeNull();
-    const textarea = element.querySelector<HTMLTextAreaElement>('textarea')!;
+    const textarea = element.querySelector<HTMLTextAreaElement>('.dialog textarea')!;
     textarea.value = '  VPN access restored.  ';
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
     await fixture.whenStable();
     expect(element.querySelector<HTMLButtonElement>('.dialog button[type="submit"]')!.disabled).toBe(false);
-    element.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    element.querySelector('.dialog')!.dispatchEvent(new Event('submit', { cancelable: true }));
 
     const request = http.expectOne((r) => r.url === '/api/tickets/resolve');
     expect(request.request.method).toBe('PATCH');
@@ -121,5 +122,19 @@ describe('TicketDetailsComponent', () => {
   it('does not offer actions for terminal tickets', () => {
     loadTicket('RESOLVED');
     expect(element.querySelector('.ticket-actions')).toBeNull();
+  });
+
+  it('renders comments directly after Event History', () => {
+    loadTicket();
+    expect(element.querySelector('.history')?.nextElementSibling?.tagName).toBe('APP-TICKET-COMMENTS');
+    expect(element.querySelector('app-ticket-comments')?.textContent).toContain('No comments yet.');
+  });
+
+  it('does not request comments when loading the ticket fails', () => {
+    fixture.detectChanges();
+    http.expectOne('/api/tickets/42').flush({}, { status: 403, statusText: 'Forbidden' });
+    fixture.detectChanges();
+    expect(element.querySelector('app-ticket-comments')).toBeNull();
+    http.expectNone('/api/comments/42');
   });
 });

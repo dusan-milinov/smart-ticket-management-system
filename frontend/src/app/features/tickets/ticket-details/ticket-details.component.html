@@ -105,6 +105,8 @@
     </div>
   </section>
 
+  <app-ticket-comments [ticketId]="t.ticketId" />
+
   @if (action(); as currentAction) {
     <div class="overlay" (click)="closeActionDialog()">
       <form

@@ -9,6 +9,8 @@ public record CommentResponse(
     String content,
     Instant createdAt,
     Long authorId,
+    String authorEmail,
+    String authorRole,
     Long ticketId
 ){
     public static CommentResponse from(Comment comment) {
@@ -17,6 +19,8 @@ public record CommentResponse(
                 comment.getContent(),
                 comment.getCreatedAt(),
                 comment.getAuthor().getId(),
+                comment.getAuthor().getEmail(),
+                comment.getAuthor().getRole().name(),
                 comment.getTicket().getTicketId()
         );
     }
