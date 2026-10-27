@@ -1,78 +1,230 @@
 :host {
   display: block;
-  max-width: 920px;
+  max-width: 1000px;
 }
 
-.profile-layout {
-  display: grid;
-  grid-template-columns: minmax(240px, 0.8fr) minmax(420px, 1.2fr);
-  gap: 24px;
-}
-
-.profile-card {
-  padding: 28px;
-  border: 1px solid var(--color-border);
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 26px;
+  border: 1px solid #d5e3fa;
   border-radius: var(--radius);
-  background: var(--color-surface);
-  box-shadow: 0 6px 18px rgba(15, 39, 71, 0.05);
+  background: linear-gradient(115deg, #eaf1ff, #f8fbff);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 72px;
+  height: 72px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.identity {
+  min-width: 0;
 }
 
 .eyebrow {
   margin: 0 0 4px;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
-h2 {
+h2, h3 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.08rem;
+  font-weight: 650;
+}
+
+.identity h2 {
+  margin-bottom: 8px;
+  font-size: clamp(1.05rem, 3vw, 1.45rem);
+  overflow-wrap: anywhere;
+}
+
+.role-badge {
+  display: inline-flex;
+  padding: 3px 10px;
+  border: 1px solid #fed7aa;
+  border-radius: 20px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.activity, .account-security {
+  margin-top: 24px;
+}
+
+.description {
+  margin: 6px 0 16px;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.statistics, .profile-layout {
+  display: grid;
+  gap: 14px;
+}
+
+.statistics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.stat-card, .profile-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: 0 4px 14px rgba(15, 39, 71, 0.04);
+}
+
+.stat-card {
+  padding: 16px 18px;
+  border-top: 3px solid var(--color-primary);
+}
+
+.stat-card.open {
+  border-top-color: var(--color-accent);
+}
+
+.stat-card.resolved {
+  border-top-color: #238363;
+}
+
+.stat-label {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.8rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.profile-layout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.profile-card {
+  padding: 22px;
 }
 
 dl {
   display: grid;
-  gap: 16px;
-  margin: 24px 0 0;
+  gap: 12px;
+  margin: 16px 0 0;
 }
 
-dl div {
-  padding: 14px;
-  border-radius: var(--radius-sm);
-  background: var(--color-bg);
-}
-
-dt {
+dt, .field-hint, .loading-note {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
+  font-size: 0.8rem;
 }
 
 dd {
-  margin: 6px 0 0;
+  margin: 3px 0 0;
   overflow-wrap: anywhere;
   font-weight: 600;
 }
 
-.description {
-  margin: 6px 0 24px;
-  color: var(--color-text-muted);
+.security-title, .dialog-header, .activity-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-form {
+.lock-icon {
   display: grid;
-  gap: 18px;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+svg {
+  width: 20px;
+  height: 20px;
+}
+
+.security-card .description {
+  max-width: 320px;
+  margin: 12px 0 18px;
+}
+
+.password-dialog {
+  width: min(440px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 24px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  color: var(--color-navy);
+  box-shadow: 0 24px 70px rgba(15, 39, 71, 0.2);
+}
+
+.password-dialog::backdrop {
+  background: rgba(15, 27, 47, 0.48);
+}
+
+.dialog-header {
+  justify-content: space-between;
+}
+
+.close-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.close-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+form, fieldset, .field {
+  display: grid;
+  gap: 12px;
+}
+
+fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 .field {
-  display: grid;
-  gap: 6px;
+  gap: 5px;
 }
 
 label {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
@@ -82,34 +234,195 @@ input {
   padding: 9px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  background: var(--color-surface);
   color: var(--color-navy);
 }
 
-.field-error,
-.form-error {
+input[aria-invalid="true"] {
+  border-color: #a12020;
+}
+
+.field-error, .form-error, .field-hint {
   margin: 0;
+  font-size: 0.8rem;
+}
+
+.field-error, .form-error, .activity-error {
   color: #a12020;
-  font-size: 0.85rem;
+}
+
+.field-error:empty {
+  display: none;
 }
 
 .form-error {
   padding: 10px 12px;
-  border: 1px solid #f3bbbb;
   border-radius: var(--radius-sm);
   background: #fff7f7;
 }
 
-.password-card .btn {
-  justify-self: end;
-  min-width: 156px;
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
 }
 
-@media (max-width: 760px) {
+.performance {
+  margin-top: 24px;
+}
+
+.performance-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.period-toggle {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.period-toggle button {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.period-toggle button[aria-pressed="true"] {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.performance-summary {
+  margin: 0 0 16px;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.performance-summary strong {
+  margin-right: 6px;
+  color: var(--color-primary);
+  font-size: 1.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.performance-state {
+  padding: 24px 0;
+  color: var(--color-text-muted);
+}
+
+.performance-body {
+  position: relative;
+}
+
+.performance-result {
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+
+.performance-result.is-pending {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.performance-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.performance-empty {
+  min-height: 1.5em;
+}
+
+.period-toggle button {
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .performance-result,
+  .period-toggle button {
+    transition: none;
+  }
+}
+
+.performance-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.chart-grid {
+  stroke: var(--color-border);
+  stroke-dasharray: 4 4;
+}
+
+.chart-label {
+  fill: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.chart-line {
+  fill: none;
+  stroke: #3b82f6;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-point {
+  fill: #3b82f6;
+}
+
+@media (max-width: 640px) {
+  .performance-header {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .period-toggle {
+    margin-bottom: 14px;
+  }
+
+  .statistics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .profile-layout {
     grid-template-columns: 1fr;
   }
 
-  .password-card .btn {
-    width: 100%;
+  .profile-header {
+    gap: 14px;
+    padding: 20px;
+  }
+
+  .avatar {
+    flex-basis: 56px;
+    height: 56px;
+    font-size: 1.1rem;
+  }
+
+  .password-dialog {
+    padding: 20px;
   }
 }
