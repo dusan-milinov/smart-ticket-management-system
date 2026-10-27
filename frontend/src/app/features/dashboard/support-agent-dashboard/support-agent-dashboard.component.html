@@ -1,10 +1,108 @@
-<app-page-header
-  heading="Dashboard"
-  description="An overview of the tickets assigned to you and your current workload."
-/>
+<main class="agent-dashboard">
+  <section class="welcome" aria-label="Welcome">
+    <app-page-header
+      heading="Welcome back"
+      description="Here's an overview of your support workload."
+    />
+  </section>
 
-<section class="stat-grid">
-  <app-stat-card label="Assigned to me" />
-  <app-stat-card label="In progress" />
-  <app-stat-card label="Resolved" />
-</section>
+  <section class="stat-grid" aria-label="Ticket overview">
+    <app-stat-card label="Assigned to me" [value]="assignedToMe()" />
+    <app-stat-card label="In Progress" [value]="inProgress()" />
+    <app-stat-card label="Pending" [value]="pending()" />
+    <app-stat-card label="Resolved" [value]="resolved()" />
+  </section>
+
+  @if (loading()) {
+    <p role="status">Loading ticket totals…</p>
+  } @else if (error()) {
+    <div role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" (click)="loadCounts()">Retry</button>
+    </div>
+  }
+
+  <div class="dashboard-panels">
+    <section class="priority-queue" aria-labelledby="priority-queue-heading">
+      <h2 id="priority-queue-heading">Priority Queue</h2>
+      @if (queueLoading()) {
+        <p class="queue-state" role="status">Loading assigned tickets…</p>
+      } @else if (queueError()) {
+        <div class="queue-state queue-error" role="alert">
+          <p>{{ queueError() }}</p>
+          <button type="button" (click)="loadPriorityQueue()">Retry</button>
+        </div>
+      } @else if (priorityQueue().length === 0) {
+        <p class="queue-state">No assigned tickets require attention.</p>
+      } @else {
+        <div class="queue-list">
+          @for (ticket of priorityQueue(); track ticket.ticketId) {
+            <article class="queue-card">
+              <div class="queue-ticket">
+                <span class="queue-number">{{ ticket.ticketNumber }}</span>
+                <span class="queue-title" [title]="ticket.title">{{ ticket.title }}</span>
+              </div>
+              <div class="queue-badges">
+                <span class="badge priority-{{ ticket.ticketPriority.toLowerCase() }}">{{ ticket.ticketPriority }}</span>
+                <span class="badge status-{{ ticket.ticketStatus.toLowerCase() }}">
+                  {{ ticket.ticketStatus === 'IN_QUEUE' ? 'Pending' : 'In Progress' }}
+                </span>
+              </div>
+              <a class="queue-open" [routerLink]="['/tickets', ticket.ticketId]">Open</a>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="ticket-overview" aria-labelledby="ticket-overview-heading">
+      <h2 id="ticket-overview-heading">Ticket Overview</h2>
+      @if (loading()) {
+        <p class="overview-state" role="status">Loading ticket totals…</p>
+      } @else if (error()) {
+        <div class="overview-state" role="alert">
+          <p>{{ error() }}</p>
+          <button type="button" (click)="loadCounts()">Retry</button>
+        </div>
+      } @else {
+        <div class="overview-content">
+          <div class="donut-chart">
+            <svg viewBox="0 0 42 42" role="img" [attr.aria-label]="'Ticket distribution by status. Total: ' + assignedToMe()">
+              <circle class="donut-track" cx="21" cy="21" r="16" />
+              @for (segment of statusSegments(); track segment.status) {
+                <circle
+                  class="donut-segment"
+                  cx="21"
+                  cy="21"
+                  r="16"
+                  [attr.stroke]="segment.color"
+                  [attr.stroke-dasharray]="segment.dashArray"
+                  [attr.stroke-dashoffset]="segment.dashOffset"
+                >
+                  <title>{{ segment.label }}: {{ segment.count }}</title>
+                </circle>
+              }
+            </svg>
+            <div class="donut-total">
+              <strong>{{ assignedToMe() }}</strong>
+              <span>Tickets</span>
+            </div>
+          </div>
+          <ul class="overview-legend">
+            @for (segment of statusSegments(); track segment.status) {
+              <li>
+                <span class="legend-label">
+                  <span class="legend-dot" [style.background-color]="segment.color"></span>
+                  {{ segment.label }}
+                </span>
+                <strong>{{ segment.count }}</strong>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </section>
+  </div>
+
+
+</main>

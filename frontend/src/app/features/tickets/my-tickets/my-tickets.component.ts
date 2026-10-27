@@ -12,15 +12,11 @@ import { RouterLink } from '@angular/router';
 
 const PAGE_SIZE = 10;
 
-// Mirrors Ticket.cancel() in the backend, which rejects resolved and cancelled tickets.
-const NON_CANCELLABLE_STATUSES = ['RESOLVED', 'CANCELLED'];
-
 @Component({
   imports: [DatePipe, PageHeaderComponent, PaginationComponent, RouterLink, TicketFiltersComponent],
   selector: 'app-my-tickets',
   styleUrls: ['../ticket-list.css', '../ticket-badges.css'],
   templateUrl: './my-tickets.component.html',
-  host: { '(document:keydown.escape)': 'closeCancelDialog()' },
 })
 export class MyTicketsComponent implements OnInit {
   private readonly ticketService = inject(TicketService);
@@ -38,10 +34,6 @@ export class MyTicketsComponent implements OnInit {
   protected readonly error = signal<string | null>(null);
 
   protected readonly counts = signal<Partial<Record<TicketStatus, number>> | null>(null);
-
-  protected readonly ticketToCancel = signal<Ticket | null>(null);
-  protected readonly cancelling = signal(false);
-  protected readonly cancelError = signal<string | null>(null);
 
   constructor() {
     this.destroyRef.onDestroy(() => {
@@ -93,44 +85,6 @@ export class MyTicketsComponent implements OnInit {
         next: (counts) => this.counts.set(counts),
         error: () => this.counts.set(null),
       });
-  }
-
-  protected canCancel(ticket: Ticket): boolean {
-    return !NON_CANCELLABLE_STATUSES.includes(ticket.ticketStatus);
-  }
-  
-  protected openCancelDialog(ticket: Ticket): void {
-    this.cancelError.set(null);
-    this.ticketToCancel.set(ticket);
-  }
-
-  protected closeCancelDialog(): void {
-    if (!this.cancelling()) {
-      this.ticketToCancel.set(null);
-    }
-  }
-
-  protected confirmCancel(): void {
-    const ticket = this.ticketToCancel();
-    if (!ticket || this.cancelling()) {
-      return;
-    }
-
-    this.cancelling.set(true);
-    this.cancelError.set(null);
-
-    this.ticketService.cancelTicket(ticket.ticketId).subscribe({
-      next: () => {
-        this.cancelling.set(false);
-        this.ticketToCancel.set(null);
-        this.loadCounts();
-        this.load(this.page());
-      },
-      error: (err: HttpErrorResponse) => {
-        this.cancelling.set(false);
-        this.cancelError.set(this.errorMessage(err, 'Could not cancel the ticket.'));
-      },
-    });
   }
 
   private errorMessage(err: HttpErrorResponse, fallback: string): string {

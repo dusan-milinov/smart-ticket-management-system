@@ -7,6 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
@@ -40,4 +42,20 @@ public interface TicketRepository extends JpaRepository<Ticket,Long>, JpaSpecifi
     long countByAssigneeIdAndTicketStatusIn(Long assigneeId, Collection<TicketStatus> statuses);
   
     Page<Ticket> findByAssigneeIdAndTicketStatus(Long assigneeId, TicketStatus status, Pageable pageable);
+
+    @Query("""
+            SELECT t FROM Ticket t
+            WHERE t.assignee.id = :assigneeId AND t.ticketStatus IN :statuses
+            ORDER BY CASE t.ticketPriority
+                WHEN com.ticketmanagement.backend.enums.TicketPriority.HIGH THEN 0
+                WHEN com.ticketmanagement.backend.enums.TicketPriority.MEDIUM THEN 1
+                WHEN com.ticketmanagement.backend.enums.TicketPriority.LOW THEN 2
+                ELSE 3
+            END ASC, t.createdAt ASC
+            """)
+    List<Ticket> findPriorityQueueByAssigneeIdAndTicketStatusIn(
+            @Param("assigneeId") Long assigneeId,
+            @Param("statuses") Collection<TicketStatus> statuses,
+            Pageable pageable
+    );
 }

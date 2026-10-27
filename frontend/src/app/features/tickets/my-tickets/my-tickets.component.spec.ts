@@ -61,6 +61,33 @@ describe('MyTicketsComponent', () => {
     expect(element.textContent).toContain('You have not submitted any tickets yet.');
   });
 
+  it('shows ticket details without offering cancellation from the list', () => {
+    http.expectOne((r) => r.url === '/api/tickets/my/status-counts')
+      .flush({ IN_QUEUE: 1 });
+    http.expectOne((r) => r.url === '/api/tickets/my').flush({
+      ...emptyPage,
+      content: [{
+        ticketId: 42,
+        ticketNumber: 'T-42',
+        title: 'Cannot sign in',
+        description: '',
+        ticketStatus: 'IN_QUEUE',
+        ticketPriority: 'MEDIUM',
+        resolutionSummary: null,
+        createdAt: '2026-10-27T12:00:00Z',
+        updatedAt: '2026-10-27T12:00:00Z',
+        creatorId: 1,
+        assigneeId: null,
+        ticketType: 'TECHNICAL',
+      }],
+    });
+    fixture.detectChanges();
+
+    expect(element.querySelector('.actions a')?.textContent?.trim()).toBe('View');
+    expect(element.querySelector('button.btn-warn')).toBeNull();
+    expect(element.querySelector('[role="dialog"]')).toBeNull();
+  });
+
   it('requests the selected backend status from the first page without refetching counts', () => {
     flushInitial();
     tab('Pending').click();

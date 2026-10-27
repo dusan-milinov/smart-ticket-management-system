@@ -1,53 +1,74 @@
-<div class="dashboard-heading">
-  <app-page-header
-    heading="Your dashboard"
-    description="A quick overview of the support requests you have submitted."
-  />
-  <a class="primary-link" routerLink="/tickets/new">Create a ticket</a>
-</div>
-
-<section class="overview" aria-label="Ticket overview">
-  <article class="total-card">
-    <div class="total-number">{{ totalTickets() ?? '—' }}</div>
-    <div class="total-copy">
-      <h2>Tickets submitted</h2>
-      <p>Your requests, all in one place.</p>
+<main class="dashboard">
+  <section class="welcome-panel" aria-labelledby="dashboard-title">
+    <div class="welcome-copy">
+      <p class="eyebrow">YOUR SUPPORT SPACE</p>
+      <h1 id="dashboard-title">Support, without the guesswork.</h1>
+      <p class="welcome-description">See where your requests stand and get back to what matters.</p>
+      <a class="primary-link" routerLink="/tickets/new">
+        <span aria-hidden="true">+</span>
+        Create a ticket
+      </a>
+    </div>
+    <aside class="welcome-summary" aria-label="Ticket totals">
+      <div class="summary-label">All requests</div>
+      <div class="summary-total">{{ totalTickets() ?? '—' }}</div>
+      <div class="summary-divider"></div>
+      <div class="summary-open">
+        <span class="open-indicator" aria-hidden="true"></span>
+        <span><strong>{{ openTickets ?? '—' }}</strong> currently open</span>
+      </div>
       @if (totalError()) {
-        <p role="alert">{{ totalError() }}</p>
-        <button type="button" class="retry-button" (click)="loadTicketTotal()">Try again</button>
+        <p class="summary-error" role="alert">{{ totalError() }}</p>
+        <button type="button" class="summary-retry" (click)="loadTicketTotal()">Retry totals</button>
       }
-    </div>
-  </article>
-  <article class="help-card">
-    <h2>Need help with something new?</h2>
-    <p>Send a request to the support team and follow its progress here.</p>
-    <a class="secondary-link" routerLink="/tickets/new">Submit a request</a>
-  </article>
-</section>
+    </aside>
+    <div class="welcome-decoration" aria-hidden="true"></div>
+  </section>
 
-<section aria-labelledby="recent-heading">
-  <div class="section-heading">
-    <h2 id="recent-heading">{{ listHeading() }}</h2>
-    <a class="all-tickets-link" routerLink="/tickets">View all tickets</a>
-  </div>
+  <section class="status-overview" aria-label="Tickets by status">
+    @for (card of statusCards; track card.status) {
+      <article class="status-card" [class]="'status-card ' + card.className" [attr.data-status]="card.status">
+        <div class="status-card-heading">
+          <span class="status-indicator" aria-hidden="true"></span>
+          <h2>{{ card.title }}</h2>
+        </div>
+        <p class="status-value">{{ countFor(card.status) ?? '—' }}</p>
+        <p class="status-caption">{{ card.caption }}</p>
+      </article>
+    }
+  </section>
 
-  <app-ticket-filters (filtersChange)="filtersChanged($event)" />
+  <section class="tickets-section" aria-labelledby="recent-heading">
+    <div class="section-heading">
+      <div>
+        <p class="section-eyebrow">YOUR REQUESTS</p>
+        <h2 id="recent-heading">{{ listHeading() }}</h2>
+      </div>
+      <a class="all-tickets-link" routerLink="/tickets">
+        View all tickets <span aria-hidden="true">→</span>
+      </a>
+    </div>
 
-  @if (loading()) {
-    <p class="state" role="status">Loading your recent tickets…</p>
-  } @else if (error()) {
-    <div class="state state-error" role="alert">
-      <p>{{ error() }}</p>
-      <button type="button" class="retry-button" (click)="loadRecentTickets()">Try again</button>
-    </div>
-  } @else if (tickets().length === 0) {
-    <div class="state">
-      <p>{{ filtered ? 'No tickets match your filters.' : 'You have not submitted any tickets yet.' }}</p>
-      @if (!filtered) {
-        <a class="secondary-link" routerLink="/tickets/new">Create your first ticket</a>
-      }
-    </div>
-  } @else {
-    <app-recent-tickets [tickets]="tickets()" />
-  }
-</section>
+    <app-ticket-filters [counts]="statusCounts()" (filtersChange)="filtersChanged($event)" />
+
+    @if (loading()) {
+      <p class="state" role="status">Loading your recent tickets…</p>
+    } @else if (error()) {
+      <div class="state state-error" role="alert">
+        <p>{{ error() }}</p>
+        <button type="button" class="retry-button" (click)="loadRecentTickets()">Try again</button>
+      </div>
+    } @else if (tickets().length === 0) {
+      <div class="state empty-state">
+        <span class="empty-mark" aria-hidden="true">✓</span>
+        <h3>{{ filtered ? 'No matching requests' : 'A clear slate' }}</h3>
+        <p>{{ filtered ? 'Try adjusting your filters to find what you need.' : 'When you submit a request, you can follow its progress right here.' }}</p>
+        @if (!filtered) {
+          <a class="secondary-link" routerLink="/tickets/new">Create your first ticket</a>
+        }
+      </div>
+    } @else {
+      <app-recent-tickets [tickets]="tickets()" />
+    }
+  </section>
+</main>

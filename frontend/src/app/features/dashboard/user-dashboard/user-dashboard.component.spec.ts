@@ -64,7 +64,10 @@ describe('UserDashboardComponent', () => {
     expect(element.querySelector('.ticket-meta')?.textContent).toContain('In Progress');
     expect(element.querySelector('.ticket-meta')?.textContent).toContain('High');
     expect(element.querySelector('time')?.getAttribute('datetime')).toBe(ticket.createdAt);
-    expect(element.querySelector('.total-number')?.textContent).toBe('9');
+    expect(element.querySelector('.summary-total')?.textContent).toBe('9');
+    expect(element.querySelector('.summary-open')?.textContent).toContain('5 currently open');
+    expect(element.querySelector('[data-status="FULFILLMENT"] .status-value')?.textContent).toBe('5');
+    expect(element.querySelector('[data-status="RESOLVED"] .status-value')?.textContent).toBe('4');
   });
 
   it('offers retry after a failed load and renders no View links for an empty dashboard', () => {
@@ -81,7 +84,7 @@ describe('UserDashboardComponent', () => {
     element.querySelector<HTMLButtonElement>('.retry-button')!.click();
     http.expectOne((request) => request.url === '/api/tickets/my').flush({ content: [], totalElements: 0 });
     fixture.detectChanges();
-    expect(element.textContent).toContain('You have not submitted any tickets yet.');
+    expect(element.textContent).toContain('A clear slate');
     expect(element.querySelector('.ticket-view')).toBeNull();
     expect(element.querySelector('[role=alert]')).toBeNull();
   });
@@ -100,10 +103,31 @@ describe('UserDashboardComponent', () => {
     expect(filtered.request.params.get('status')).toBe('FULFILLMENT');
     filtered.flush({ content: [], totalElements: 0 });
     fixture.detectChanges();
-    expect(element.querySelector('.total-number')?.textContent?.trim()).toBe('6');
-    expect(element.textContent).toContain('No tickets match your filters.');
+    expect(element.querySelector('.summary-total')?.textContent?.trim()).toBe('6');
+    expect(element.querySelector('[data-status="IN_QUEUE"] .status-value')?.textContent).toBe('4');
+    expect(element.querySelector('[data-status="FULFILLMENT"] .status-value')?.textContent).toBe('0');
+    expect(element.textContent).toContain('No matching requests');
     expect(element.textContent).not.toContain('Create your first ticket');
     expect(element.querySelector('.ticket-view')).toBeNull();
     expect(element.querySelector('#recent-heading')?.textContent).toBe('Matching tickets');
+  });
+
+  it('labels the recent ticket action View and links to the ticket details', () => {
+    fixture.detectChanges();
+    http.expectOne('/api/tickets/my/status-counts').flush({ IN_QUEUE: 1 });
+    http.expectOne((request) => request.url === '/api/tickets/my').flush({
+      content: [{ ...ticket, ticketId: 17, ticketNumber: 'ST-0017', ticketStatus: 'IN_QUEUE' }],
+      totalElements: 1,
+    });
+    fixture.detectChanges();
+
+    const element: HTMLElement = fixture.nativeElement;
+    expect(element.querySelector('.ticket-title')?.tagName).toBe('SPAN');
+    expect(element.querySelectorAll('.ticket-row a')).toHaveLength(1);
+    const action = element.querySelector<HTMLAnchorElement>('.ticket-view');
+    expect(action?.classList.contains('btn')).toBe(true);
+    expect(action?.textContent?.trim()).toBe('View');
+    expect(action?.getAttribute('aria-label')).toBe('View ticket ST-0017');
+    expect(action?.getAttribute('href')).toBe('/tickets/17');
   });
 });
