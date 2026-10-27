@@ -3,7 +3,7 @@
 }
 
 .details-page {
-  max-width: 960px;
+  max-width: 1120px;
 }
 
 .back {
@@ -22,7 +22,6 @@
 
 .account-summary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   gap: 24px;
   margin-bottom: 32px;
   padding: 24px;
@@ -84,10 +83,6 @@ dd {
   font-weight: 600;
 }
 
-.account-actions {
-  align-self: end;
-}
-
 .ticket-section {
   margin-top: 8px;
 }
@@ -121,6 +116,10 @@ dd {
 table {
   width: 100%;
   border-collapse: collapse;
+}
+
+.ticket-section table {
+  min-width: 720px;
 }
 
 th,
@@ -400,12 +399,8 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
-  .account-actions {
-    justify-self: stretch;
-  }
-
-  .account-actions .btn {
-    width: 100%;
+  .ticket-section table {
+    min-width: 0;
   }
 
 }

@@ -8,7 +8,7 @@ import { PaginationComponent } from '../../../shared/pagination/pagination.compo
 import { TicketPriority } from '../models/create-ticket-request.model';
 import { Ticket } from '../models/ticket.model';
 import { TicketService, TicketStatus } from '../services/ticket.service';
-import { Router } from '@angular/router';
+import { RouterLink } from '@angular/router';
 
 const PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -27,7 +27,7 @@ const STATUS_TABS: { value: TicketStatus | null; label: string }[] = [
 const PRIORITIES: TicketPriority[] = ['LOW', 'MEDIUM', 'HIGH'];
 
 @Component({
-  imports: [DatePipe, PageHeaderComponent, PaginationComponent],
+  imports: [DatePipe, PageHeaderComponent, PaginationComponent, RouterLink],
   selector: 'app-my-tickets',
   styleUrls: ['../ticket-list.css', './my-tickets.component.css'],
   templateUrl: './my-tickets.component.html',
@@ -35,7 +35,6 @@ const PRIORITIES: TicketPriority[] = ['LOW', 'MEDIUM', 'HIGH'];
 })
 export class MyTicketsComponent implements OnInit {
   private readonly ticketService = inject(TicketService);
-  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly searchInput = new Subject<string>();
   private ticketsRequest?: Subscription;
@@ -159,10 +158,6 @@ export class MyTicketsComponent implements OnInit {
     return !NON_CANCELLABLE_STATUSES.includes(ticket.ticketStatus);
   }
   
-  protected viewDetails(ticket: Ticket): void {
-    this.router.navigate(['/tickets', ticket.ticketId]);
-  }
-
   protected openCancelDialog(ticket: Ticket): void {
     this.cancelError.set(null);
     this.ticketToCancel.set(ticket);

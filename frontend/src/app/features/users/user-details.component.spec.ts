@@ -72,13 +72,21 @@ describe('UserDetailsComponent', () => {
     fixture.detectChanges();
   }
 
-  it('shows email, status and tickets with their statuses', () => {
-    setup(ROLES.SUPPORT_AGENT, { id: 2, email: 'user@example.com', role: 'USER', active: true });
+  it('shows account details and ticket submission time with a View action', () => {
+    ticketPage.content[0] = {
+      ...ticketPage.content[0],
+      createdAt: '2026-10-26T10:00:00Z',
+    } as Ticket;
+    setup(ROLES.ADMIN, { id: 2, email: 'user@example.com', role: 'USER', active: true });
 
-    const text = fixture.nativeElement.textContent;
+    const root = fixture.nativeElement as HTMLElement;
+    const text = root.textContent;
     expect(text).toContain('user@example.com');
     expect(text).toContain('Broken printer');
     expect(text).toContain('In Queue');
+    expect(text).toContain('Submitted');
+    expect(root.querySelector<HTMLAnchorElement>('td[data-label="Actions"] a')?.getAttribute('href'))
+      .toBe('/tickets/1');
     expect(fixture.nativeElement.querySelector('.badge-active')).not.toBeNull();
   });
 

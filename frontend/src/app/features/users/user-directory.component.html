@@ -5,10 +5,13 @@
       ? 'Support-agent accounts, including deactivated accounts.'
       : 'Browse account details. Deactivated accounts are included.'
   "
-/>
+>
+  @if (list() === 'agents') {
+    <a actions class="btn btn-primary" routerLink="/users/new-agent">New support agent</a>
+  }
+</app-page-header>
 
-@if (isAdmin()) {
-  <div class="directory-tabs" role="tablist" aria-label="Account directory">
+<div class="directory-tabs" role="tablist" aria-label="Account directory">
     <button
       type="button"
       role="tab"
@@ -27,8 +30,7 @@
     >
       Support Agents
     </button>
-  </div>
-}
+ </div>
 
 @if (loading()) {
   <p class="state" role="status">Loading accounts…</p>
@@ -45,53 +47,54 @@
           <th scope="col">Email</th>
           <th scope="col">Role</th>
           <th scope="col">Status</th>
-          @if (isAdmin()) {
-            <th scope="col">Actions</th>
-          }
+          <th scope="col">Actions</th>
         </tr>
       </thead>
       <tbody>
         @for (account of accounts(); track account.id) {
           <tr>
-            <td data-label="Email"><a [routerLink]="['/users', account.id]">{{ account.email }}</a></td>
+            <td data-label="Email">{{ account.email }}</td>
             <td data-label="Role">{{ label(account.role) }}</td>
             <td data-label="Status">
               <span class="badge" [class.badge-active]="account.active" [class.badge-inactive]="!account.active">
                 {{ account.active ? 'Active' : 'Inactive' }}
               </span>
             </td>
-            @if (isAdmin()) {
-              <td data-label="Actions">
+            <td data-label="Actions">
+              <div class="row-actions">
+                <a class="btn" [routerLink]="['/users', account.id]">View</a>
                 @if (canDeactivate(account)) {
                   <button type="button" class="btn btn-danger" (click)="pending.set(account)">Deactivate</button>
                 }
-              </td>
-            }
+              </div>
+            </td>
           </tr>
         } @empty {
           <tr>
-            <td class="empty" [attr.colspan]="isAdmin() ? 4 : 3">No accounts found.</td>
+            <td class="empty" colspan="4">No accounts found.</td>
           </tr>
+        }
+
+        @if (actionError()) {
+          <p class="feedback-error" role="alert">{{ actionError() }}</p>
+        }
+
+        @if (pending(); as account) {
+          <div class="overlay">
+            <div class="dialog" role="dialog" aria-modal="true" aria-label="Confirm deactivation">
+              <p>Deactivate {{ account.email }}? They will no longer be able to log in.</p>
+              <div class="dialog-actions">
+                <button type="button" class="btn" [disabled]="deactivating()" (click)="pending.set(null)">Cancel</button>
+                <button type="button" class="btn btn-danger" [disabled]="deactivating()" (click)="confirmDeactivate()">
+                  {{ deactivating() ? 'Deactivating…' : 'Deactivate' }}
+                </button>
+              </div>
+            </div>
+          </div>
         }
       </tbody>
     </table>
   </div>
 
   <app-pagination [page]="page()" [totalPages]="totalPages()" (pageChange)="load($event)" />
-}
-
-@if (actionError()) {
-  <p class="feedback-error" role="alert">{{ actionError() }}</p>
-}
-
-@if (pending(); as account) {
-  <div class="overlay">
-    <div class="dialog" role="dialog" aria-modal="true" aria-label="Confirm deactivation">
-      <p>Deactivate {{ account.email }}? They will no longer be able to log in.</p>
-      <div class="dialog-actions">
-        <button type="button" class="btn" (click)="pending.set(null)">Cancel</button>
-        <button type="button" class="btn btn-danger" (click)="confirmDeactivate()">Deactivate</button>
-      </div>
-    </div>
-  </div>
 }

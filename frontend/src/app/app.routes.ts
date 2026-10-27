@@ -31,22 +31,21 @@ export const routes: Routes = [
                     .then(m => m.UserDirectoryComponent)
             },
             {
+                path: 'users/new-agent',
+                canMatch: [roleMatch(ROLES.ADMIN)],
+                loadComponent: () => import('./features/users/new-support-agent.component')
+                    .then(m => m.NewSupportAgentComponent)
+            },
+            {
                 path: 'users/:id',
                 canMatch: [roleMatch(ROLES.ADMIN)],
                 loadComponent: () => import('./features/users/user-details.component')
                     .then(m => m.UserDetailsComponent)
             },
             {
-                path: 'users',
-                canMatch: [roleMatch(ROLES.SUPPORT_AGENT)],
-                loadComponent: () => import('./features/users/user-directory.component')
-                    .then(m => m.UserDirectoryComponent)
-            },
-            {
-                path: 'users/:id',
-                canMatch: [roleMatch(ROLES.SUPPORT_AGENT)],
-                loadComponent: () => import('./features/users/user-details.component')
-                    .then(m => m.UserDetailsComponent)
+                path: 'profile',
+                loadComponent: () => import('./features/profile/profile.component')
+                    .then(m => m.ProfileComponent)
             },
             {
                 path: 'dashboard',

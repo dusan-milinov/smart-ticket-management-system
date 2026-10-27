@@ -4,7 +4,14 @@
   @if (error()) {
     <div class="state state-error" role="alert"><p>{{ error() }}</p></div>
   } @else if (account(); as user) {
-    <app-page-header [heading]="user.email" description="User details and related tickets." />
+    <app-page-header [heading]="user.email" description="User details and related tickets.">
+      @if (canDeactivate()) {
+        <button actions type="button" class="btn btn-danger" (click)="confirming.set(true)">Deactivate user</button>
+      }
+    </app-page-header>
+    @if (actionError()) {
+      <p class="feedback-error" role="alert">{{ actionError() }}</p>
+    }
 
     <section class="account-summary" aria-labelledby="account-details-heading">
       <div class="section-heading">
@@ -29,14 +36,6 @@
           </dd>
         </div>
       </dl>
-      <div class="account-actions">
-        @if (canDeactivate()) {
-          <button type="button" class="btn btn-danger" (click)="confirming.set(true)">Deactivate user</button>
-        }
-        @if (actionError()) {
-          <p class="feedback-error" role="alert">{{ actionError() }}</p>
-        }
-      </div>
     </section>
 
     <section class="ticket-section" aria-labelledby="tickets-heading">
@@ -58,6 +57,8 @@
                 <th scope="col">Number</th>
                 <th scope="col">Title</th>
                 <th scope="col">Status</th>
+                <th scope="col">Submitted</th>
+                <th scope="col">Actions</th>
                 @if (isAdmin()) {
                   <th scope="col" class="actions-cell">Actions</th>
                 }

@@ -1,0 +1,56 @@
+<app-page-header heading="Profile" description="Review your account and update your password." />
+
+<div class="profile-layout">
+  <section class="profile-card" aria-labelledby="account-heading">
+    <p class="eyebrow">Account</p>
+    <h2 id="account-heading">Your details</h2>
+    <dl>
+      <div>
+        <dt>Email address</dt>
+        <dd>{{ user()?.email }}</dd>
+      </div>
+      <div>
+        <dt>Role</dt>
+        <dd>{{ user()?.role?.replace('ROLE_', '').replace('_', ' ') }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="profile-card password-card" aria-labelledby="password-heading">
+    <p class="eyebrow">Security</p>
+    <h2 id="password-heading">Change password</h2>
+    <p class="description">You will be signed out on every device after changing your password.</p>
+
+    <form [formGroup]="passwordForm" (ngSubmit)="submit()" novalidate>
+      <div class="field">
+        <label for="current-password">Current password</label>
+        <input id="current-password" type="password" formControlName="currentPassword" autocomplete="current-password" />
+        @if (passwordForm.controls.currentPassword.touched && passwordForm.controls.currentPassword.invalid) {
+          <p class="field-error">Enter your current password.</p>
+        }
+      </div>
+      <div class="field">
+        <label for="new-password">New password</label>
+        <input id="new-password" type="password" formControlName="newPassword" autocomplete="new-password" />
+        @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.invalid) {
+          <p class="field-error">Use at least {{ minimumPasswordLength }} characters.</p>
+        }
+      </div>
+      <div class="field">
+        <label for="confirm-password">Confirm new password</label>
+        <input id="confirm-password" type="password" formControlName="confirmPassword" autocomplete="new-password" />
+        @if (passwordForm.controls.confirmPassword.touched && passwordForm.hasError('passwordMismatch')) {
+          <p class="field-error">Passwords do not match.</p>
+        }
+      </div>
+
+      @if (error()) {
+        <p class="form-error" role="alert">{{ error() }}</p>
+      }
+
+      <button type="submit" class="btn btn-primary" [disabled]="submitting()">
+        {{ submitting() ? 'Changing password…' : 'Change password' }}
+      </button>
+    </form>
+  </section>
+</div>

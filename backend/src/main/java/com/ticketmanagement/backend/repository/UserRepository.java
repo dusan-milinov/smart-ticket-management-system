@@ -2,7 +2,6 @@ package com.ticketmanagement.backend.repository;
 
 import com.ticketmanagement.backend.enums.Role;
 import com.ticketmanagement.backend.model.AppUser;
-import com.ticketmanagement.backend.enums.Role;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -19,7 +18,7 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
 
     boolean existsByEmail(String email);
 
-    Page<AppUser> findByRoleNot(Role role, Pageable pageable);
+    Page<AppUser> findByIdNot(Long id, Pageable pageable);
 
     Page<AppUser> findByRole(Role role, Pageable pageable);
 

@@ -1,0 +1,115 @@
+:host {
+  display: block;
+  max-width: 920px;
+}
+
+.profile-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(420px, 1.2fr);
+  gap: 24px;
+}
+
+.profile-card {
+  padding: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: 0 6px 18px rgba(15, 39, 71, 0.05);
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+dl {
+  display: grid;
+  gap: 16px;
+  margin: 24px 0 0;
+}
+
+dl div {
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+dt {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+dd {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.description {
+  margin: 6px 0 24px;
+  color: var(--color-text-muted);
+}
+
+form {
+  display: grid;
+  gap: 18px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-navy);
+}
+
+.field-error,
+.form-error {
+  margin: 0;
+  color: #a12020;
+  font-size: 0.85rem;
+}
+
+.form-error {
+  padding: 10px 12px;
+  border: 1px solid #f3bbbb;
+  border-radius: var(--radius-sm);
+  background: #fff7f7;
+}
+
+.password-card .btn {
+  justify-self: end;
+  min-width: 156px;
+}
+
+@media (max-width: 760px) {
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .password-card .btn {
+    width: 100%;
+  }
+}
