@@ -2,7 +2,9 @@ package com.ticketmanagement.backend.seeder;
 
 import com.ticketmanagement.backend.enums.Role;
 import com.ticketmanagement.backend.enums.TicketEventType;
+import com.ticketmanagement.backend.enums.TicketPriority;
 import com.ticketmanagement.backend.enums.TicketStatus;
+import com.ticketmanagement.backend.enums.TicketType;
 import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.model.Comment;
 import com.ticketmanagement.backend.model.Ticket;
@@ -13,6 +15,8 @@ import com.ticketmanagement.backend.repository.TicketRepository;
 import com.ticketmanagement.backend.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -31,6 +35,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -64,19 +69,33 @@ class TicketSeedingTests {
             entityManager.clear();
 
             List<Ticket> fixtures = fixtureTickets();
-            assertThat(fixtures).hasSize(8);
+            assertThat(fixtures).hasSize(28);
+            assertThat(fixtures).extracting(Ticket::getTicketNumber).containsExactlyElementsOf(
+                    IntStream.rangeClosed(1, 28).mapToObj(number -> "TKT-SEED-%04d".formatted(number)).toList());
             assertThat(fixtures).extracting(Ticket::getTicketType)
                     .containsExactlyElementsOf(TicketSeeder.FIXTURES.stream().map(TicketSeeder.Fixture::type).toList());
             assertThat(fixtures).extracting(Ticket::getTicketPriority)
                     .containsExactlyElementsOf(TicketSeeder.FIXTURES.stream().map(TicketSeeder.Fixture::priority).toList());
-            assertThat(fixtures).extracting(Ticket::getTicketStatus).containsExactly(
+            assertThat(fixtures.subList(0, 8)).extracting(Ticket::getTicketStatus).containsExactly(
                     TicketStatus.RESOLVED, TicketStatus.RESOLVED,
                     TicketStatus.FULFILLMENT, TicketStatus.FULFILLMENT, TicketStatus.FULFILLMENT,
                     TicketStatus.FULFILLMENT, TicketStatus.FULFILLMENT, TicketStatus.CANCELLED);
             assertThat(fixtures.stream().mapToInt(ticket -> comments.findAllByTicket(ticket).size()).sum())
-                    .isEqualTo(8);
+                    .isEqualTo(35);
             assertThat(fixtures.stream().map(ticket -> comments.findAllByTicket(ticket).size()).toList())
-                    .containsExactly(3, 2, 1, 1, 1, 0, 0, 0);
+                    .containsExactly(3, 2, 1, 1, 1, 0, 0, 0,
+                            3, 1, 0, 2, 2, 1, 1, 2, 0, 2, 2, 0, 3, 1, 2, 0, 1, 1, 0, 3);
+            List<Ticket> added = fixtures.subList(8, 28);
+            assertThat(added).extracting(Ticket::getTicketType).containsOnly(TicketType.values());
+            assertThat(added).extracting(Ticket::getTicketPriority).containsOnly(TicketPriority.values());
+            assertThat(added.stream().collect(Collectors.groupingBy(Ticket::getTicketStatus, Collectors.counting())))
+                    .containsExactlyInAnyOrderEntriesOf(Map.of(
+                            TicketStatus.FULFILLMENT, 9L, TicketStatus.RESOLVED, 8L, TicketStatus.CANCELLED, 3L));
+            assertThat(added).extracting(ticket -> ticket.getCreator().getEmail())
+                    .containsOnly(TicketSeeder.PETAR, TicketSeeder.VOJIN, TicketSeeder.VESNA, TicketSeeder.SARAH);
+            assertThat(added).extracting(ticket -> ticket.getAssignee().getEmail())
+                    .containsOnly(TicketSeeder.ZIKA, TicketSeeder.NIKOLA, TicketSeeder.THIRD_AGENT,
+                            TicketSeeder.ANDJELA, TicketSeeder.EMILY);
             assertThat(comments.findAllByTicket(fixtures.get(0)))
                     .extracting(comment -> comment.getAuthor().getRole())
                     .containsExactlyInAnyOrder(Role.SUPPORT_AGENT, Role.USER, Role.SUPPORT_AGENT);
@@ -85,9 +104,11 @@ class TicketSeedingTests {
                     .containsExactlyInAnyOrder(Role.SUPPORT_AGENT, Role.ADMIN);
             assertThat(fixtures.stream().filter(ticket -> history.findAllByTicket(ticket).stream()
                             .anyMatch(event -> event.getEventType() == TicketEventType.REASSIGNED))
-                    .map(Ticket::getTicketNumber).toList()).containsExactly("TKT-SEED-0002", "TKT-SEED-0004");
+                    .map(Ticket::getTicketNumber).toList()).containsExactly(
+                            "TKT-SEED-0002", "TKT-SEED-0004", "TKT-SEED-0009", "TKT-SEED-0012",
+                            "TKT-SEED-0016", "TKT-SEED-0019", "TKT-SEED-0021", "TKT-SEED-0025", "TKT-SEED-0028");
             assertThat(fixtures.stream().mapToInt(ticket -> history.findAllByTicket(ticket).size()).sum())
-                    .isEqualTo(37);
+                    .isEqualTo(142);
             for (int index = 0; index < fixtures.size(); index++) {
                 verifyFixture(fixtures.get(index), TicketSeeder.FIXTURES.get(index));
             }
@@ -117,6 +138,27 @@ class TicketSeedingTests {
     }
 
     @Test
+    void extendsOriginalEightFixturesWithoutChangingTheirRows() {
+        inRollbackTransaction(status -> {
+            prepareFixtures();
+            TicketSeeder.FIXTURES.subList(0, 8).forEach(fixtureSeeder::seed);
+            entityManager.flush();
+            List<String> originalRows = snapshot();
+
+            seeder.seed();
+            entityManager.flush();
+            entityManager.clear();
+
+            assertThat(snapshot()).hasSize(28).startsWith(originalRows.toArray(String[]::new));
+            List<String> extendedRows = snapshot();
+            seeder.seed();
+            entityManager.flush();
+            entityManager.clear();
+            assertThat(snapshot()).isEqualTo(extendedRows);
+        });
+    }
+
+    @Test
     void partiallyPopulatedDataOnlyCreatesMissingFixturesAndDoesNotRepairChildren() {
         inRollbackTransaction(status -> {
             prepareFixtures();
@@ -133,14 +175,14 @@ class TicketSeedingTests {
             entityManager.clear();
 
             List<Ticket> fixtures = fixtureTickets();
-            assertThat(fixtures).hasSize(8);
+            assertThat(fixtures).hasSize(28);
             assertThat(fixtures.getFirst().getTicketId()).isEqualTo(id);
             assertThat(comments.findAllByTicket(fixtures.getFirst())).isEmpty();
             assertThat(history.findAllByTicket(fixtures.getFirst())).isEmpty();
             assertThat(fixtures.stream().mapToInt(ticket -> comments.findAllByTicket(ticket).size()).sum())
-                    .isEqualTo(5);
+                    .isEqualTo(32);
             assertThat(fixtures.stream().mapToInt(ticket -> history.findAllByTicket(ticket).size()).sum())
-                    .isEqualTo(30);
+                    .isEqualTo(135);
         });
     }
 
@@ -203,16 +245,16 @@ class TicketSeedingTests {
         });
     }
 
-    @Test
-    void inactiveAssignedAgentFailsClearlyWithoutReactivation() {
+    @ParameterizedTest
+    @ValueSource(strings = {TicketSeeder.ZIKA, TicketSeeder.ANDJELA})
+    void inactiveInitialOrReassignedAgentFailsClearlyWithoutReactivation(String agentEmail) {
         inRollbackTransaction(status -> {
             prepareFixtures();
-            String agentEmail = TicketSeeder.FIXTURES.getFirst().initialAgentEmail();
             AppUser agent = users.findByEmail(agentEmail).orElseThrow();
             agent.deactivate();
             entityManager.flush();
 
-            assertThatThrownBy(() -> fixtureSeeder.seed(TicketSeeder.FIXTURES.getFirst()))
+            assertThatThrownBy(() -> fixtureSeeder.seed(TicketSeeder.FIXTURES.get(8)))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("Seed agent " + agentEmail + " is inactive and cannot be assigned tickets");
             assertThat(agent.isActive()).isFalse();
@@ -230,16 +272,17 @@ class TicketSeedingTests {
             entityManager.flush();
             Ticket ticket = invocation.getArgument(0);
             assertThat(tickets.existsByTicketNumber(ticket.getTicketNumber())).isTrue();
-            assertThat(comments.findAllByTicket(ticket)).hasSize(1);
-            assertThat(history.findAllByTicket(ticket)).hasSize(4);
+            assertThat(comments.findAllByTicket(ticket)).hasSize(3);
+            assertThat(history.findAllByTicket(ticket)).hasSize(8);
+            assertThat(ticket.getTicketStatus()).isEqualTo(TicketStatus.RESOLVED);
             writesObserved.set(true);
             throw new IllegalStateException("Injected late fixture history failure");
         }).when(eventTarget).record(any(Ticket.class), any(AppUser.class),
-                eq(TicketEventType.COMMENT_ADDED), isNull(), isNull(), any(Instant.class));
+                eq(TicketEventType.RESOLVED), isNull(), any(String.class), any(Instant.class));
 
         assertThatThrownBy(() -> new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             prepareFixtures();
-            fixtureSeeder.seed(TicketSeeder.FIXTURES.getFirst());
+            fixtureSeeder.seed(TicketSeeder.FIXTURES.get(8));
         })).isInstanceOf(IllegalStateException.class).hasMessage("Injected late fixture history failure");
 
         assertThat(writesObserved).isTrue();
@@ -265,6 +308,11 @@ class TicketSeedingTests {
         assertThat(ticket.getAssignee().getEmail()).isEqualTo(
                 fixture.reassignedAgentEmail() == null ? fixture.initialAgentEmail() : fixture.reassignedAgentEmail());
         assertThat(ticket.getAssignee().getRole()).isEqualTo(Role.SUPPORT_AGENT);
+        assertThat(ticket.getAssignee().isActive()).isTrue();
+        assertThat(ticket.getCreatedAt()).isEqualTo(
+                Instant.parse("2026-01-01T09:00:00Z").plusSeconds(fixture.number() * 86400L));
+        assertThat(ticket.getTicketStatus()).isEqualTo(fixture.resolution() != null ? TicketStatus.RESOLVED
+                : fixture.cancelled() ? TicketStatus.CANCELLED : TicketStatus.FULFILLMENT);
         assertThat(ticket.getResolutionSummary()).isEqualTo(fixture.resolution());
         List<Comment> ticketComments = comments.findAllByTicket(ticket).stream()
                 .sorted(Comparator.comparing(Comment::getCreatedAt)).toList();
@@ -272,6 +320,7 @@ class TicketSeedingTests {
         for (int index = 0; index < ticketComments.size(); index++) {
             Comment comment = ticketComments.get(index);
             assertThat(comment.getId()).isPositive();
+            assertThat(comment.getTicket().getTicketId()).isEqualTo(ticket.getTicketId());
             assertThat(comment.getAuthor().getEmail()).isEqualTo(fixture.comments().get(index).authorEmail());
             assertThat(comment.getContent()).isEqualTo(fixture.comments().get(index).content());
         }
@@ -314,8 +363,11 @@ class TicketSeedingTests {
                     assertThat(event.getOldValue()).isEqualTo(assigneeId);
                     assertThat(event.getNewValue()).isNotEqualTo(assigneeId);
                     assigneeId = event.getNewValue();
-                    assertThat(users.findById(Long.valueOf(assigneeId)).orElseThrow().getRole())
-                            .isEqualTo(Role.SUPPORT_AGENT);
+                    AppUser assignedAgent = users.findById(Long.valueOf(assigneeId)).orElseThrow();
+                    assertThat(assignedAgent.getRole()).isEqualTo(Role.SUPPORT_AGENT);
+                    assertThat(assignedAgent.isActive()).isTrue();
+                    assertThat(assignedAgent.getEmail()).isEqualTo(event.getEventType() == TicketEventType.ASSIGNED
+                            ? fixture.initialAgentEmail() : fixture.reassignedAgentEmail());
                 }
                 case STATUS_CHANGED -> {
                     assertThat(event.getInitiator().getRole()).isEqualTo(Role.ADMIN);
@@ -369,7 +421,9 @@ class TicketSeedingTests {
         Map<String, Role> required = Map.of(TicketSeeder.ADMIN, Role.ADMIN,
                 TicketSeeder.PETAR, Role.USER, TicketSeeder.VOJIN, Role.USER,
                 TicketSeeder.ZIKA, Role.SUPPORT_AGENT, TicketSeeder.NIKOLA, Role.SUPPORT_AGENT,
-                TicketSeeder.THIRD_AGENT, Role.SUPPORT_AGENT);
+                TicketSeeder.THIRD_AGENT, Role.SUPPORT_AGENT,
+                TicketSeeder.ANDJELA, Role.SUPPORT_AGENT, TicketSeeder.EMILY, Role.SUPPORT_AGENT,
+                TicketSeeder.VESNA, Role.USER, TicketSeeder.SARAH, Role.USER);
         required.forEach((email, role) -> {
             AppUser user = users.findByEmail(email)
                     .orElseGet(() -> users.save(new AppUser(email, "test-only-unused-hash", role)));

@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -93,9 +94,17 @@ class SeedingConfigTests {
             order.verify(repository).save(any(AppUser.class));
             order.verify(repository).existsByEmail("vojin.vojinovic@example.com");
             order.verify(repository).save(any(AppUser.class));
+            order.verify(repository).existsByEmail("andjela.petrovic@example.com");
+            order.verify(repository).save(any(AppUser.class));
+            order.verify(repository).existsByEmail("emily.wilson@example.com");
+            order.verify(repository).save(any(AppUser.class));
+            order.verify(repository).existsByEmail("vesna.jovanovic@example.com");
+            order.verify(repository).save(any(AppUser.class));
+            order.verify(repository).existsByEmail("sarah.parker@example.com");
+            order.verify(repository).save(any(AppUser.class));
             order.verify(transactionManager).commit(any());
-            verify(transactionManager, times(9)).getTransaction(any());
-            verify(transactionManager, times(9)).commit(any());
+            verify(transactionManager, times(29)).getTransaction(any());
+            verify(transactionManager, times(29)).commit(any());
             verify(transactionManager, never()).rollback(any());
         });
     }
@@ -139,13 +148,41 @@ class SeedingConfigTests {
             UserRepository repository = context.getBean(UserRepository.class);
             PlatformTransactionManager transactionManager = context.getBean(PlatformTransactionManager.class);
             IllegalStateException failure = new IllegalStateException("database write failed");
-            when(repository.save(any(AppUser.class))).thenThrow(failure);
+            when(repository.save(argThat(user -> user.getEmail().equals("sarah.parker@example.com"))))
+                    .thenThrow(failure);
 
             assertThatThrownBy(() -> context.getBean(ApplicationRunner.class)
                     .run(new DefaultApplicationArguments())).isSameAs(failure);
 
             verify(transactionManager).rollback(any());
             verify(transactionManager, never()).commit(any());
+            verify(transactionManager).getTransaction(any());
+            verify(repository, times(10)).save(any(AppUser.class));
+            verifyNoInteractions(context.getBean(TicketRepository.class));
+        });
+    }
+
+    @Test
+    void fixtureFailureRollsBackOnlyItsTransactionAndStopsTheRun() {
+        contextRunner.withPropertyValues(
+                "spring.profiles.active=dev",
+                "app.seed.enabled=true",
+                "app.seed.password=test-only-password"
+        ).run(context -> {
+            TicketRepository repository = context.getBean(TicketRepository.class);
+            PlatformTransactionManager transactionManager = context.getBean(PlatformTransactionManager.class);
+            IllegalStateException failure = new IllegalStateException("fixture lookup failed");
+            when(repository.existsByTicketNumber("TKT-SEED-0010")).thenThrow(failure);
+
+            assertThatThrownBy(() -> context.getBean(ApplicationRunner.class)
+                    .run(new DefaultApplicationArguments())).isSameAs(failure);
+
+            // One user transaction and nine completed fixture transactions precede the failure.
+            verify(transactionManager, times(11)).getTransaction(any());
+            verify(transactionManager, times(10)).commit(any());
+            verify(transactionManager).rollback(any());
+            verify(repository, times(10)).existsByTicketNumber(anyString());
+            verify(repository, never()).existsByTicketNumber("TKT-SEED-0011");
         });
     }
 
