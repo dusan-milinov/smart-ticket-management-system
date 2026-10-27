@@ -3,8 +3,17 @@
   description="Tickets assigned to you and their current status."
 />
 
+<app-ticket-filters [counts]="counts()" (filtersChange)="filtersChanged($event)" />
+
+@if (countsError()) {
+  <div class="state state-error" role="alert">
+    <p>{{ countsError() }}</p>
+    <button type="button" class="btn" (click)="loadCounts()">Retry counts</button>
+  </div>
+}
+
 @if (loading()) {
-  <p class="state" role="status">Loading tickets...</p>
+  <p class="state" role="status">Loading tickets…</p>
 } @else if (error()) {
   <div class="state state-error" role="alert">
     <p>{{ error() }}</p>
@@ -17,9 +26,9 @@
         <tr>
           <th scope="col">Ticket #</th>
           <th scope="col">Title</th>
-          <th scope="col">Status</th>
           <th scope="col">Priority</th>
           <th scope="col">Type</th>
+          <th scope="col">Status</th>
           <th scope="col">Submitted</th>
           <th scope="col">Actions</th>
         </tr>
@@ -29,23 +38,23 @@
           <tr>
             <td data-label="Ticket #" class="number">{{ ticket.ticketNumber }}</td>
             <td data-label="Title" class="title">{{ ticket.title }}</td>
-            <td data-label="Status">
-              <span class="badge status-{{ ticket.ticketStatus.toLowerCase() }}">{{ label(ticket.ticketStatus) }}</span>
-            </td>
             <td data-label="Priority">
               <span class="badge priority-{{ ticket.ticketPriority.toLowerCase() }}">{{ label(ticket.ticketPriority) }}</span>
             </td>
             <td data-label="Type">{{ label(ticket.ticketType) }}</td>
+            <td data-label="Status">
+              <span class="badge status-{{ ticket.ticketStatus.toLowerCase() }}">{{ label(ticket.ticketStatus) }}</span>
+            </td>
             <td data-label="Submitted" class="submitted">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
             <td data-label="Actions">
               <div class="actions">
-                <a class="btn btn-open" [routerLink]="['/tickets', ticket.ticketId]">View</a>
+                <a class="btn" [routerLink]="['/tickets', ticket.ticketId]">View</a>
               </div>
             </td>
           </tr>
         } @empty {
           <tr>
-            <td class="empty" colspan="7">You do not have any assigned tickets yet.</td>
+            <td class="empty" colspan="7">{{ filtered ? 'No tickets match your filters.' : 'You do not have any assigned tickets yet.' }}</td>
           </tr>
         }
 
