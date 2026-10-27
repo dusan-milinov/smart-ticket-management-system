@@ -60,6 +60,19 @@ export class TicketDetailsComponent implements OnInit {
   protected readonly actionInProgress = signal(false);
   protected readonly actionError = signal<string | null>(null);
 
+  protected readonly backLink = computed(() => {
+    const role = this.auth.user()?.role;
+    if (role === ROLES.ADMIN) {
+      const returnTo = this.route.snapshot.queryParamMap.get('returnTo');
+      return returnTo && /^\/users\/[1-9]\d*$/.test(returnTo)
+        ? { url: returnTo, label: 'Back to user' }
+        : { url: '/users', label: 'Back to users' };
+    }
+    return role === ROLES.SUPPORT_AGENT
+      ? { url: '/tickets/assigned', label: 'Back to assigned tickets' }
+      : { url: '/tickets', label: 'Back to my tickets' };
+  });
+
   // Newest first; the API does not guarantee any order.
   protected readonly timeline = computed<TimelineEntry[]>(() =>
     [...this.events()]

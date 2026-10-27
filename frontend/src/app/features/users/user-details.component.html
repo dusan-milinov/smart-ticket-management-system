@@ -58,10 +58,7 @@
                 <th scope="col">Title</th>
                 <th scope="col">Status</th>
                 <th scope="col">Submitted</th>
-                <th scope="col">Actions</th>
-                @if (isAdmin()) {
-                  <th scope="col" class="actions-cell">Actions</th>
-                }
+                <th scope="col" class="actions-cell">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -74,24 +71,28 @@
                       label(ticket.ticketStatus)
                     }}</span>
                   </td>
-                  @if (isAdmin()) {
-                    <td data-label="Actions" class="actions-cell">
-                      @if (canReassign(ticket)) {
-                        <button
-                          type="button"
-                          class="btn btn-sm"
-                          [attr.aria-label]="'Reassign ' + ticket.ticketNumber"
-                          (click)="openReassign(ticket)"
-                        >
-                          Reassign
-                        </button>
-                      }
-                    </td>
-                  }
+                  <td data-label="Submitted">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
+                  <td data-label="Actions" class="actions-cell">
+                    <a
+                      class="btn btn-sm"
+                      [routerLink]="['/tickets', ticket.ticketId]"
+                      [queryParams]="{ returnTo: '/users/' + user.id }"
+                    >View</a>
+                    @if (canReassign(ticket)) {
+                      <button
+                        type="button"
+                        class="btn btn-sm"
+                        [attr.aria-label]="'Reassign ' + ticket.ticketNumber"
+                        (click)="openReassign(ticket)"
+                      >
+                        Reassign
+                      </button>
+                    }
+                  </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td class="empty" [attr.colspan]="isAdmin() ? 4 : 3">No tickets found.</td>
+                  <td class="empty" colspan="5">No tickets found.</td>
                 </tr>
               }
             </tbody>
