@@ -1,8 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { AuthService } from '../../core/auth.service';
-import { ROLES } from '../../core/roles';
-import { RouterLink } from '@angular/router';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { AccountDirectoryEntry } from './account-directory-entry.model';
@@ -19,10 +17,9 @@ type DirectoryList = 'users' | 'agents';
   templateUrl: './user-directory.component.html',
 })
 export class UserDirectoryComponent implements OnInit {
-  private readonly authService = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
   private readonly directoryService = inject(UserDirectoryService);
 
-  protected readonly isAdmin = computed(() => this.authService.user()?.role === ROLES.ADMIN);
   protected readonly list = signal<DirectoryList>('users');
   protected readonly accounts = signal<AccountDirectoryEntry[]>([]);
   protected readonly page = signal(0);
@@ -31,13 +28,17 @@ export class UserDirectoryComponent implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly pending = signal<AccountDirectoryEntry | null>(null);
   protected readonly actionError = signal<string | null>(null);
+  protected readonly deactivating = signal(false);
 
   ngOnInit(): void {
+    if (this.route.snapshot.queryParamMap.get('list') === 'agents') {
+      this.list.set('agents');
+    }
     this.load(0);
   }
 
   protected selectList(list: DirectoryList): void {
-    if (!this.isAdmin() || this.list() === list) {
+    if (this.list() === list) {
       return;
     }
     this.list.set(list);
@@ -48,11 +49,9 @@ export class UserDirectoryComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    const result = this.isAdmin()
-      ? this.list() === 'agents'
-        ? this.directoryService.getSupportAgents(page, PAGE_SIZE)
-        : this.directoryService.getAllUsers(page, PAGE_SIZE)
-      : this.directoryService.getNonAdminUsers(page, PAGE_SIZE);
+    const result = this.list() === 'agents'
+      ? this.directoryService.getSupportAgents(page, PAGE_SIZE)
+      : this.directoryService.getAllUsers(page, PAGE_SIZE);
 
     result.subscribe({
       next: (response) => {
@@ -69,21 +68,30 @@ export class UserDirectoryComponent implements OnInit {
   }
 
   protected canDeactivate(account: AccountDirectoryEntry): boolean {
-    return this.isAdmin() && account.active === true && account.role !== 'ADMIN';
+    return account.active === true && account.role !== 'ADMIN';
   }
 
   protected confirmDeactivate(): void {
     const account = this.pending();
-    if (!account) {
+    if (!account || !this.canDeactivate(account) || this.deactivating()) {
       return;
     }
-    this.pending.set(null);
+
+    this.deactivating.set(true);
     this.actionError.set(null);
     this.directoryService.deactivateUser(account.id).subscribe({
-      next: (updated) =>
-        this.accounts.update((list) => list.map((entry) => (entry.id === updated.id ? updated : entry))),
-      error: (err: HttpErrorResponse) =>
-        this.actionError.set(err.error?.message ?? 'Could not deactivate the account.'),
+      next: (updated) => {
+        this.accounts.update((accounts) => accounts.map((entry) => entry.id === updated.id ? updated : entry));
+        this.pending.set(null);
+        this.deactivating.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.actionError.set(
+          err.status === 0 ? 'Cannot reach the server.' : (err.error?.message ?? 'Could not deactivate the account.'),
+        );
+        this.pending.set(null);
+        this.deactivating.set(false);
+      },
     });
   }
 
@@ -99,4 +107,3 @@ export class UserDirectoryComponent implements OnInit {
     return err.status === 0 ? 'Cannot reach the server.' : (err.error?.message ?? 'Could not load accounts.');
   }
 }
-

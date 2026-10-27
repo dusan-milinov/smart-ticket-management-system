@@ -87,18 +87,6 @@ td {
   border-bottom: 1px solid var(--color-border);
 }
 
-td a {
-  color: var(--color-primary);
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 160ms ease, text-decoration-color 160ms ease;
-}
-
-td a:hover {
-  color: var(--color-primary-hover);
-  text-decoration: underline;
-}
-
 tbody tr:last-child td {
   border-bottom: 0;
 }
@@ -129,6 +117,18 @@ tbody tr:last-child td {
   border-color: #b9c5d5;
   background: #f3f6fa;
   box-shadow: 0 2px 6px rgba(15, 39, 71, 0.1);
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 @media (max-width: 720px) {

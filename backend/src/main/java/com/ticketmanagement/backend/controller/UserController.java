@@ -1,7 +1,6 @@
 package com.ticketmanagement.backend.controller;
 
 import com.ticketmanagement.backend.dto.auth.AdminUserResponse;
-import com.ticketmanagement.backend.dto.auth.UserResponse;
 import com.ticketmanagement.backend.dto.ticket.TicketResponse;
 import org.springframework.web.bind.annotation.PathVariable;
 import com.ticketmanagement.backend.service.UserService;
@@ -26,14 +25,6 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
-
-    @GetMapping
-    public Page<UserResponse> getNonAdminUsers(
-            @ParameterObject
-            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
-    ) {
-        return userService.getNonAdminUsers(pageable);
-    }
 
     @GetMapping("/{userId}")
     public AdminUserResponse getUserDetails(@PathVariable long userId) {

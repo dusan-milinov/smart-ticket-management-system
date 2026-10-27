@@ -113,15 +113,10 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    @PreAuthorize("hasRole('SUPPORT_AGENT')")
-    public Page<UserResponse> getNonAdminUsers(Pageable pageable) {
-        return userRepository.findByRoleNot(Role.ADMIN, pageable).map(UserResponse::from);
-    }
-
-    @Transactional(readOnly = true)
     @PreAuthorize("hasRole('ADMIN')")
     public Page<AdminUserResponse> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).map(AdminUserResponse::from);
+        AppUser currentUser = currentUserService.getCurrentUser();
+        return userRepository.findByIdNot(currentUser.getId(), pageable).map(AdminUserResponse::from);
     }
 
     @Transactional(readOnly = true)
@@ -130,38 +125,23 @@ public class UserService {
         return userRepository.findByRole(Role.SUPPORT_AGENT, pageable).map(AdminUserResponse::from);
     }
 
-    /**
-     * Returns account details. Administrators can view any account; support agents can view
-     * non-admin accounts, and an administrator target is reported as not found.
-     */
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('ADMIN','SUPPORT_AGENT')")
+    @PreAuthorize("hasRole('ADMIN')")
     public AdminUserResponse getUserDetails(long userId) {
-        return AdminUserResponse.from(findVisibleUser(userId, currentUserService.getCurrentUser()));
+        return AdminUserResponse.from(findUser(userId));
     }
 
-    /**
-     * Lists tickets tied to an account (created by it or assigned to it). Administrators see all of them;
-     * support agents see only those assigned to themselves, since agents are limited to their own assignments.
-     */
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('ADMIN','SUPPORT_AGENT')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<TicketResponse> getUserTickets(long userId, Pageable pageable) {
-        AppUser actor = currentUserService.getCurrentUser();
-        findVisibleUser(userId, actor);
-        Page<Ticket> tickets = actor.getRole() == Role.ADMIN
-                ? ticketRepository.findByCreatorIdOrAssigneeId(userId, userId, pageable)
-                : ticketRepository.findByCreatorIdAndAssigneeId(userId, actor.getId(), pageable);
+        findUser(userId);
+        Page<Ticket> tickets = ticketRepository.findByCreatorIdOrAssigneeId(userId, userId, pageable);
         return tickets.map(TicketResponse::from);
     }
 
-    private AppUser findVisibleUser(long userId, AppUser actor) {
-        AppUser target = userRepository.findById(userId)
+    private AppUser findUser(long userId) {
+        return userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User with ID " + userId + " not found."));
-        if (actor.getRole() != Role.ADMIN && target.getRole() == Role.ADMIN) {
-            throw new UserNotFoundException("User with ID " + userId + " not found.");
-        }
-        return target;
     }
 
     private AppUser createAccount(String suppliedEmail, String password, Role role) {

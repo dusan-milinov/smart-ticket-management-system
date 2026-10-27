@@ -63,7 +63,7 @@
           <th scope="col">Priority</th>
           <th scope="col">Type</th>
           <th scope="col">Status</th>
-          <th scope="col">Created At</th>
+          <th scope="col">Submitted</th>
           <th scope="col">Actions</th>
         </tr>
       </thead>
@@ -79,10 +79,10 @@
             <td data-label="Status">
               <span class="badge status-{{ ticket.ticketStatus.toLowerCase() }}">{{ statusLabel(ticket.ticketStatus) }}</span>
             </td>
-            <td data-label="Created At">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
+            <td data-label="Submitted" class="submitted">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
             <td data-label="Actions">
               <div class="actions">
-                <button type="button" class="btn" (click)="viewDetails(ticket)">View Details</button>
+                <a class="btn" [routerLink]="['/tickets', ticket.ticketId]">View</a>
                 @if (canCancel(ticket)) {
                   <button type="button" class="btn btn-warn" (click)="openCancelDialog(ticket)">Cancel Ticket</button>
                 }

@@ -47,46 +47,24 @@ class UserDirectoryControllerTests {
     @MockitoBean private JwtDecoder decoder;
 
     @Test
-    void supportAgentGetsPaginatedNonAdminUsersWithActiveStatus() throws Exception {
-        Pageable pageable = PageRequest.of(1, 2, Sort.by(Sort.Order.asc("id")));
-        AppUser user = account(8L, "user@example.com", Role.USER, true);
-        AppUser agent = account(9L, "inactive-agent@example.com", Role.SUPPORT_AGENT, false);
-        when(users.findByRoleNot(Role.ADMIN, pageable))
-                .thenReturn(new PageImpl<>(List.of(user, agent), pageable, 3));
-
-        mvc.perform(get("/users").param("page", "1").param("size", "2")
-                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_SUPPORT_AGENT"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.content[0].id").value(8))
-                .andExpect(jsonPath("$.content[0].role").value("USER"))
-                .andExpect(jsonPath("$.content[0].active").value(true))
-                .andExpect(jsonPath("$.content[1].email").value("inactive-agent@example.com"))
-                .andExpect(jsonPath("$.number").value(1))
-                .andExpect(jsonPath("$.size").value(2))
-                .andExpect(jsonPath("$.totalElements").value(4));
-
-        verify(users).findByRoleNot(Role.ADMIN, pageable);
-    }
-
-    @Test
-    void administratorGetsAllAccountsIncludingInactiveAccounts() throws Exception {
+    void administratorGetsAllAccountsExceptTheAuthenticatedAdministrator() throws Exception {
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.asc("id")));
-        when(users.findAll(pageable)).thenReturn(new PageImpl<>(
-                List.of(account(1L, "admin@example.com", Role.ADMIN, true),
-                        account(2L, "inactive@example.com", Role.USER, false)),
-                pageable, 2));
+        AppUser admin = account(1L, "admin@example.com", Role.ADMIN, true);
+        when(users.findByEmail(admin.getEmail())).thenReturn(java.util.Optional.of(admin));
+        when(users.findByIdNot(admin.getId(), pageable)).thenReturn(new PageImpl<>(
+                List.of(account(2L, "inactive@example.com", Role.USER, false)), pageable, 1));
 
         mvc.perform(get("/admin/users")
-                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                        .with(jwt().jwt(jwt -> jwt.subject(admin.getEmail()))
+                                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.content[0].role").value("ADMIN"))
-                .andExpect(jsonPath("$.content[1].active").value(false))
-                .andExpect(jsonPath("$.content[1].password").doesNotExist())
-                .andExpect(jsonPath("$.totalElements").value(2));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(2))
+                .andExpect(jsonPath("$.content[0].active").value(false))
+                .andExpect(jsonPath("$.content[0].password").doesNotExist())
+                .andExpect(jsonPath("$.totalElements").value(1));
 
-        verify(users).findAll(pageable);
+        verify(users).findByIdNot(admin.getId(), pageable);
     }
 
     @Test
@@ -106,14 +84,6 @@ class UserDirectoryControllerTests {
     }
 
     @Test
-    void regularUserCannotListAccounts() throws Exception {
-        mvc.perform(get("/users").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
-                .andExpect(status().isForbidden());
-
-        verifyNoInteractions(users);
-    }
-
-    @Test
     void supportAgentCannotAccessAdministratorDirectories() throws Exception {
         var supportAgent = jwt().authorities(new SimpleGrantedAuthority("ROLE_SUPPORT_AGENT"));
         mvc.perform(get("/admin/users").with(supportAgent)).andExpect(status().isForbidden());
@@ -124,10 +94,20 @@ class UserDirectoryControllerTests {
 
     @Test
     void anonymousRequestsCannotListAccounts() throws Exception {
-        mvc.perform(get("/users")).andExpect(status().isUnauthorized());
         mvc.perform(get("/admin/users")).andExpect(status().isUnauthorized());
 
         verifyNoInteractions(users);
+    }
+
+    @Test
+    void authenticatedUsersCanStillReadTheirOwnProfile() throws Exception {
+        mvc.perform(get("/users/me").with(jwt().jwt(jwt -> jwt.subject("user@example.com"))
+                        .authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("user@example.com"))
+                .andExpect(jsonPath("$.role").value("ROLE_USER"));
+
+        verifyNoInteractions(users, tickets);
     }
 
     @Test
@@ -149,29 +129,11 @@ class UserDirectoryControllerTests {
     }
 
     @Test
-    void supportAgentSeesOnlyTicketsAssignedToThemselves() throws Exception {
-        AppUser agent = account(5L, "agent@example.com", Role.SUPPORT_AGENT, true);
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.desc("createdAt")));
-        when(users.findByEmail("agent@example.com")).thenReturn(java.util.Optional.of(agent));
-        when(users.findById(2L)).thenReturn(java.util.Optional.of(account(2L, "u@example.com", Role.USER, true)));
-        when(tickets.findByCreatorIdAndAssigneeId(2L, 5L, pageable)).thenReturn(new PageImpl<>(List.of(), pageable, 0));
-
-        mvc.perform(get("/users/2/tickets").with(jwt().jwt(j -> j.subject("agent@example.com"))
-                        .authorities(new SimpleGrantedAuthority("ROLE_SUPPORT_AGENT"))))
-                .andExpect(status().isOk());
-
-        verify(tickets).findByCreatorIdAndAssigneeId(2L, 5L, pageable);
-    }
-
-    @Test
-    void supportAgentCannotViewAdministratorDetails() throws Exception {
-        AppUser agent = account(5L, "agent@example.com", Role.SUPPORT_AGENT, true);
-        when(users.findByEmail("agent@example.com")).thenReturn(java.util.Optional.of(agent));
-        when(users.findById(1L)).thenReturn(java.util.Optional.of(account(1L, "admin@example.com", Role.ADMIN, true)));
-
-        var auth = jwt().jwt(j -> j.subject("agent@example.com")).authorities(new SimpleGrantedAuthority("ROLE_SUPPORT_AGENT"));
-        mvc.perform(get("/users/1").with(auth)).andExpect(status().isNotFound());
-        mvc.perform(get("/users/1/tickets").with(auth)).andExpect(status().isNotFound());
+    void supportAgentCannotViewOtherAccountDetailsOrTickets() throws Exception {
+        var auth = jwt().authorities(new SimpleGrantedAuthority("ROLE_SUPPORT_AGENT"));
+        mvc.perform(get("/users/2").with(auth)).andExpect(status().isForbidden());
+        mvc.perform(get("/users/2/tickets").with(auth)).andExpect(status().isForbidden());
+        verifyNoInteractions(users, tickets);
     }
 
     @Test
@@ -190,4 +152,3 @@ class UserDirectoryControllerTests {
         return user;
     }
 }
-

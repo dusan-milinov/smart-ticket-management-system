@@ -25,8 +25,6 @@ public interface TicketRepository extends JpaRepository<Ticket,Long>, JpaSpecifi
 
     Page<Ticket> findByCreatorIdOrAssigneeId(Long creatorId, Long assigneeId, Pageable pageable);
 
-    Page<Ticket> findByCreatorIdAndAssigneeId(Long creatorId, Long assigneeId, Pageable pageable);
-
     Page<Ticket> findByAssigneeId(Long assigneeId, Pageable pageable);
 
     List<Ticket> findByAssigneeIdAndTicketStatus(Long assigneeId, TicketStatus status);

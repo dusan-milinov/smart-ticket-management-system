@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -12,7 +13,7 @@ import { UserDirectoryService } from './user-directory.service';
 const PAGE_SIZE = 10;
 
 @Component({
-  imports: [PageHeaderComponent, PaginationComponent, RouterLink],
+  imports: [DatePipe, PageHeaderComponent, PaginationComponent, RouterLink],
   selector: 'app-user-details',
   styleUrl: './user-details.component.css',
   templateUrl: './user-details.component.html',

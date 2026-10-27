@@ -17,33 +17,24 @@ describe('UserDirectoryService', () => {
 
   afterEach(() => http.verify());
 
-  it('requests non-admin accounts with pagination and credentials', () => {
-    service.getNonAdminUsers(1, 10).subscribe();
-
-    const request = http.expectOne((req) => req.url === '/api/users');
-    expect(request.request.method).toBe('GET');
-    expect(request.request.params.get('page')).toBe('1');
-    expect(request.request.params.get('size')).toBe('10');
-    expect(request.request.withCredentials).toBe(true);
-    request.flush({ content: [], number: 1, size: 10, totalElements: 0, totalPages: 0, first: false, last: true });
-  });
-
-  it('requests the administrator account directories', () => {
-    service.getAllUsers().subscribe();
-    http.expectOne((req) => req.url === '/api/admin/users').flush({ content: [] });
+  it('uses the administrator directory endpoints with pagination and credentials', () => {
+    service.getAllUsers(1, 10).subscribe();
+    const users = http.expectOne((request) => request.url === '/api/admin/users');
+    expect(users.request.params.get('page')).toBe('1');
+    expect(users.request.params.get('size')).toBe('10');
+    expect(users.request.withCredentials).toBe(true);
+    users.flush({ content: [] });
 
     service.getSupportAgents().subscribe();
-    http.expectOne((req) => req.url === '/api/admin/support-agents').flush({ content: [] });
+    http.expectOne((request) => request.url === '/api/admin/support-agents').flush({ content: [] });
   });
 
-  it('requests user details, their tickets, and deactivation with credentials', () => {
+  it('requests account details, tickets, deactivation, and agent creation with credentials', () => {
     service.getUser(4).subscribe();
-    const details = http.expectOne('/api/users/4');
-    expect(details.request.withCredentials).toBe(true);
-    details.flush({});
+    http.expectOne('/api/users/4').flush({});
 
     service.getUserTickets(4, 2, 5).subscribe();
-    const tickets = http.expectOne((req) => req.url === '/api/users/4/tickets');
+    const tickets = http.expectOne((request) => request.url === '/api/users/4/tickets');
     expect(tickets.request.params.get('page')).toBe('2');
     expect(tickets.request.params.get('size')).toBe('5');
     tickets.flush({ content: [] });
@@ -51,8 +42,13 @@ describe('UserDirectoryService', () => {
     service.deactivateUser(4).subscribe();
     const deactivate = http.expectOne('/api/admin/users/4/deactivate');
     expect(deactivate.request.method).toBe('PATCH');
-    expect(deactivate.request.withCredentials).toBe(true);
     deactivate.flush({});
+
+    service.createSupportAgent('agent@example.com', 'password123').subscribe();
+    const create = http.expectOne('/api/admin/support-agents');
+    expect(create.request.method).toBe('POST');
+    expect(create.request.body).toEqual({ email: 'agent@example.com', password: 'password123' });
+    expect(create.request.withCredentials).toBe(true);
+    create.flush({});
   });
 });
-

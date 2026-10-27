@@ -29,6 +29,7 @@
 }
 
 table {
+  min-width: 860px;
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
@@ -113,6 +114,11 @@ tbody tr:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  white-space: nowrap;
+}
+
+.submitted {
+  white-space: nowrap;
 }
 
 .btn {
@@ -221,6 +227,10 @@ tbody tr:hover {
   tr,
   td {
     display: block;
+  }
+
+  table {
+    min-width: 0;
   }
 
   tr {

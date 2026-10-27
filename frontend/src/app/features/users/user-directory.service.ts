@@ -10,10 +10,6 @@ import { AccountDirectoryEntry } from './account-directory-entry.model';
 export class UserDirectoryService {
   private readonly http = inject(HttpClient);
 
-  getNonAdminUsers(page = 0, size = 10): Observable<Page<AccountDirectoryEntry>> {
-    return this.getPage('/users', page, size);
-  }
-
   getAllUsers(page = 0, size = 10): Observable<Page<AccountDirectoryEntry>> {
     return this.getPage('/admin/users', page, size);
   }
@@ -28,6 +24,14 @@ export class UserDirectoryService {
 
   getUserTickets(id: number, page = 0, size = 10): Observable<Page<Ticket>> {
     return this.getPage(`/users/${id}/tickets`, page, size);
+  }
+
+  createSupportAgent(email: string, password: string): Observable<AccountDirectoryEntry> {
+    return this.http.post<AccountDirectoryEntry>(
+      `${API_BASE_URL}/admin/support-agents`,
+      { email, password },
+      { withCredentials: true },
+    );
   }
 
   /** Admin only; the backend rejects admin targets, self-deactivation and agents with unresolved tickets. */

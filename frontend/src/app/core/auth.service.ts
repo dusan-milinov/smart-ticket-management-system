@@ -24,6 +24,14 @@ export class AuthService {
         return this.http.post<void>(`${API_BASE_URL}/auth/register`, { email, password });
     }
 
+    changePassword(currentPassword: string, newPassword: string) {
+        return this.http.post<void>(
+            `${API_BASE_URL}/auth/change-password`,
+            { currentPassword, newPassword },
+            { withCredentials: true },
+        ).pipe(tap(() => this._user.set(null)));
+    }
+
     getCurrentUser() {
         return this.http.get<CurrentUser>(`${API_BASE_URL}/users/me`, {withCredentials: true})
             .pipe(tap((user) => this._user.set(user)));

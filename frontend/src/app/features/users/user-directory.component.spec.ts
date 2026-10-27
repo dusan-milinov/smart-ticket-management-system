@@ -1,137 +1,124 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute, provideRouter } from '@angular/router';
+import { Observable, of, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
-import { signal, WritableSignal } from '@angular/core';
-import { AuthService, CurrentUser } from '../../core/auth.service';
-import { ROLES } from '../../core/roles';
-import { AccountDirectoryEntry } from './account-directory-entry.model';
 import { UserDirectoryComponent } from './user-directory.component';
 import { UserDirectoryService } from './user-directory.service';
 import { Page } from '../../shared/models/page.model';
-import { Observable, of, throwError } from 'rxjs';
-import { provideRouter } from '@angular/router';
+import { AccountDirectoryEntry } from './account-directory-entry.model';
 
 describe('UserDirectoryComponent', () => {
   let fixture: ComponentFixture<UserDirectoryComponent>;
-  let currentUser: WritableSignal<CurrentUser | null>;
   let requests: string[];
-  let deactivateResult: Observable<AccountDirectoryEntry>;
-
+  let deactivateUser: ReturnType<typeof vi.fn<(id: number) => Observable<AccountDirectoryEntry>>>;
   const usersPage: Page<AccountDirectoryEntry> = {
-    content: [{ id: 1, email: 'user@example.com', role: 'USER', active: true }],
-    number: 0,
-    size: 10,
-    totalElements: 1,
-    totalPages: 1,
-    first: true,
-    last: true,
-    empty: false,
+    content: [{ id: 2, email: 'user@example.com', role: 'USER', active: true }],
+    number: 0, size: 10, totalElements: 1, totalPages: 1, first: true, last: true, empty: false,
   };
 
   beforeEach(async () => {
     requests = [];
-    deactivateResult = of({ id: 1, email: 'user@example.com', role: 'USER', active: false });
-    currentUser = signal<CurrentUser | null>({ email: 'admin@example.com', role: ROLES.ADMIN });
-    const service = {
-      getNonAdminUsers: () => {
-        requests.push('non-admin-users');
-        return of(usersPage);
-      },
-      getAllUsers: () => {
-        requests.push('all-users');
-        return of(usersPage);
-      },
-      deactivateUser: (id: number) => {
-        requests.push('deactivate-' + id);
-        return deactivateResult;
-      },
-      getSupportAgents: () => {
-        requests.push('support-agents');
-        return of({
-          ...usersPage,
-          content: [{ id: 2, email: 'agent@example.com', role: 'SUPPORT_AGENT', active: false }],
-        });
-      },
-    };
-
+    deactivateUser = vi.fn().mockReturnValue(of({ ...usersPage.content[0], active: false }));
     await TestBed.configureTestingModule({
       imports: [UserDirectoryComponent],
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: { user: currentUser.asReadonly() } },
-        { provide: UserDirectoryService, useValue: service },
+        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: new Map() } } },
+        {
+          provide: UserDirectoryService,
+          useValue: {
+            deactivateUser: (id: number) => deactivateUser(id),
+            getAllUsers: () => {
+              requests.push('users');
+              return of(usersPage);
+            },
+            getSupportAgents: () => {
+              requests.push('agents');
+              return of({ ...usersPage, content: [{ id: 3, email: 'agent@example.com', role: 'SUPPORT_AGENT', active: true }] });
+            },
+          },
+        },
       ],
     }).compileComponents();
-  });
-
-  function createComponent(): void {
     fixture = TestBed.createComponent(UserDirectoryComponent);
     fixture.detectChanges();
-  }
-
-  it('shows administrators the all-users and support-agent directories', () => {
-    createComponent();
-    expect(requests).toEqual(['all-users']);
-    expect(fixture.nativeElement.textContent).toContain('user@example.com');
-
-    const agentTab = Array.from(
-      fixture.nativeElement.querySelectorAll('[role="tab"]') as NodeListOf<HTMLButtonElement>,
-    ).find((button) => button.textContent?.includes('Support Agents'));
-    agentTab?.click();
-    fixture.detectChanges();
-
-    expect(requests).toEqual(['all-users', 'support-agents']);
-    expect(fixture.nativeElement.textContent).toContain('agent@example.com');
-    expect(fixture.nativeElement.textContent).toContain('Inactive');
   });
 
-  it('shows support agents the non-admin user list without admin-only controls', () => {
-    currentUser.set({ email: 'agent@example.com', role: ROLES.SUPPORT_AGENT });
-    createComponent();
-
-    expect(requests).toEqual(['non-admin-users']);
-    expect(fixture.nativeElement.querySelector('[role="tablist"]')).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('user@example.com');
-    expect(fixture.nativeElement.textContent).toContain('Active');
-    expect(fixture.nativeElement.querySelector('.badge-active')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.btn-danger')).toBeNull();
+  it('uses the admin directory and exposes View actions instead of email links', () => {
+    const root = fixture.nativeElement as HTMLElement;
+    expect(requests).toEqual(['users']);
+    expect(root.querySelector('td[data-label="Email"] a')).toBeNull();
+    const view = root.querySelector<HTMLAnchorElement>('td[data-label="Actions"] a');
+    expect(view?.textContent?.trim()).toBe('View');
+    expect(view?.getAttribute('href')).toBe('/users/2');
   });
 
-  function click(text: string): void {
-    const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
-      .find((candidate) => candidate.textContent?.trim() === text);
-    button?.click();
+  it('switches to the agent list and shows the new-agent action', () => {
+    const root = fixture.nativeElement as HTMLElement;
+    const agentsTab = Array.from(root.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
+      .find((button) => button.textContent?.includes('Support Agents'));
+    agentsTab?.click();
     fixture.detectChanges();
-  }
 
-  function confirmDeactivation(): void {
-    const button = Array.from(
-      fixture.nativeElement.querySelectorAll('.dialog button') as NodeListOf<HTMLButtonElement>,
-    ).find((candidate) => candidate.textContent?.trim() === 'Deactivate');
-    button?.click();
-    fixture.detectChanges();
-  }
-
-  it('deactivates an active user after confirmation and marks it inactive', () => {
-    createComponent();
-
-    click('Deactivate');
-    expect(requests).not.toContain('deactivate-1');
-    confirmDeactivation();
-
-    expect(requests).toContain('deactivate-1');
-    expect(fixture.nativeElement.querySelector('.badge-inactive')).not.toBeNull();
+    expect(requests).toEqual(['users', 'agents']);
+    expect(root.textContent).toContain('agent@example.com');
+    expect(root.querySelector<HTMLAnchorElement>('a[actions]')?.getAttribute('href'))
+      .toBe('/users/new-agent');
   });
 
-  it('displays the server message when deactivation is rejected', () => {
-    deactivateResult = throwError(
-      () => new HttpErrorResponse({ status: 409, error: { message: 'Has unresolved tickets' } }),
-    );
-    createComponent();
+  it('requires confirmation and updates the row after deactivation', () => {
+    const root = fixture.nativeElement as HTMLElement;
+    root.querySelector<HTMLButtonElement>('.row-actions .btn-danger')!.click();
+    fixture.detectChanges();
+    expect(deactivateUser).not.toHaveBeenCalled();
 
-    click('Deactivate');
-    confirmDeactivation();
+    root.querySelector<HTMLButtonElement>('.dialog .btn-danger')!.click();
+    fixture.detectChanges();
+    expect(deactivateUser).toHaveBeenCalledWith(2);
+    expect(root.querySelector('.badge-inactive')).not.toBeNull();
+    expect(root.querySelector('.row-actions .btn-danger')).toBeNull();
+    expect(root.querySelector('.dialog')).toBeNull();
+  });
 
-    expect(fixture.nativeElement.textContent).toContain('Has unresolved tickets');
-    expect(fixture.nativeElement.querySelector('.badge-active')).not.toBeNull();
+  it('cancels without deactivating the account', () => {
+    const root = fixture.nativeElement as HTMLElement;
+    root.querySelector<HTMLButtonElement>('.row-actions .btn-danger')!.click();
+    fixture.detectChanges();
+    root.querySelector<HTMLButtonElement>('.dialog button')!.click();
+    fixture.detectChanges();
+    expect(deactivateUser).not.toHaveBeenCalled();
+    expect(root.querySelector('.dialog')).toBeNull();
+  });
+
+  it('shows backend rejection and leaves the account active', () => {
+    deactivateUser.mockReturnValue(throwError(() => new HttpErrorResponse({
+      status: 409, error: { message: 'Has unresolved tickets' },
+    })));
+    const root = fixture.nativeElement as HTMLElement;
+    root.querySelector<HTMLButtonElement>('.row-actions .btn-danger')!.click();
+    fixture.detectChanges();
+    root.querySelector<HTMLButtonElement>('.dialog .btn-danger')!.click();
+    fixture.detectChanges();
+    expect(root.querySelector('[role="alert"]')?.textContent).toContain('Has unresolved tickets');
+    expect(root.querySelector('.badge-active')).not.toBeNull();
+  });
+
+  it('hides deactivation for inactive and administrator accounts', () => {
+    const account = usersPage.content[0];
+    const original = { ...account };
+    try {
+      Object.assign(account, { role: 'ADMIN' });
+      fixture.destroy();
+      fixture = TestBed.createComponent(UserDirectoryComponent);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.row-actions .btn-danger')).toBeNull();
+      Object.assign(account, { role: 'USER', active: false });
+      fixture.destroy();
+      fixture = TestBed.createComponent(UserDirectoryComponent);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.row-actions .btn-danger')).toBeNull();
+    } finally {
+      Object.assign(account, original);
+    }
   });
 });

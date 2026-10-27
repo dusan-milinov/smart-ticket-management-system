@@ -11,10 +11,6 @@
     <button type="button" class="btn" (click)="load(page())">Try again</button>
   </div>
 } @else {
-  @if (openError()) {
-    <p class="state state-error" role="alert">{{ openError() }}</p>
-  }
-
   <div class="table-card">
     <table>
       <thead>
@@ -24,7 +20,7 @@
           <th scope="col">Status</th>
           <th scope="col">Priority</th>
           <th scope="col">Type</th>
-          <th scope="col">Created At</th>
+          <th scope="col">Submitted</th>
           <th scope="col">Actions</th>
         </tr>
       </thead>
@@ -40,17 +36,10 @@
               <span class="badge priority-{{ ticket.ticketPriority.toLowerCase() }}">{{ label(ticket.ticketPriority) }}</span>
             </td>
             <td data-label="Type">{{ label(ticket.ticketType) }}</td>
-            <td data-label="Created At">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
+            <td data-label="Submitted" class="submitted">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
             <td data-label="Actions">
               <div class="actions">
-                <button
-                  type="button"
-                  class="btn btn-open"
-                  [disabled]="openingTicketId() !== null"
-                  (click)="viewDetails(ticket)"
-                >
-                  {{ openingTicketId() === ticket.ticketId ? 'Opening...' : 'Open' }}
-                </button>
+                <a class="btn btn-open" [routerLink]="['/tickets', ticket.ticketId]">View</a>
               </div>
             </td>
           </tr>
