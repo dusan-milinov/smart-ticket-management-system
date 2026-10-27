@@ -50,7 +50,15 @@ describe('AdminDashboardComponent', () => {
     expect(element.querySelector('[data-stat=resolved]')?.textContent).toContain('35.7%');
     expect(element.querySelector('[data-stat=agents] .metric-value')?.textContent).toBe('3');
     expect(element.querySelector('.assignment-note')?.textContent).toContain('2 unassigned');
-    expect(element.querySelector('.ticket-link')?.getAttribute('href')).toBe('/tickets/28');
+    const viewLink = element.querySelector<HTMLAnchorElement>('.ticket-view');
+    expect(viewLink?.textContent?.trim()).toBe('View');
+    const destination = new URL(viewLink!.getAttribute('href')!, 'http://localhost');
+    expect(destination.pathname).toBe('/tickets/28');
+    expect(destination.searchParams.get('returnTo')).toBe('/dashboard');
+    expect(viewLink?.getAttribute('aria-label')).toBe('View ticket TKT-SEED-0028');
+    expect(element.querySelector('.ticket-title')?.textContent).toBe('Install the review tool');
+    expect(element.querySelector('.ticket-row .status-resolved')?.textContent).toBe('Resolved');
+    expect(element.querySelector('.ticket-row .priority-high')?.textContent).toBe('High');
     expect(element.querySelector('.team-counts')?.textContent).toContain('Regular users4');
     expect(element.querySelector('.header-actions a')?.getAttribute('href')).toBe('/users/new-agent');
   });

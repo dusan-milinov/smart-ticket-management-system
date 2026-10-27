@@ -1,0 +1,122 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.recent-card {
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.ticket-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ticket-row:last-child {
+  border-bottom: 0;
+}
+
+.ticket-summary {
+  min-width: 0;
+}
+
+.ticket-title {
+  display: block;
+  overflow: hidden;
+  color: var(--color-navy);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-number,
+.ticket-date {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.ticket-number {
+  display: block;
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticket-date {
+  white-space: nowrap;
+}
+
+.ticket-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-in_queue,
+.priority-high {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+
+.status-fulfillment,
+.priority-medium {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.status-resolved {
+  background: #e3e9f3;
+  color: var(--color-navy);
+}
+
+.ticket-view {
+  font-size: 0.85rem;
+}
+
+@media (max-width: 720px) {
+  .ticket-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 14px;
+    padding: 14px 16px;
+  }
+
+  .ticket-title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .ticket-meta {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .ticket-date {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+  }
+
+  .ticket-view {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+}

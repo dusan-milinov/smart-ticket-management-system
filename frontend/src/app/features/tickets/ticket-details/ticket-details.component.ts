@@ -50,13 +50,6 @@ export class TicketDetailsComponent implements OnInit {
   protected readonly ticket = signal<Ticket | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
-  protected readonly backLink = computed(() => {
-    switch (this.auth.user()?.role) {
-      case ROLES.ADMIN: return { path: '/dashboard', label: 'Back to dashboard' };
-      case ROLES.SUPPORT_AGENT: return { path: '/tickets/assigned', label: 'Back to assigned tickets' };
-      default: return { path: '/tickets', label: 'Back to my tickets' };
-    }
-  });
 
   protected readonly events = signal<TicketEvent[]>([]);
   protected readonly eventsLoading = signal(false);
@@ -71,13 +64,16 @@ export class TicketDetailsComponent implements OnInit {
     const role = this.auth.user()?.role;
     if (role === ROLES.ADMIN) {
       const returnTo = this.route.snapshot.queryParamMap.get('returnTo');
+      if (returnTo === '/dashboard') {
+        return { path: '/dashboard', label: 'Back to dashboard' };
+      }
       return returnTo && /^\/users\/[1-9]\d*$/.test(returnTo)
-        ? { url: returnTo, label: 'Back to user' }
-        : { url: '/users', label: 'Back to users' };
+        ? { path: returnTo, label: 'Back to user' }
+        : { path: '/users', label: 'Back to users' };
     }
     return role === ROLES.SUPPORT_AGENT
-      ? { url: '/tickets/assigned', label: 'Back to assigned tickets' }
-      : { url: '/tickets', label: 'Back to my tickets' };
+      ? { path: '/tickets/assigned', label: 'Back to assigned tickets' }
+      : { path: '/tickets', label: 'Back to my tickets' };
   });
 
   // Newest first; the API does not guarantee any order.

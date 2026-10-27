@@ -78,21 +78,7 @@
     @if (data.recentTickets.length === 0) {
       <p class="empty-note">No tickets yet. New requests will appear here as they arrive.</p>
     } @else {
-      <div class="table-scroll">
-        <table>
-          <thead><tr><th scope="col">Ticket</th><th scope="col">Status</th><th scope="col">Priority</th><th scope="col">Created</th></tr></thead>
-          <tbody>
-            @for (ticket of data.recentTickets; track ticket.ticketId) {
-              <tr>
-                <td><a class="ticket-link" [routerLink]="['/tickets', ticket.ticketId]"><span class="ticket-number">{{ ticket.ticketNumber }}</span>{{ ticket.title }}</a></td>
-                <td><span class="badge status-{{ ticket.ticketStatus.toLowerCase() }}">{{ label(ticket.ticketStatus) }}</span></td>
-                <td><span class="priority-label priority-text-{{ ticket.ticketPriority.toLowerCase() }}">{{ label(ticket.ticketPriority) }}</span></td>
-                <td><time [attr.datetime]="ticket.createdAt">{{ ticket.createdAt | date: 'MMM d, y' }}</time></td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+      <app-recent-tickets [tickets]="data.recentTickets" returnTo="/dashboard" />
     }
   </section>
 

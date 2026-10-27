@@ -86,7 +86,8 @@
                     }}</time>
                   </td>
                   <td data-label="Actions" class="actions-cell">
-                    <a class="btn btn-sm" [routerLink]="['/tickets', ticket.ticketId]">View</a>
+                    <a class="btn btn-sm" [routerLink]="['/tickets', ticket.ticketId]"
+                      [queryParams]="{ returnTo: '/users/' + user.id }">View</a>
                     @if (isAdmin() && canReassign(ticket)) {
                       <button
                         type="button"
@@ -101,7 +102,6 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td class="empty" colspan="5">No tickets found.</td>
                   <td class="empty" colspan="5">No tickets found.</td>
                 </tr>
               }

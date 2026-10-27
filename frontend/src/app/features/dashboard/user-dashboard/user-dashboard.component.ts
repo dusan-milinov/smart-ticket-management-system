@@ -1,16 +1,16 @@
-import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { Ticket } from '../../tickets/models/ticket.model';
 import { TicketService } from '../../tickets/services/ticket.service';
+import { RecentTicketsComponent } from '../recent-tickets/recent-tickets.component';
 
 const RECENT_TICKET_COUNT = 5;
 
 @Component({
   selector: 'app-user-dashboard',
-  imports: [DatePipe, PageHeaderComponent, RouterLink],
+  imports: [PageHeaderComponent, RecentTicketsComponent, RouterLink],
   styleUrl: './user-dashboard.component.css',
   templateUrl: './user-dashboard.component.html',
 })
@@ -41,10 +41,5 @@ export class UserDashboardComponent implements OnInit {
         this.loading.set(false);
       },
     });
-  }
-
-  protected label(value: string): string {
-    const text = value.replace(/_/g, ' ').toLowerCase();
-    return text.charAt(0).toUpperCase() + text.slice(1);
   }
 }
