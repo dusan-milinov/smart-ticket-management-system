@@ -141,11 +141,8 @@
   color: #1d4ed8;
 }
 
-.queue-open {
-  color: var(--color-primary);
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-decoration: none;
+.queue-view {
+  font-size: 0.85rem;
 }
 
 .overview-content {
@@ -261,10 +258,6 @@
   cursor: pointer;
 }
 
-.queue-open:hover {
-  text-decoration: underline;
-}
-
 .queue-state {
   display: block;
   color: var(--color-text-muted);
@@ -341,7 +334,7 @@
     grid-row: 2;
   }
 
-  .queue-open {
+  .queue-view {
     grid-column: 2;
     grid-row: 1 / span 2;
   }

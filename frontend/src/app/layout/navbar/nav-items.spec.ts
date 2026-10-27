@@ -9,5 +9,7 @@ describe('NAV_ITEMS', () => {
 
     expect(NAV_ITEMS[ROLES.SUPPORT_AGENT].some((item) => item.path === '/users')).toBe(false);
     expect(NAV_ITEMS[ROLES.ADMIN]).toContainEqual({ label: 'New Support Agent', path: '/users/new-agent' });
+    expect(NAV_ITEMS[ROLES.ADMIN].map(item => item.path)).not.toContain('/categories');
+    expect(NAV_ITEMS[ROLES.ADMIN].map(item => item.path)).not.toContain('/analytics');
   });
 });

@@ -53,7 +53,7 @@ After changing backend endpoints, rebuild and restart the backend as well as
 refreshing the frontend. An older backend may silently ignore filter parameters
 it does not recognize; reloading the browser alone cannot update the API.
 
-Each row includes a green **Open** link to Ticket Details. Open tickets have a
+Each row includes a **View** button linking to Ticket Details. Open tickets have a
 **Resolve ticket** action on the details page, which opens a popup requiring
 a non-blank resolution message. Submission calls
 `PATCH /api/tickets/resolve` with `ticketID` and `summary` query parameters, then
@@ -82,6 +82,9 @@ account-related tickets remain restricted to administrators.
 ## Ticket comments
 
 Ticket Details includes an expanded-by-default Comments card below Event History.
+Both cards use the same expand/collapse animation and respect reduced-motion
+preferences. Collapsing Comments preserves the draft and removes its controls
+from keyboard navigation until expanded again.
 It loads `GET /api/comments/{ticketId}` and posts multiline text to
 `POST /api/comments` with `{ ticketId, content }`, using the session cookie.
 Comments are sorted oldest first. Failed posts retain the draft for retry.

@@ -48,7 +48,8 @@
             <td data-label="Submitted" class="submitted">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
             <td data-label="Actions">
               <div class="actions">
-                <a class="btn btn-open" [routerLink]="['/tickets', ticket.ticketId]">Open</a>
+                <a class="btn ticket-view" [routerLink]="['/tickets', ticket.ticketId]"
+                  [attr.aria-label]="'View ticket ' + ticket.ticketNumber">View</a>
               </div>
             </td>
           </tr>

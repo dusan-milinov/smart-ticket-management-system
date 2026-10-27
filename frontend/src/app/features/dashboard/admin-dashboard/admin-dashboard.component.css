@@ -39,9 +39,6 @@ h2 { margin: 0; font-size: 1rem; font-weight: 650; }
 .priority-high { background: var(--color-accent); }
 .priority-medium { background: var(--color-primary); }
 .priority-low { background: #64748b; }
-.assignment-note { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; margin-top: 24px; border-radius: var(--radius-sm); background: var(--color-bg); font-size: .8rem; }
-.assignment-note span { color: var(--color-text-muted); }
-.needs-attention { background: var(--color-accent-soft); color: var(--color-accent-text); }
 .recent-panel { margin-bottom: 24px; }
 .team-panel { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; padding: 24px; border: 1px solid var(--color-border); border-radius: var(--radius); background: #edf2f8; }
 .team-counts { display: flex; flex-wrap: wrap; gap: 28px; margin: 0; }

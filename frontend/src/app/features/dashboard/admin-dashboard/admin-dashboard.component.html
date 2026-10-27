@@ -66,10 +66,6 @@
           </div>
         }
       </div>
-      <div class="assignment-note" [class.needs-attention]="data.unassignedOpenTickets > 0">
-        <strong>{{ data.unassignedOpenTickets | number }} unassigned</strong>
-        <span>{{ data.unassignedOpenTickets ? 'Open tickets waiting for an agent.' : 'No open tickets are waiting for assignment.' }}</span>
-      </div>
     </section>
   </div>
 

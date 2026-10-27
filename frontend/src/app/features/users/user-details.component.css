@@ -157,6 +157,14 @@ dd {
   white-space: nowrap;
 }
 
+.ticket-row-actions {
+  display: inline-grid;
+  grid-template-columns: 4rem 6rem;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
 .overlay {
   position: fixed;
   inset: 0;

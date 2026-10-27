@@ -39,7 +39,7 @@ interface TimelineEntry {
 @Component({
   imports: [DatePipe, FormsModule, RouterLink, TicketCommentsComponent],
   selector: 'app-ticket-details',
-  styleUrls: ['./ticket-details.component.css', '../ticket-badges.css'],
+  styleUrls: ['./ticket-details.component.css', '../ticket-badges.css', '../ticket-collapsible.css'],
   templateUrl: './ticket-details.component.html',
   host: { '(document:keydown.escape)': 'closeActionDialog()' },
 })

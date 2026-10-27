@@ -1,0 +1,15 @@
+/* Share the height and chevron animation between ticket history and comments. */
+.collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+
+.collapsible.open { grid-template-rows: 1fr; }
+.collapsible-inner { min-height: 0; overflow: hidden; }
+.chevron { transition: transform 0.25s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .collapsible,
+  .chevron { transition: none; }
+}
