@@ -1,5 +1,5 @@
-<a class="back" [routerLink]="backLink().url">
-  ← {{ backLink().label }}
+<a class="back-link" [routerLink]="backLink().path">
+  <span aria-hidden="true">&larr;</span> {{ backLink().label }}
 </a>
 
 @if (loading()) {
@@ -16,18 +16,26 @@
         <p class="ticket-number">{{ t.ticketNumber }}</p>
         <h1>{{ t.title }}</h1>
         <div class="badges">
-          <span class="badge status-{{ t.ticketStatus.toLowerCase() }}">{{ label(t.ticketStatus) }}</span>
-          <span class="badge priority-{{ t.ticketPriority.toLowerCase() }}">{{ label(t.ticketPriority) }} priority</span>
+          <span class="badge status-{{ t.ticketStatus.toLowerCase() }}">{{
+            label(t.ticketStatus)
+          }}</span>
+          <span class="badge priority-{{ t.ticketPriority.toLowerCase() }}"
+            >{{ label(t.ticketPriority) }} priority</span
+          >
           <span class="badge badge-type">{{ label(t.ticketType) }}</span>
         </div>
       </div>
       @if (canCancel(t) || canResolve(t)) {
         <div class="ticket-actions">
           @if (canCancel(t)) {
-            <button type="button" class="btn btn-warn-solid" (click)="openActionDialog('cancel')">Cancel ticket</button>
+            <button type="button" class="btn btn-warn-solid" (click)="openActionDialog('cancel')">
+              Cancel ticket
+            </button>
           }
           @if (canResolve(t)) {
-            <button type="button" class="btn btn-primary" (click)="openActionDialog('resolve')">Resolve ticket</button>
+            <button type="button" class="btn btn-primary" (click)="openActionDialog('resolve')">
+              Resolve ticket
+            </button>
           }
         </div>
       }
@@ -49,9 +57,18 @@
       </div>
 
       <dl class="meta">
-        <div><dt>Created</dt><dd>{{ t.createdAt | date: 'MMM d, y, HH:mm' }}</dd></div>
-        <div><dt>Last updated</dt><dd>{{ t.updatedAt | date: 'MMM d, y, HH:mm' }}</dd></div>
-        <div><dt>Assigned to</dt><dd>{{ t.assigneeId ? 'Support agent' : 'Not assigned yet' }}</dd></div>
+        <div>
+          <dt>Created</dt>
+          <dd>{{ t.createdAt | date: 'MMM d, y, HH:mm' }}</dd>
+        </div>
+        <div>
+          <dt>Last updated</dt>
+          <dd>{{ t.updatedAt | date: 'MMM d, y, HH:mm' }}</dd>
+        </div>
+        <div>
+          <dt>Assigned to</dt>
+          <dd>{{ t.assigneeId ? 'Support agent' : 'Not assigned yet' }}</dd>
+        </div>
       </dl>
     </div>
   </article>
@@ -73,7 +90,12 @@
       <span class="chevron" aria-hidden="true"></span>
     </button>
 
-    <div id="history-panel" class="collapsible" [class.open]="historyOpen()" [attr.inert]="historyOpen() ? null : ''">
+    <div
+      id="history-panel"
+      class="collapsible"
+      [class.open]="historyOpen()"
+      [attr.inert]="historyOpen() ? null : ''"
+    >
       <div class="collapsible-inner">
         <div class="history-body">
           @if (eventsLoading()) {
@@ -84,7 +106,11 @@
             <ol class="timeline">
               @for (entry of timeline(); track entry.id) {
                 <li class="timeline-item">
-                  <span class="timeline-icon icon-{{ entry.type.toLowerCase() }}" aria-hidden="true">{{ entry.icon }}</span>
+                  <span
+                    class="timeline-icon icon-{{ entry.type.toLowerCase() }}"
+                    aria-hidden="true"
+                    >{{ entry.icon }}</span
+                  >
                   <div class="timeline-content">
                     <p class="timeline-title">{{ entry.title }}</p>
                     @if (entry.detail) {
@@ -121,9 +147,14 @@
           {{ currentAction === 'cancel' ? 'Cancel ticket?' : 'Resolve ticket?' }}
         </h2>
         @if (currentAction === 'cancel') {
-          <p>Ticket <strong>{{ t.ticketNumber }}</strong> will be cancelled. This cannot be undone.</p>
+          <p>
+            Ticket <strong>{{ t.ticketNumber }}</strong> will be cancelled. This cannot be undone.
+          </p>
         } @else {
-          <p>Add a resolution message for ticket <strong>{{ t.ticketNumber }}</strong>.</p>
+          <p>
+            Add a resolution message for ticket <strong>{{ t.ticketNumber }}</strong
+            >.
+          </p>
           <label for="resolution-message">Resolution message</label>
           <textarea
             id="resolution-message"
@@ -141,7 +172,14 @@
         }
 
         <div class="dialog-actions">
-          <button type="button" class="btn" [disabled]="actionInProgress()" (click)="closeActionDialog()">Keep ticket</button>
+          <button
+            type="button"
+            class="btn"
+            [disabled]="actionInProgress()"
+            (click)="closeActionDialog()"
+          >
+            Keep ticket
+          </button>
           <button
             type="submit"
             class="btn"

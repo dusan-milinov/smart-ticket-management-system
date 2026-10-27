@@ -1,12 +1,16 @@
 <div class="details-page">
-  <a class="back" routerLink="/users">&larr; Back to users</a>
+  <a class="back-link" routerLink="/users"><span aria-hidden="true">&larr;</span> Back to users</a>
 
   @if (error()) {
-    <div class="state state-error" role="alert"><p>{{ error() }}</p></div>
+    <div class="state state-error" role="alert">
+      <p>{{ error() }}</p>
+    </div>
   } @else if (account(); as user) {
     <app-page-header [heading]="user.email" description="User details and related tickets.">
       @if (canDeactivate()) {
-        <button actions type="button" class="btn btn-danger" (click)="confirming.set(true)">Deactivate user</button>
+        <button actions type="button" class="btn btn-danger" (click)="confirming.set(true)">
+          Deactivate user
+        </button>
       }
     </app-page-header>
     @if (actionError()) {
@@ -30,9 +34,12 @@
         <div>
           <dt>Account status</dt>
           <dd>
-            <span class="badge" [class.badge-active]="user.active" [class.badge-inactive]="!user.active">{{
-              user.active ? 'Active' : 'Inactive'
-            }}</span>
+            <span
+              class="badge"
+              [class.badge-active]="user.active"
+              [class.badge-inactive]="!user.active"
+              >{{ user.active ? 'Active' : 'Inactive' }}</span
+            >
           </dd>
         </div>
       </dl>
@@ -66,7 +73,7 @@
                 <th scope="col">Type</th>
                 <th scope="col">Status</th>
                 <th scope="col">Submitted</th>
-                <th scope="col" class="actions-cell">Actions</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -79,14 +86,22 @@
                   </td>
                   <td data-label="Type">{{ ticketLabel(ticket.ticketType) }}</td>
                   <td data-label="Status">
-                    <span class="badge" [class]="'badge status-' + ticket.ticketStatus.toLowerCase()">{{
-                      ticketLabel(ticket.ticketStatus)
-                    }}</span>
+                    <span
+                      class="badge"
+                      [class]="'badge status-' + ticket.ticketStatus.toLowerCase()"
+                      >{{ label(ticket.ticketStatus) }}</span
+                    >
                   </td>
-                  <td data-label="Submitted" class="submitted">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
+                  <td data-label="Submitted">
+                    <time [attr.datetime]="ticket.createdAt">{{
+                      ticket.createdAt | date: 'MMM d, y, HH:mm'
+                    }}</time>
+                  </td>
                   <td data-label="Actions" class="actions-cell">
-                    <div class="actions">
-                      <a
+                    <a class="btn btn-sm" [routerLink]="['/tickets', ticket.ticketId]">View</a>
+                    @if (isAdmin() && canReassign(ticket)) {
+                      <button
+                        type="button"
                         class="btn btn-sm"
                         [routerLink]="['/tickets', ticket.ticketId]"
                         [queryParams]="{ returnTo: '/users/' + user.id }"
@@ -112,7 +127,11 @@
             </tbody>
           </table>
         </div>
-        <app-pagination [page]="page()" [totalPages]="totalPages()" (pageChange)="loadTickets($event)" />
+        <app-pagination
+          [page]="page()"
+          [totalPages]="totalPages()"
+          (pageChange)="loadTickets($event)"
+        />
       }
     </section>
 
@@ -151,9 +170,13 @@
               [disabled]="reassignSaving()"
               (change)="selectAgent($any($event.target).value)"
             >
-              <option value="" [selected]="selectedAgentId() === null">Select a support agent…</option>
+              <option value="" [selected]="selectedAgentId() === null">
+                Select a support agent…
+              </option>
               @for (agent of agentsFor(ticket); track agent.id) {
-                <option [value]="agent.id" [selected]="selectedAgentId() === agent.id">{{ agent.email }}</option>
+                <option [value]="agent.id" [selected]="selectedAgentId() === agent.id">
+                  {{ agent.email }}
+                </option>
               }
             </select>
           </label>
@@ -165,7 +188,14 @@
           }
 
           <div class="dialog-actions">
-            <button type="button" class="btn" [disabled]="reassignSaving()" (click)="closeReassign()">Cancel</button>
+            <button
+              type="button"
+              class="btn"
+              [disabled]="reassignSaving()"
+              (click)="closeReassign()"
+            >
+              Cancel
+            </button>
             <button
               type="button"
               class="btn btn-primary"
@@ -187,7 +217,9 @@
           <p>{{ user.email }} will no longer be able to log in.</p>
           <div class="dialog-actions">
             <button type="button" class="btn" (click)="confirming.set(false)">Cancel</button>
-            <button type="button" class="btn btn-danger" (click)="confirmDeactivate()">Deactivate</button>
+            <button type="button" class="btn btn-danger" (click)="confirmDeactivate()">
+              Deactivate
+            </button>
           </div>
         </div>
       </div>

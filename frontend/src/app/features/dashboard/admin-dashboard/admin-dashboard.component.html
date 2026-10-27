@@ -1,11 +1,108 @@
-<app-page-header
-  heading="Dashboard"
-  description="Monitor tickets, users, and support activity across the system."
-/>
+<app-page-header heading="Admin dashboard" description="A clear view of your support desk, across all tickets and accounts.">
+  <div actions class="header-actions">
+    <button class="btn" type="button" (click)="load()" [disabled]="loading()">{{ loading() ? 'Refreshing...' : 'Refresh' }}</button>
+    <a class="btn btn-primary" routerLink="/users/new-agent">New support agent <span aria-hidden="true">+</span></a>
+  </div>
+</app-page-header>
 
-<section class="stat-grid">
-  <app-stat-card label="Total tickets" />
-  <app-stat-card label="Unassigned tickets" />
-  <app-stat-card label="Support agents" />
-  <app-stat-card label="Users" />
-</section>
+@if (loading()) {
+  <div class="state" role="status">Loading your support overview...</div>
+} @else if (error()) {
+  <div class="state state-error" role="alert">
+    <h2>Dashboard unavailable</h2>
+    <p>{{ error() }}</p>
+    <button class="btn" type="button" (click)="load()">Try again</button>
+  </div>
+} @else if (summary(); as data) {
+  <div class="overview-label"><span>System overview</span><span>Updated {{ updatedAt() | date: 'shortTime' }}</span></div>
+  <section class="metrics" aria-label="Support statistics">
+    <article class="metric metric-total" data-stat="total">
+      <p class="metric-label">Total tickets</p>
+      <p class="metric-value">{{ data.totalTickets | number }}</p>
+      <p class="metric-caption">All requests, all time</p>
+    </article>
+    <article class="metric" data-stat="open">
+      <p class="metric-label"><span class="dot blue" aria-hidden="true"></span>Open tickets</p>
+      <p class="metric-value">{{ openTickets() | number }}</p>
+      <p class="metric-caption">{{ data.ticketsByStatus.IN_QUEUE | number }} in queue &middot; {{ data.ticketsByStatus.FULFILLMENT | number }} in fulfillment</p>
+    </article>
+    <article class="metric" data-stat="resolved">
+      <p class="metric-label"><span class="dot green" aria-hidden="true"></span>Resolved tickets</p>
+      <p class="metric-value">{{ data.ticketsByStatus.RESOLVED | number }}</p>
+      <p class="metric-caption">{{ resolutionRate() | number: '1.0-1' }}% of all tickets</p>
+    </article>
+    <article class="metric" data-stat="agents">
+      <p class="metric-label"><span class="dot navy" aria-hidden="true"></span>Active support agents</p>
+      <p class="metric-value">{{ data.activeSupportAgents | number }}</p>
+      <a class="text-link" routerLink="/users" [queryParams]="{ list: 'agents' }">Manage {{ data.supportAgents | number }} agents <span aria-hidden="true">&rarr;</span></a>
+    </article>
+  </section>
+
+  <div class="insights">
+    <section class="panel" aria-labelledby="status-heading">
+      <div class="panel-heading"><div><h2 id="status-heading">Ticket progress</h2><p>Where every request stands</p></div><span class="tag">All time</span></div>
+      <div class="status-bar" aria-hidden="true">
+        @for (status of statuses; track status.key) {
+          <span [style.background]="status.color" [style.width.%]="percentage(data.ticketsByStatus[status.key], data.totalTickets)"></span>
+        }
+      </div>
+      @if (data.totalTickets === 0) { <p class="empty-note">Your ticket overview will appear when the first request arrives.</p> }
+      <dl class="status-list">
+        @for (status of statuses; track status.key) {
+          <div><dt><span class="dot" [style.background]="status.color" aria-hidden="true"></span>{{ status.label }}</dt>
+            <dd><strong>{{ data.ticketsByStatus[status.key] | number }}</strong><span>{{ percentage(data.ticketsByStatus[status.key], data.totalTickets) | number: '1.0-1' }}%</span></dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <section class="panel" aria-labelledby="workload-heading">
+      <div class="panel-heading"><div><h2 id="workload-heading">Open workload</h2><p>In queue and in fulfillment</p></div><span class="tag">{{ openTickets() | number }} open</span></div>
+      <div class="priority-list">
+        @for (priority of priorities; track priority) {
+          <div class="priority-row">
+            <div><span>{{ label(priority) }} priority</span><strong>{{ data.openTicketsByPriority[priority] | number }}</strong></div>
+            <div class="priority-track" aria-hidden="true"><span class="priority-{{ priority.toLowerCase() }}" [style.width.%]="percentage(data.openTicketsByPriority[priority], openTickets())"></span></div>
+          </div>
+        }
+      </div>
+      <div class="assignment-note" [class.needs-attention]="data.unassignedOpenTickets > 0">
+        <strong>{{ data.unassignedOpenTickets | number }} unassigned</strong>
+        <span>{{ data.unassignedOpenTickets ? 'Open tickets waiting for an agent.' : 'No open tickets are waiting for assignment.' }}</span>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel recent-panel" aria-labelledby="recent-heading">
+    <div class="panel-heading"><div><h2 id="recent-heading">Latest tickets</h2><p>The five most recently created requests</p></div><span class="tag">Newest first</span></div>
+    @if (data.recentTickets.length === 0) {
+      <p class="empty-note">No tickets yet. New requests will appear here as they arrive.</p>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th scope="col">Ticket</th><th scope="col">Status</th><th scope="col">Priority</th><th scope="col">Created</th></tr></thead>
+          <tbody>
+            @for (ticket of data.recentTickets; track ticket.ticketId) {
+              <tr>
+                <td><a class="ticket-link" [routerLink]="['/tickets', ticket.ticketId]"><span class="ticket-number">{{ ticket.ticketNumber }}</span>{{ ticket.title }}</a></td>
+                <td><span class="badge status-{{ ticket.ticketStatus.toLowerCase() }}">{{ label(ticket.ticketStatus) }}</span></td>
+                <td><span class="priority-label priority-text-{{ ticket.ticketPriority.toLowerCase() }}">{{ label(ticket.ticketPriority) }}</span></td>
+                <td><time [attr.datetime]="ticket.createdAt">{{ ticket.createdAt | date: 'MMM d, y' }}</time></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <section class="team-panel" aria-labelledby="team-heading">
+    <div><h2 id="team-heading">People behind the tickets</h2><p>Account totals include active and inactive accounts.</p></div>
+    <dl class="team-counts">
+      <div><dt>All accounts</dt><dd>{{ data.totalAccounts | number }}</dd></div>
+      <div><dt>Regular users</dt><dd>{{ data.regularUsers | number }}</dd></div>
+      <div><dt>Support agents</dt><dd>{{ data.supportAgents | number }}</dd></div>
+    </dl>
+    <a class="btn" routerLink="/users">Manage accounts <span aria-hidden="true">&rarr;</span></a>
+  </section>
+}

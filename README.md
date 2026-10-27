@@ -14,17 +14,16 @@ The system has three roles:
 - **Support Agent** — handles assigned tickets.
 - **Administrator** — manages users, agents, and all tickets.
 
-
 ## Ticket list pagination
 
 `GET /tickets`, `GET /tickets/status/{status}`, `GET /tickets/creator/{creatorId}`,
 and `GET /tickets/assignee/{assigneeId}` accept Spring Data pagination parameters:
 
-| Parameter | Default | Description |
-| --- | --- | --- |
-| `page` | `0` | Zero-based page index |
-| `size` | `5` | Tickets per page (maximum `2000`) |
-| `sort` | `ticketId,asc` | Entity property and direction; repeat for multiple sort fields |
+| Parameter | Default        | Description                                                    |
+| --------- | -------------- | -------------------------------------------------------------- |
+| `page`    | `0`            | Zero-based page index                                          |
+| `size`    | `5`            | Tickets per page (maximum `2000`)                              |
+| `sort`    | `ticketId,asc` | Entity property and direction; repeat for multiple sort fields |
 
 For example: `/tickets/status/IN_QUEUE?page=1&size=10&sort=createdAt,desc&sort=ticketId,asc`.
 Use a unique field such as `ticketId` as the final sort field for predictable ordering.
@@ -34,6 +33,24 @@ List responses are now page objects rather than bare arrays. Tickets are in
 `last` describing the page. An out-of-range page has empty `content` but retains
 the matching total. Single-ticket and mutation responses are unchanged.
 
+## Admin dashboard
+
+Administrators see a dedicated dashboard at `/dashboard`. It loads live totals
+from `GET /admin/dashboard`, protected by both HTTP and service-level admin
+authorization. Other roles retain their own dashboards.
+
+The overview shows all-time ticket counts by status, open tickets by priority,
+unassigned open tickets, active support agents, account totals, and the five
+newest tickets (ordered by creation time, then ID). The resolved
+percentage is resolved tickets divided by all tickets, including cancelled ones.
+Account totals include inactive accounts and administrators; the regular-user
+and support-agent totals are shown separately. Refresh reloads the summary.
+
+Ticket details use the same back-link style as account details; administrators
+return to their dashboard. The new support-agent form reuses the registration
+card styles and matching-password validation, then returns to the agents list
+after successful creation.
+
 ## Running with Docker
 
 MySQL and Spring Boot run in Docker containers. Angular currently runs locally.
@@ -41,13 +58,12 @@ MySQL and Spring Boot run in Docker containers. Angular currently runs locally.
 ### Prerequisites
 
 - Docker Desktop.
-- A local `backend/.env` file containing the variables referenced in `compose.yaml`. Copy `/.env.example` into `backend/`, and change placeholder values. 
+- A local `backend/.env` file containing the variables referenced in `compose.yaml`. Copy `/.env.example` into `backend/`, and change placeholder values.
 - Run all commands below from the repository root.
-
 
 ### Configuration
 
-`--env-file ./backend/.env` supplies values for variable substitution in `compose.yaml`. The service's `environment` mappings pass the required values into its container.  
+`--env-file ./backend/.env` supplies values for variable substitution in `compose.yaml`. The service's `environment` mappings pass the required values into its container.
 
 Validate Compose configuration:
 
@@ -56,14 +72,14 @@ docker compose --env-file ./backend/.env config --quiet
 ```
 
 `--quiet` ommits printout.
-MySQL initialization variables create the database and user only when initializing an empty data directory. Changing `.env` does not update credentials in an existing database.  
+MySQL initialization variables create the database and user only when initializing an empty data directory. Changing `.env` does not update credentials in an existing database.
 
 Use `up --build` after changing backend code.
 The backend image build skips tests. Run the Maven verification checks separately before building. From `/backend/`:
-  
-  ```powershell
-  ./mvnw.cmd verify
-  ```
+
+```powershell
+./mvnw.cmd verify
+```
 
 ### Start the application
 
@@ -115,11 +131,11 @@ docker compose --env-file ./backend/.env down
 
 ### Connection addresses
 
-| Connection | Address |
-| --- | --- |
-| Local Angular/browser -> backend | `http://localhost:8080` |
-| IntelliJ -> MySQL | `localhost:3306` |
-| Backend container -> MySQL | `jdbc:mysql://db:3306/<db-name>` |
+| Connection                       | Address                          |
+| -------------------------------- | -------------------------------- |
+| Local Angular/browser -> backend | `http://localhost:8080`          |
+| IntelliJ -> MySQL                | `localhost:3306`                 |
+| Backend container -> MySQL       | `jdbc:mysql://db:3306/<db-name>` |
 
 ### Develop using IntelliJ
 
@@ -142,18 +158,18 @@ Development seeding is disabled by default. It runs at startup only when both th
 startup fails, even if all seed accounts already exist. There is no default
 seed password.
 
-| Email | Role |
-| --- | --- |
-| `admin@example.com` | `ADMIN` |
-| `zika@example.com` | `SUPPORT_AGENT` |
-| `nikola@example.com` | `SUPPORT_AGENT` |
-| `agent3@example.com` | `SUPPORT_AGENT` |
-| `petar.petrovic@example.com` | `USER` |
-| `vojin.vojinovic@example.com` | `USER` |
+| Email                          | Role            |
+| ------------------------------ | --------------- |
+| `admin@example.com`            | `ADMIN`         |
+| `zika@example.com`             | `SUPPORT_AGENT` |
+| `nikola@example.com`           | `SUPPORT_AGENT` |
+| `agent3@example.com`           | `SUPPORT_AGENT` |
+| `petar.petrovic@example.com`   | `USER`          |
+| `vojin.vojinovic@example.com`  | `USER`          |
 | `andjela.petrovic@example.com` | `SUPPORT_AGENT` |
-| `emily.wilson@example.com` | `SUPPORT_AGENT` |
-| `vesna.jovanovic@example.com` | `USER` |
-| `sarah.parker@example.com` | `USER` |
+| `emily.wilson@example.com`     | `SUPPORT_AGENT` |
+| `vesna.jovanovic@example.com`  | `USER`          |
+| `sarah.parker@example.com`     | `USER`          |
 
 Each email is checked independently. Only missing accounts are inserted, in
 one transaction. Restarting or changing the seed password does not overwrite
@@ -163,15 +179,15 @@ The same runner seeds users first, validates the existing `INCIDENT` and
 `SOFTWARE_REQUEST` enum types (there are no type rows to insert), then creates
 28 tickets numbered `TKT-SEED-0001` through `TKT-SEED-0028`. The original eight fixtures are preserved; tickets 9–28 add 20 deterministic scenarios across all four regular users and five support agents. Both ticket types and all `TicketPriority` values (`LOW`, `MEDIUM`, `HIGH`) are represented. Seed assignments are not workload-based, and users are resolved by email with their actual roles checked. A missing user or unexpected role fails seeding.
 
-| Tickets | Final status | Comments per ticket | Special history |
-| --- | --- | --- | --- |
-| 1–2 | `RESOLVED` | 3, 2 | Resolution summaries; ticket 2 reassigned |
-| 3–5 | `FULFILLMENT` | 1 each | Ticket 4 reassigned |
-| 6–7 | `FULFILLMENT` | 0 | Initial assignment |
-| 8 | `CANCELLED` | 0 | Admin cancellation |
-| 9, 12, 15, 18, 21, 23, 26, 28 | `RESOLVED` | 3, 2, 1, 2, 3, 2, 1, 3 | Resolution summaries; 9, 12, 21, 28 reassigned |
-| 10, 11, 13, 16, 17, 20, 22, 25, 27 | `FULFILLMENT` | 1, 0, 2, 2, 0, 0, 1, 1, 0 | 16 and 25 reassigned |
-| 14, 19, 24 | `CANCELLED` | 1, 2, 0 | Admin cancellation; 19 reassigned |
+| Tickets                            | Final status  | Comments per ticket       | Special history                                |
+| ---------------------------------- | ------------- | ------------------------- | ---------------------------------------------- |
+| 1–2                                | `RESOLVED`    | 3, 2                      | Resolution summaries; ticket 2 reassigned      |
+| 3–5                                | `FULFILLMENT` | 1 each                    | Ticket 4 reassigned                            |
+| 6–7                                | `FULFILLMENT` | 0                         | Initial assignment                             |
+| 8                                  | `CANCELLED`   | 0                         | Admin cancellation                             |
+| 9, 12, 15, 18, 21, 23, 26, 28      | `RESOLVED`    | 3, 2, 1, 2, 3, 2, 1, 3    | Resolution summaries; 9, 12, 21, 28 reassigned |
+| 10, 11, 13, 16, 17, 20, 22, 25, 27 | `FULFILLMENT` | 1, 0, 2, 2, 0, 0, 1, 1, 0 | 16 and 25 reassigned                           |
+| 14, 19, 24                         | `CANCELLED`   | 1, 2, 0                   | Admin cancellation; 19 reassigned              |
 
 On an empty database this creates 10 accounts, 28 tickets (14 in fulfillment,
 10 resolved, 4 cancelled), 35 comments, and 142 history events, including nine
@@ -230,9 +246,9 @@ The system will enforce **role-based authorization and method-level authorizatio
 
 ### 2.1 Ticket Classification
 
-| Category | Subcategories |
-| --- | --- |
-| IT | Incident, Software Request |
+| Category | Subcategories              |
+| -------- | -------------------------- |
+| IT       | Incident, Software Request |
 
 ### 2.2 Deferred Scope
 
@@ -273,25 +289,28 @@ Permission to perform other status transitions remains to be confirmed.
 
 ### Access Boundaries
 
-| Role | Ticket access | Administrative access |
-| --- | --- | --- |
-| User | Own tickets only | No access to all-user lists or account administration |
-| Support Agent | Assigned tickets only | No administrative access defined in this baseline |
-| Administrator | All tickets | User and support-agent management |
+| Role          | Ticket access         | Administrative access                                 |
+| ------------- | --------------------- | ----------------------------------------------------- |
+| User          | Own tickets only      | No access to all-user lists or account administration |
+| Support Agent | Assigned tickets only | No administrative access defined in this baseline     |
+| Administrator | All tickets           | User and support-agent management                     |
 
 Authorization must protect backend operations as well as access to frontend pages. Role checks must be combined with ticket ownership or assignment checks where applicable.
 
-
 ## Diagrams
+
 ### Entity-Relationship Diagram
-The initial ERD: 
+
+The initial ERD:
 
 ![Smart Ticket Management Platform initial ERD](docs/img/erd.png)
 
 Optional entities/fields to add:
+
 - **tickets.version**: for detecting conflicting updates by support agent and admin.
 
 ## Sequence Diagram
+
 The initial sequence diagram for ticket submission and automatic assignment:
 
 ![Initial ticket submission and automatic assignment sequence diagram](docs/img/ticket_submission_and_assignment_sequence.png)
@@ -299,6 +318,7 @@ The initial sequence diagram for ticket submission and automatic assignment:
 Backend ticket creation, assignment, and event saving are executed in a single transaction.
 
 ## Class Diagram
+
 The initial class diagram:
 
 **Domain classes:**
@@ -308,7 +328,6 @@ The initial class diagram:
 **Application services:**
 
 ![Initial class diagram - domain classes](docs/img/services.png)
-
 
 ## Functional Requirements
 
@@ -342,12 +361,12 @@ Tokens issued before the `token_version` claim existed are also rejected, so use
 
 #### Authentication Cookie
 
-| Endpoint | Behavior |
-|---|---|
-| `POST /auth/login` | Returns `204 No Content` and sets the `access_token` cookie. The token is never in the response body. |
-| `POST /auth/logout` | Returns `204 No Content` and expires the cookie (`Max-Age=0`). |
+| Endpoint                     | Behavior                                                                                                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST /auth/login`           | Returns `204 No Content` and sets the `access_token` cookie. The token is never in the response body.                                                                                |
+| `POST /auth/logout`          | Returns `204 No Content` and expires the cookie (`Max-Age=0`).                                                                                                                       |
 | `POST /auth/change-password` | Body `{currentPassword, newPassword}`. Returns `204 No Content`, expires the cookie and revokes every JWT issued for the account. The frontend must then redirect to the login page. |
-| `GET /users/me` | Returns the current user. The frontend calls it to restore the session after a page reload, because JavaScript cannot read the cookie. |
+| `GET /users/me`              | Returns the current user. The frontend calls it to restore the session after a page reload, because JavaScript cannot read the cookie.                                               |
 
 Cookie attributes: `HttpOnly`, `SameSite=Lax`, `Path=/`, lifetime equal to `security.jwt.expiration-seconds`, and `Secure` controlled by `security.jwt.cookie-secure`.
 
@@ -511,15 +530,15 @@ Administrators also manage user and support-agent accounts independently of the 
 
 The proposed `eventType` field is a string with the following values:
 
-| Event type | Meaning |
-| --- | --- |
-| `CREATED` | A ticket was submitted. |
-| `ASSIGNED` | A ticket received its initial support-agent assignment. |
-| `STATUS_CHANGED` | A ticket's status changed. |
-| `COMMENT_ADDED` | A comment was added. |
-| `REASSIGNED` | A ticket was reassigned to another support agent. |
-| `RESOLVED` | A ticket was resolved. |
-| `CLOSED` | A ticket was closed. |
+| Event type       | Meaning                                                 |
+| ---------------- | ------------------------------------------------------- |
+| `CREATED`        | A ticket was submitted.                                 |
+| `ASSIGNED`       | A ticket received its initial support-agent assignment. |
+| `STATUS_CHANGED` | A ticket's status changed.                              |
+| `COMMENT_ADDED`  | A comment was added.                                    |
+| `REASSIGNED`     | A ticket was reassigned to another support agent.       |
+| `RESOLVED`       | A ticket was resolved.                                  |
+| `CLOSED`         | A ticket was closed.                                    |
 
 Events need enough information to identify the ticket, when the event occurred, who or what performed it, and the relevant change. System-generated actions must be distinguishable from user actions.
 

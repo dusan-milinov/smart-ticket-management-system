@@ -1,6 +1,7 @@
 package com.ticketmanagement.backend.repository;
 
 import com.ticketmanagement.backend.enums.TicketStatus;
+import com.ticketmanagement.backend.enums.TicketPriority;
 import com.ticketmanagement.backend.model.Ticket;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +15,12 @@ import java.util.Optional;
 public interface TicketRepository extends JpaRepository<Ticket,Long>, JpaSpecificationExecutor<Ticket> {
 
     boolean existsByTicketNumber(String ticketNumber);
+
+    long countByTicketStatus(TicketStatus status);
+
+    long countByTicketPriorityAndTicketStatusIn(TicketPriority priority, Collection<TicketStatus> statuses);
+
+    long countByAssigneeIsNullAndTicketStatusIn(Collection<TicketStatus> statuses);
 
     Optional<Ticket> findByTicketId(Long ticketId);
 

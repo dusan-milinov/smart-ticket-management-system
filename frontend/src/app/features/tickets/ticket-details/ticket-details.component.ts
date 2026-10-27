@@ -51,6 +51,13 @@ export class TicketDetailsComponent implements OnInit {
   protected readonly ticket = signal<Ticket | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+  protected readonly backLink = computed(() => {
+    switch (this.auth.user()?.role) {
+      case ROLES.ADMIN: return { path: '/dashboard', label: 'Back to dashboard' };
+      case ROLES.SUPPORT_AGENT: return { path: '/tickets/assigned', label: 'Back to assigned tickets' };
+      default: return { path: '/tickets', label: 'Back to my tickets' };
+    }
+  });
 
   protected readonly events = signal<TicketEvent[]>([]);
   protected readonly eventsLoading = signal(false);

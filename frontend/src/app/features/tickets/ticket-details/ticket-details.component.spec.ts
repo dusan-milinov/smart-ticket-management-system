@@ -44,7 +44,9 @@ describe('TicketDetailsComponent', () => {
           useValue: {
             snapshot: {
               paramMap: convertToParamMap({ id: '42' }),
-              get queryParamMap() { return convertToParamMap(queryParams); },
+              get queryParamMap() {
+                return convertToParamMap(queryParams);
+              },
             },
           },
         },
@@ -71,8 +73,8 @@ describe('TicketDetailsComponent', () => {
   it('offers cancellation to users and updates the ticket after cancellation', () => {
     loadTicket();
 
-    expect(element.querySelector('.back')?.textContent).toContain('Back to my tickets');
-    expect(element.querySelector('.back')?.getAttribute('href')).toBe('/tickets');
+    expect(element.querySelector('.back-link')?.textContent).toContain('Back to my tickets');
+    expect(element.querySelector('.back-link')?.getAttribute('href')).toBe('/tickets');
     expect(element.querySelector('.ticket-actions')?.textContent).toContain('Cancel ticket');
     expect(element.querySelector('.ticket-actions')?.textContent).not.toContain('Resolve ticket');
     expect(element.querySelector('.ticket-header .ticket-actions')).not.toBeNull();
@@ -99,8 +101,8 @@ describe('TicketDetailsComponent', () => {
     currentUser.set({ email: 'agent@example.com', role: 'ROLE_SUPPORT_AGENT' });
     loadTicket();
 
-    expect(element.querySelector('.back')?.textContent).toContain('Back to assigned tickets');
-    expect(element.querySelector('.back')?.getAttribute('href')).toBe('/tickets/assigned');
+    expect(element.querySelector('.back-link')?.textContent).toContain('Back to assigned tickets');
+    expect(element.querySelector('.back-link')?.getAttribute('href')).toBe('/tickets/assigned');
     expect(element.querySelector('.ticket-actions')?.textContent).toContain('Resolve ticket');
     expect(element.querySelector('.ticket-actions')?.textContent).not.toContain('Cancel ticket');
     expect(element.querySelector('.ticket-header .ticket-actions')).not.toBeNull();
@@ -114,14 +116,20 @@ describe('TicketDetailsComponent', () => {
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(element.querySelector<HTMLButtonElement>('.dialog button[type="submit"]')!.disabled).toBe(false);
+    expect(
+      element.querySelector<HTMLButtonElement>('.dialog button[type="submit"]')!.disabled,
+    ).toBe(false);
     element.querySelector('.dialog')!.dispatchEvent(new Event('submit', { cancelable: true }));
 
     const request = http.expectOne((r) => r.url === '/api/tickets/resolve');
     expect(request.request.method).toBe('PATCH');
     expect(request.request.params.get('ticketID')).toBe('42');
     expect(request.request.params.get('summary')).toBe('VPN access restored.');
-    request.flush({ ...ticket, ticketStatus: 'RESOLVED', resolutionSummary: 'VPN access restored.' });
+    request.flush({
+      ...ticket,
+      ticketStatus: 'RESOLVED',
+      resolutionSummary: 'VPN access restored.',
+    });
     fixture.detectChanges();
     http.expectOne('/api/ticket-events/42').flush([]);
     fixture.detectChanges();
@@ -164,9 +172,19 @@ describe('TicketDetailsComponent', () => {
     expect(element.querySelector('.ticket-actions')).toBeNull();
   });
 
+  it('returns administrators to their dashboard', () => {
+    currentUser.set({ email: 'admin@example.com', role: 'ROLE_ADMIN' });
+    loadTicket();
+    const backLink = element.querySelector<HTMLAnchorElement>('.back-link')!;
+    expect(backLink.textContent).toContain('Back to dashboard');
+    expect(backLink.getAttribute('href')).toBe('/dashboard');
+  });
+
   it('renders comments directly after Event History', () => {
     loadTicket();
-    expect(element.querySelector('.history')?.nextElementSibling?.tagName).toBe('APP-TICKET-COMMENTS');
+    expect(element.querySelector('.history')?.nextElementSibling?.tagName).toBe(
+      'APP-TICKET-COMMENTS',
+    );
     expect(element.querySelector('app-ticket-comments')?.textContent).toContain('No comments yet.');
   });
 
