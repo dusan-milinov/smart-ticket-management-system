@@ -1,5 +1,6 @@
 package com.ticketmanagement.backend.repository;
 
+import com.ticketmanagement.backend.enums.Role;
 import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.enums.Role;
 import jakarta.persistence.LockModeType;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<AppUser, Long> {
@@ -25,4 +27,6 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from AppUser u where u.id = :id")
     Optional<AppUser> findByIdForUpdate(Long id);
+
+    List<AppUser> findByRoleAndActiveTrue(Role role);
 }

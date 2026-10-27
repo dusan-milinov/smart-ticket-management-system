@@ -14,7 +14,7 @@ const NON_CANCELLABLE_STATUSES = ['RESOLVED', 'CANCELLED'];
 @Component({
   imports: [DatePipe, PageHeaderComponent, PaginationComponent],
   selector: 'app-my-tickets',
-  styleUrl: './my-tickets.component.css',
+  styleUrl: '../ticket-list.css',
   templateUrl: './my-tickets.component.html',
   host: { '(document:keydown.escape)': 'closeCancelDialog()' },
 })

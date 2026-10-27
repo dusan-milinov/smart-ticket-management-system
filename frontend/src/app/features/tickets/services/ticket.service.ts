@@ -17,6 +17,16 @@ export class TicketService {
         return this.http.get<Page<Ticket>>(`${API_BASE_URL}/tickets/my`, { params, withCredentials: true });
     }
 
+    getAssignedTickets(page = 0, size = 5): Observable<Page<Ticket>> {
+        const params = new HttpParams().set('page', page).set('size', size);
+        return this.http.get<Page<Ticket>>(`${API_BASE_URL}/tickets/assigned`, { params, withCredentials: true });
+    }
+
+    resolveTicket(ticketId: number, summary: string): Observable<Ticket> {
+        const params = new HttpParams().set('ticketID', ticketId).set('summary', summary);
+        return this.http.patch<Ticket>(`${API_BASE_URL}/tickets/resolve`, null, { params, withCredentials: true });
+    }
+
     cancelTicket(ticketId: number): Observable<Ticket> {
         const params = new HttpParams().set('ticketID', ticketId);
         return this.http.patch<Ticket>(`${API_BASE_URL}/tickets/cancel`, null, { params, withCredentials: true });

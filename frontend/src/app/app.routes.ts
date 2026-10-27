@@ -62,6 +62,12 @@ export const routes: Routes = [
                     .then(m => m.UserDashboardComponent)
             },
             {
+                path: 'tickets/assigned',
+                canMatch: [roleMatch(ROLES.SUPPORT_AGENT)],
+                loadComponent: () => import('./features/tickets/assigned-tickets/assigned-tickets.component')
+                    .then(m => m.AssignedTicketsComponent)
+            },
+            {
                 path: 'tickets',
                 canMatch: [roleMatch(ROLES.USER)],
                 loadComponent: () => import('./features/tickets/my-tickets/my-tickets.component')

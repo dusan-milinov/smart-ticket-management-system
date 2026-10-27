@@ -30,4 +30,28 @@ describe('TicketService', () => {
     expect(req.request.params.get('size')).toBe('10');
     req.flush({ content: [], number: 2, size: 10, totalElements: 0, totalPages: 0, first: false, last: true, empty: true });
   });
+
+  it('should resolve a ticket with the backend query parameters and credentials', () => {
+    const summary = 'Restored VPN access & verified with user.';
+    service.resolveTicket(42, summary).subscribe();
+
+    const req = http.expectOne((r) => r.url === '/api/tickets/resolve');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.withCredentials).toBe(true);
+    expect(req.request.body).toBeNull();
+    expect(req.request.params.get('ticketID')).toBe('42');
+    expect(req.request.params.get('summary')).toBe(summary);
+    req.flush({ ticketId: 42, ticketStatus: 'RESOLVED', resolutionSummary: summary });
+  });
+
+  it('should request the signed-in agent tickets with paging and credentials', () => {
+    service.getAssignedTickets(2, 10).subscribe();
+
+    const req = http.expectOne((r) => r.url === '/api/tickets/assigned');
+    expect(req.request.method).toBe('GET');
+    expect(req.request.withCredentials).toBe(true);
+    expect(req.request.params.get('page')).toBe('2');
+    expect(req.request.params.get('size')).toBe('10');
+    req.flush({ content: [], number: 2, size: 10, totalElements: 0, totalPages: 0, first: false, last: true, empty: true });
+  });
 });
