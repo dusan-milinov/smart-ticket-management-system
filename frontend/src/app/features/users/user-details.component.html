@@ -89,7 +89,7 @@
                     <span
                       class="badge"
                       [class]="'badge status-' + ticket.ticketStatus.toLowerCase()"
-                      >{{ label(ticket.ticketStatus) }}</span
+                      >{{ ticketLabel(ticket.ticketStatus) }}</span
                     >
                   </td>
                   <td data-label="Submitted">
@@ -98,25 +98,21 @@
                     }}</time>
                   </td>
                   <td data-label="Actions" class="actions-cell">
-                    <a class="btn btn-sm" [routerLink]="['/tickets', ticket.ticketId]">View</a>
+                    <a
+                      class="btn btn-sm"
+                      [routerLink]="['/tickets', ticket.ticketId]"
+                      [queryParams]="{ returnTo: '/users/' + user.id }"
+                    >View</a>
                     @if (isAdmin() && canReassign(ticket)) {
                       <button
                         type="button"
                         class="btn btn-sm"
-                        [routerLink]="['/tickets', ticket.ticketId]"
-                        [queryParams]="{ returnTo: '/users/' + user.id }"
-                      >View</a>
-                      @if (canReassign(ticket)) {
-                        <button
-                          type="button"
-                          class="btn btn-sm"
-                          [attr.aria-label]="'Reassign ' + ticket.ticketNumber"
-                          (click)="openReassign(ticket)"
-                        >
-                          Reassign
-                        </button>
-                      }
-                    </div>
+                        [attr.aria-label]="'Reassign ' + ticket.ticketNumber"
+                        (click)="openReassign(ticket)"
+                      >
+                        Reassign
+                      </button>
+                    }
                   </td>
                 </tr>
               } @empty {

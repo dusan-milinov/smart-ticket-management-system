@@ -144,8 +144,8 @@ describe('TicketDetailsComponent', () => {
     queryParams = { returnTo: '/users/11' };
     loadTicket();
 
-    expect(element.querySelector('.back')?.getAttribute('href')).toBe('/users/11');
-    expect(element.querySelector('.back')?.textContent).toContain('Back to user');
+    expect(element.querySelector('.back-link')?.getAttribute('href')).toBe('/users/11');
+    expect(element.querySelector('.back-link')?.textContent).toContain('Back to user');
   });
 
   it.each([undefined, '/tickets', '//example.com', '/users/invalid'])(
@@ -155,8 +155,8 @@ describe('TicketDetailsComponent', () => {
       queryParams = returnTo === undefined ? {} : { returnTo };
       loadTicket();
 
-      expect(element.querySelector('.back')?.getAttribute('href')).toBe('/users');
-      expect(element.querySelector('.back')?.textContent).toContain('Back to users');
+      expect(element.querySelector('.back-link')?.getAttribute('href')).toBe('/users');
+      expect(element.querySelector('.back-link')?.textContent).toContain('Back to users');
     },
   );
 
@@ -164,7 +164,7 @@ describe('TicketDetailsComponent', () => {
     queryParams = { returnTo: '/users/11' };
     loadTicket();
 
-    expect(element.querySelector('.back')?.getAttribute('href')).toBe('/tickets');
+    expect(element.querySelector('.back-link')?.getAttribute('href')).toBe('/tickets');
   });
 
   it('does not offer actions for terminal tickets', () => {
@@ -172,12 +172,12 @@ describe('TicketDetailsComponent', () => {
     expect(element.querySelector('.ticket-actions')).toBeNull();
   });
 
-  it('returns administrators to their dashboard', () => {
+  it('returns administrators to the users directory when no user context is provided', () => {
     currentUser.set({ email: 'admin@example.com', role: 'ROLE_ADMIN' });
     loadTicket();
     const backLink = element.querySelector<HTMLAnchorElement>('.back-link')!;
-    expect(backLink.textContent).toContain('Back to dashboard');
-    expect(backLink.getAttribute('href')).toBe('/dashboard');
+    expect(backLink.textContent).toContain('Back to users');
+    expect(backLink.getAttribute('href')).toBe('/users');
   });
 
   it('renders comments directly after Event History', () => {
