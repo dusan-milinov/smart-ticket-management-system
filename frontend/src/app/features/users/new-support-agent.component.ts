@@ -2,15 +2,15 @@ import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
+import { passwordsMatch } from '../../shared/passwords-match.validator';
 import { MIN_PASSWORD_LENGTH } from '../profile/profile.component';
 import { UserDirectoryService } from './user-directory.service';
 
 @Component({
   selector: 'app-new-support-agent',
-  imports: [PageHeaderComponent, ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './new-support-agent.component.html',
-  styleUrl: './new-support-agent.component.css',
+  styleUrls: ['../../shared/account-form.css', './new-support-agent.component.css'],
 })
 export class NewSupportAgentComponent {
   private readonly formBuilder = inject(FormBuilder);
@@ -23,7 +23,8 @@ export class NewSupportAgentComponent {
   protected readonly form = this.formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(MIN_PASSWORD_LENGTH)]],
-  });
+    confirmPassword: ['', [Validators.required]],
+  }, { validators: passwordsMatch });
 
   protected submit(): void {
     if (this.form.invalid || this.submitting()) {

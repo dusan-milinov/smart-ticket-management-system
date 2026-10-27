@@ -1,18 +1,14 @@
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 
-const passwordsMatch: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
-  const password = control.get('password')?.value;
-  const confirmPassword = control.get('confirmPassword')?.value;
-  return password === confirmPassword ? null : { passwordMismatch: true };
-};
+import { passwordsMatch } from '../../shared/passwords-match.validator';
 
 @Component({
   imports: [ReactiveFormsModule, RouterLink],
   selector: 'app-register',
-  styleUrl: './register.component.css',
+  styleUrls: ['../../shared/account-form.css', './register.component.css'],
   templateUrl: './register.component.html',
 })
 export class RegisterComponent {

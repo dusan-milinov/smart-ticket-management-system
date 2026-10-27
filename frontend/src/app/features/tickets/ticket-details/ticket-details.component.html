@@ -1,5 +1,5 @@
-<a class="back" [routerLink]="isAgent() ? '/tickets/assigned' : '/tickets'">
-  {{ isAgent() ? '← Back to assigned tickets' : '← Back to my tickets' }}
+<a class="back-link" [routerLink]="backLink().path">
+  <span aria-hidden="true">&larr;</span> {{ backLink().label }}
 </a>
 
 @if (loading()) {

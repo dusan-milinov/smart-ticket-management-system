@@ -1,5 +1,5 @@
 <div class="details-page">
-  <a class="back" routerLink="/users">&larr; Back to users</a>
+  <a class="back-link" routerLink="/users"><span aria-hidden="true">&larr;</span> Back to users</a>
 
   @if (error()) {
     <div class="state state-error" role="alert"><p>{{ error() }}</p></div>
@@ -59,9 +59,6 @@
                 <th scope="col">Status</th>
                 <th scope="col">Submitted</th>
                 <th scope="col">Actions</th>
-                @if (isAdmin()) {
-                  <th scope="col" class="actions-cell">Actions</th>
-                }
               </tr>
             </thead>
             <tbody>
@@ -74,9 +71,10 @@
                       label(ticket.ticketStatus)
                     }}</span>
                   </td>
-                  @if (isAdmin()) {
-                    <td data-label="Actions" class="actions-cell">
-                      @if (canReassign(ticket)) {
+                  <td data-label="Submitted"><time [attr.datetime]="ticket.createdAt">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</time></td>
+                  <td data-label="Actions" class="actions-cell">
+                    <a class="btn btn-sm" [routerLink]="['/tickets', ticket.ticketId]">View</a>
+                      @if (isAdmin() && canReassign(ticket)) {
                         <button
                           type="button"
                           class="btn btn-sm"
@@ -86,12 +84,11 @@
                           Reassign
                         </button>
                       }
-                    </td>
-                  }
+                  </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td class="empty" [attr.colspan]="isAdmin() ? 4 : 3">No tickets found.</td>
+                  <td class="empty" colspan="5">No tickets found.</td>
                 </tr>
               }
             </tbody>

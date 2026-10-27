@@ -1,0 +1,120 @@
+.account-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 32px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 650;
+}
+
+.subtitle {
+  margin: 4px 0 24px;
+  color: var(--color-text-muted);
+}
+
+form {
+  display: grid;
+  gap: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+label {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-navy);
+}
+
+input:focus-visible {
+  border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary-soft);
+  outline-offset: 0;
+}
+
+small {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.validation-error {
+  color: var(--color-accent-text);
+}
+
+button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error,
+.success {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.error {
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+
+.success {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.success a {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.account-link {
+  margin: 20px 0 0;
+  color: var(--color-text-muted);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.account-link a {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+@media (max-width: 440px) {
+  .account-card { padding: 24px; }
+}

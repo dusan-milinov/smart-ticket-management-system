@@ -61,7 +61,8 @@ describe('TicketDetailsComponent', () => {
   it('offers cancellation to users and updates the ticket after cancellation', () => {
     loadTicket();
 
-    expect(element.querySelector('.back')?.textContent).toContain('Back to my tickets');
+    expect(element.querySelector('.back-link')?.textContent).toContain('Back to my tickets');
+    expect(element.querySelector('.back-link')?.getAttribute('href')).toBe('/tickets');
     expect(element.querySelector('.ticket-actions')?.textContent).toContain('Cancel ticket');
     expect(element.querySelector('.ticket-actions')?.textContent).not.toContain('Resolve ticket');
     expect(element.querySelector('.ticket-header .ticket-actions')).not.toBeNull();
@@ -88,7 +89,8 @@ describe('TicketDetailsComponent', () => {
     currentUser.set({ email: 'agent@example.com', role: 'ROLE_SUPPORT_AGENT' });
     loadTicket();
 
-    expect(element.querySelector('.back')?.textContent).toContain('Back to assigned tickets');
+    expect(element.querySelector('.back-link')?.textContent).toContain('Back to assigned tickets');
+    expect(element.querySelector('.back-link')?.getAttribute('href')).toBe('/tickets/assigned');
     expect(element.querySelector('.ticket-actions')?.textContent).toContain('Resolve ticket');
     expect(element.querySelector('.ticket-actions')?.textContent).not.toContain('Cancel ticket');
     expect(element.querySelector('.ticket-header .ticket-actions')).not.toBeNull();
@@ -122,6 +124,14 @@ describe('TicketDetailsComponent', () => {
   it('does not offer actions for terminal tickets', () => {
     loadTicket('RESOLVED');
     expect(element.querySelector('.ticket-actions')).toBeNull();
+  });
+
+  it('returns administrators to their dashboard', () => {
+    currentUser.set({ email: 'admin@example.com', role: 'ROLE_ADMIN' });
+    loadTicket();
+    const backLink = element.querySelector<HTMLAnchorElement>('.back-link')!;
+    expect(backLink.textContent).toContain('Back to dashboard');
+    expect(backLink.getAttribute('href')).toBe('/dashboard');
   });
 
   it('renders comments directly after Event History', () => {
