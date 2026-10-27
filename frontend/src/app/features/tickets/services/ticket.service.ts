@@ -7,15 +7,9 @@ import { Ticket } from '../models/ticket.model';
 import { CreateTicketRequest } from '../models/create-ticket-request.model';
 import { TicketEvent } from '../models/ticket-event.model';
 import { TicketComment } from '../models/ticket-comment.model';
-import { TicketPriority } from '../models/create-ticket-request.model';
-
-export type TicketStatus = 'IN_QUEUE' | 'FULFILLMENT' | 'RESOLVED' | 'CANCELLED';
-
-export interface MyTicketFilters {
-    status?: TicketStatus | null;
-    priority?: TicketPriority | null;
-    search?: string;
-}
+import { TicketFilters, TicketStatus, ticketParams } from '../ticket-presentation';
+export type { TicketStatus } from '../ticket-presentation';
+export type MyTicketFilters = TicketFilters;
 
 @Service()
 export class TicketService {
@@ -24,10 +18,7 @@ export class TicketService {
 
     // The backend defaults to size 5, newest first (sorted by ticketId descending).
     getMyTickets(page = 0, size = 5, filters: MyTicketFilters = {}): Observable<Page<Ticket>> {
-        let params = new HttpParams().set('page', page).set('size', size);
-        if (filters.status) params = params.set('status', filters.status);
-        if (filters.priority) params = params.set('priority', filters.priority);
-        if (filters.search) params = params.set('search', filters.search);
+        const params = ticketParams(page, size, filters);
         return this.http.get<Page<Ticket>>(`${API_BASE_URL}/tickets/my`, { params, withCredentials: true });
     }
 
@@ -39,9 +30,16 @@ export class TicketService {
         return this.http.get<Partial<Record<TicketStatus, number>>>(`${API_BASE_URL}/tickets/my/status-counts`, { params, withCredentials: true });
     }
 
-    getAssignedTickets(page = 0, size = 5): Observable<Page<Ticket>> {
-        const params = new HttpParams().set('page', page).set('size', size);
+    getAssignedTickets(page = 0, size = 5, filters: TicketFilters = {}): Observable<Page<Ticket>> {
+        const params = ticketParams(page, size, filters);
         return this.http.get<Page<Ticket>>(`${API_BASE_URL}/tickets/assigned`, { params, withCredentials: true });
+    }
+
+    getAssignedTicketStatusCounts(filters: Pick<TicketFilters, 'priority' | 'search'> = {}): Observable<Partial<Record<TicketStatus, number>>> {
+        let params = new HttpParams();
+        if (filters.priority) params = params.set('priority', filters.priority);
+        if (filters.search) params = params.set('search', filters.search);
+        return this.http.get<Partial<Record<TicketStatus, number>>>(`${API_BASE_URL}/tickets/assigned/status-counts`, { params, withCredentials: true });
     }
 
     resolveTicket(ticketId: number, summary: string): Observable<Ticket> {

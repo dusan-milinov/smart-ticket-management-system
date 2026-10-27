@@ -94,4 +94,15 @@ describe('TicketService', () => {
     expect(req.request.params.get('size')).toBe('10');
     req.flush({ content: [], number: 2, size: 10, totalElements: 0, totalPages: 0, first: false, last: true, empty: true });
   });
+
+  it('requests assigned status counts with search and priority, not status or sort', () => {
+    const filters = { status: 'IN_QUEUE', sort: 'oldest', priority: 'HIGH', search: 'vpn' } as const;
+    service.getAssignedTicketStatusCounts(filters).subscribe();
+    const request = http.expectOne((r) => r.url === '/api/tickets/assigned/status-counts');
+    expect(request.request.withCredentials).toBe(true);
+    expect(request.request.params.keys()).toEqual(['priority', 'search']);
+    expect(request.request.params.get('priority')).toBe('HIGH');
+    expect(request.request.params.get('search')).toBe('vpn');
+    request.flush({ IN_QUEUE: 2 });
+  });
 });

@@ -175,34 +175,6 @@
   gap: 8px;
 }
 
-.badge {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: #eef1f5;
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.status-in_queue,
-.priority-high {
-  background: var(--color-accent-soft);
-  color: var(--color-accent-text);
-}
-
-.status-fulfillment,
-.priority-medium {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.status-resolved {
-  background: #e3e9f3;
-  color: var(--color-navy);
-}
-
 .state {
   padding: 32px 24px;
   color: var(--color-text-muted);

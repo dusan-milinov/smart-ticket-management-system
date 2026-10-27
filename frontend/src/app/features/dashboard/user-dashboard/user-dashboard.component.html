@@ -8,10 +8,14 @@
 
 <section class="overview" aria-label="Ticket overview">
   <article class="total-card">
-    <div class="total-number">{{ loading() || error() ? '—' : totalTickets() }}</div>
+    <div class="total-number">{{ totalTickets() ?? '—' }}</div>
     <div class="total-copy">
       <h2>Tickets submitted</h2>
       <p>Your requests, all in one place.</p>
+      @if (totalError()) {
+        <p role="alert">{{ totalError() }}</p>
+        <button type="button" class="retry-button" (click)="loadTicketTotal()">Try again</button>
+      }
     </div>
   </article>
   <article class="help-card">
@@ -23,9 +27,11 @@
 
 <section aria-labelledby="recent-heading">
   <div class="section-heading">
-    <h2 id="recent-heading">Recent tickets</h2>
+    <h2 id="recent-heading">{{ listHeading() }}</h2>
     <a class="all-tickets-link" routerLink="/tickets">View all tickets</a>
   </div>
+
+  <app-ticket-filters (filtersChange)="filtersChanged($event)" />
 
   @if (loading()) {
     <p class="state" role="status">Loading your recent tickets…</p>
@@ -36,8 +42,10 @@
     </div>
   } @else if (tickets().length === 0) {
     <div class="state">
-      <p>You have not submitted any tickets yet.</p>
-      <a class="secondary-link" routerLink="/tickets/new">Create your first ticket</a>
+      <p>{{ filtered ? 'No tickets match your filters.' : 'You have not submitted any tickets yet.' }}</p>
+      @if (!filtered) {
+        <a class="secondary-link" routerLink="/tickets/new">Create your first ticket</a>
+      }
     </div>
   } @else {
     <div class="recent-card">

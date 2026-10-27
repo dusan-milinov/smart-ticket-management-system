@@ -53,9 +53,23 @@ public class TicketController {
     @GetMapping("/assigned")
     @PreAuthorize("hasRole('SUPPORT_AGENT')")
     public ResponseEntity<Page<TicketResponse>> getAssignedTickets(
+            @RequestParam(required = false) TicketStatus status,
+            @RequestParam(required = false) TicketPriority priority,
+            @RequestParam(required = false) String search,
             @ParameterObject @PageableDefault(size = 5, sort = "ticketId", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ResponseEntity.ok(ticketService.getTicketsByAssigneeId(currentUserService.getCurrentUser().getId(), pageable));
+        return ResponseEntity.ok(ticketService.searchTicketsByAssignee(
+                currentUserService.getCurrentUser().getId(), status, priority, search, pageable));
+    }
+
+    @GetMapping("/assigned/status-counts")
+    @PreAuthorize("hasRole('SUPPORT_AGENT')")
+    public ResponseEntity<Map<TicketStatus, Long>> getAssignedTicketStatusCounts(
+            @RequestParam(required = false) TicketPriority priority,
+            @RequestParam(required = false) String search
+    ) {
+        return ResponseEntity.ok(ticketService.countTicketsByAssignee(
+                currentUserService.getCurrentUser().getId(), priority, search));
     }
 
     @PostMapping("/add")

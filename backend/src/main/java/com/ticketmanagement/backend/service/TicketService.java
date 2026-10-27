@@ -12,6 +12,7 @@ import com.ticketmanagement.backend.exception.UserNotFoundException;
 import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.model.Ticket;
 import com.ticketmanagement.backend.repository.TicketRepository;
+import com.ticketmanagement.backend.repository.TicketSpecifications;
 import com.ticketmanagement.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,13 +21,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -165,24 +163,30 @@ public class TicketService {
 
     private static Specification<Ticket> creatorFilter(Long creatorId, TicketStatus status, TicketPriority priority,
                                                        String search) {
-        String term = search == null ? "" : search.trim().toLowerCase();
-        return (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            predicates.add(cb.equal(root.get("creator").get("id"), creatorId));
-            if (status != null) {
-                predicates.add(cb.equal(root.get("ticketStatus"), status));
-            }
-            if (priority != null) {
-                predicates.add(cb.equal(root.get("ticketPriority"), priority));
-            }
-            if (!term.isEmpty()) {
-                String pattern = "%" + term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
-                predicates.add(cb.or(
-                        cb.like(cb.lower(root.get("title")), pattern, '\\'),
-                        cb.like(cb.lower(root.get("ticketNumber")), pattern, '\\')));
-            }
-            return cb.and(predicates.toArray(Predicate[]::new));
-        };
+        Specification<Ticket> scope = (root, query, cb) -> cb.equal(root.get("creator").get("id"), creatorId);
+        return scope.and(TicketSpecifications.matching(status, priority, search));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TicketResponse> searchTicketsByAssignee(Long assigneeId, TicketStatus status, TicketPriority priority,
+                                                       String search, Pageable pageable) {
+        return ticketRepository.findAll(assigneeFilter(assigneeId, status, priority, search), pageable)
+                .map(TicketResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<TicketStatus, Long> countTicketsByAssignee(Long assigneeId, TicketPriority priority, String search) {
+        Map<TicketStatus, Long> counts = new EnumMap<>(TicketStatus.class);
+        for (TicketStatus status : TicketStatus.values()) {
+            counts.put(status, ticketRepository.count(assigneeFilter(assigneeId, status, priority, search)));
+        }
+        return counts;
+    }
+
+    private static Specification<Ticket> assigneeFilter(Long assigneeId, TicketStatus status, TicketPriority priority,
+                                                        String search) {
+        Specification<Ticket> scope = (root, query, cb) -> cb.equal(root.get("assignee").get("id"), assigneeId);
+        return scope.and(TicketSpecifications.matching(status, priority, search));
     }
 
     @Transactional(readOnly = true)
