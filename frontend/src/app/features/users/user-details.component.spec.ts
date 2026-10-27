@@ -8,12 +8,15 @@ import { ROLES } from '../../core/roles';
 import { Page } from '../../shared/models/page.model';
 import { Ticket } from '../tickets/models/ticket.model';
 import { AccountDirectoryEntry } from './account-directory-entry.model';
+import { TicketService } from '../tickets/services/ticket.service';
 import { UserDetailsComponent } from './user-details.component';
 import { UserDirectoryService } from './user-directory.service';
 
 describe('UserDetailsComponent', () => {
   let fixture: ComponentFixture<UserDetailsComponent>;
   let deactivations: number[];
+  let reassignments: [number, number][];
+  let reassignResult: Observable<Ticket>;
   let deactivateResult: Observable<AccountDirectoryEntry>;
 
   const ticketPage = {
@@ -25,6 +28,8 @@ describe('UserDetailsComponent', () => {
 
   function setup(role: string, account: AccountDirectoryEntry): void {
     deactivations = [];
+    reassignments = [];
+    reassignResult = of({} as Ticket);
     deactivateResult = of({ ...account, active: false });
     TestBed.configureTestingModule({
       imports: [UserDetailsComponent],
@@ -33,10 +38,21 @@ describe('UserDetailsComponent', () => {
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: String(account.id) }) } } },
         { provide: AuthService, useValue: { user: signal({ email: 'x@example.com', role }).asReadonly() } },
         {
+          provide: TicketService,
+          useValue: {
+            reassignTicket: (ticketId: number, assigneeId: number) => {
+              reassignments.push([ticketId, assigneeId]);
+              return reassignResult;
+            },
+          },
+        },
+        {
           provide: UserDirectoryService,
           useValue: {
             getUser: () => of(account),
             getUserTickets: () => of(ticketPage),
+            getSupportAgents: () =>
+              of({ content: [{ id: 9, email: 'agent9@example.com', role: 'SUPPORT_AGENT', active: true }] }),
             deactivateUser: (id: number) => {
               deactivations.push(id);
               return deactivateResult;
@@ -72,6 +88,65 @@ describe('UserDetailsComponent', () => {
     expect(root.querySelector<HTMLAnchorElement>('td[data-label="Actions"] a')?.getAttribute('href'))
       .toBe('/tickets/1');
     expect(fixture.nativeElement.querySelector('.badge-active')).not.toBeNull();
+  });
+
+  it('lets administrators reassign an open ticket through a confirmation popup', () => {
+    setup(ROLES.ADMIN, { id: 2, email: 'user@example.com', role: 'USER', active: true });
+
+    click('Reassign');
+    const dialog = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog.textContent).toContain('T-1');
+    const confirm = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Reassign')!;
+    expect(confirm.disabled).toBe(true);
+
+    const select = dialog.querySelector('select') as HTMLSelectElement;
+    select.value = '9';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(confirm.disabled).toBe(false);
+    confirm.click();
+    fixture.detectChanges();
+
+    expect(reassignments).toEqual([[1, 9]]);
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('T-1 reassigned to agent9@example.com.');
+  });
+
+  it('keeps the popup open and shows the server message when reassignment fails', () => {
+    setup(ROLES.ADMIN, { id: 2, email: 'user@example.com', role: 'USER', active: true });
+    reassignResult = throwError(() => new HttpErrorResponse({ status: 409, error: { message: 'Agent is inactive' } }));
+
+    click('Reassign');
+    const select = fixture.nativeElement.querySelector('[role="dialog"] select') as HTMLSelectElement;
+    select.value = '9';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    Array.from(fixture.nativeElement.querySelectorAll('[role="dialog"] button') as NodeListOf<HTMLButtonElement>)
+      .find((b) => b.textContent?.trim() === 'Reassign')!
+      .click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).toContain('Agent is inactive');
+  });
+
+  it('closes the reassign popup on cancel without calling the server', () => {
+    setup(ROLES.ADMIN, { id: 2, email: 'user@example.com', role: 'USER', active: true });
+
+    click('Reassign');
+    click('Cancel');
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(reassignments).toEqual([]);
+  });
+
+  it('does not offer reassignment to support agents', () => {
+    setup(ROLES.SUPPORT_AGENT, { id: 2, email: 'user@example.com', role: 'USER', active: true });
+    expect(fixture.nativeElement.textContent).not.toContain('Reassign');
+  });
+
+  it('hides the deactivate button from support agents', () => {
+    setup(ROLES.SUPPORT_AGENT, { id: 2, email: 'user@example.com', role: 'USER', active: true });
+    expect(fixture.nativeElement.textContent).not.toContain('Deactivate user');
   });
 
   it('lets administrators deactivate an active non-admin after confirmation', () => {

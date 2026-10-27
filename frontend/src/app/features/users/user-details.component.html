@@ -47,6 +47,9 @@
       @if (loading()) {
         <p class="state" role="status">Loading tickets…</p>
       } @else {
+        @if (notice()) {
+          <p class="feedback-success" role="status">{{ notice() }}</p>
+        }
         <div class="table-card">
           <table>
             <thead>
@@ -56,6 +59,9 @@
                 <th scope="col">Status</th>
                 <th scope="col">Submitted</th>
                 <th scope="col">Actions</th>
+                @if (isAdmin()) {
+                  <th scope="col" class="actions-cell">Actions</th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -68,12 +74,24 @@
                       label(ticket.ticketStatus)
                     }}</span>
                   </td>
-                  <td data-label="Submitted">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
-                  <td data-label="Actions"><a class="btn" [routerLink]="['/tickets', ticket.ticketId]">View</a></td>
+                  @if (isAdmin()) {
+                    <td data-label="Actions" class="actions-cell">
+                      @if (canReassign(ticket)) {
+                        <button
+                          type="button"
+                          class="btn btn-sm"
+                          [attr.aria-label]="'Reassign ' + ticket.ticketNumber"
+                          (click)="openReassign(ticket)"
+                        >
+                          Reassign
+                        </button>
+                      }
+                    </td>
+                  }
                 </tr>
               } @empty {
                 <tr>
-                  <td class="empty" colspan="5">No tickets found.</td>
+                  <td class="empty" [attr.colspan]="isAdmin() ? 4 : 3">No tickets found.</td>
                 </tr>
               }
             </tbody>
@@ -82,6 +100,69 @@
         <app-pagination [page]="page()" [totalPages]="totalPages()" (pageChange)="loadTickets($event)" />
       }
     </section>
+
+    @if (reassigning(); as ticket) {
+      <div class="overlay" (click)="closeReassign()">
+        <div
+          class="dialog dialog-form"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reassign-heading"
+          (click)="$event.stopPropagation()"
+        >
+          <p class="eyebrow">{{ ticket.ticketNumber }}</p>
+          <h2 id="reassign-heading">Reassign ticket</h2>
+          <p>{{ ticket.title }}</p>
+
+          <dl class="dialog-facts">
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span class="badge" [class]="'badge status-' + ticket.ticketStatus.toLowerCase()">{{
+                  label(ticket.ticketStatus)
+                }}</span>
+              </dd>
+            </div>
+            <div>
+              <dt>Current assignee</dt>
+              <dd>{{ agentEmail(ticket.assigneeId) }}</dd>
+            </div>
+          </dl>
+
+          <label class="field" for="reassign-agent">
+            <span>New assignee</span>
+            <select
+              id="reassign-agent"
+              [disabled]="reassignSaving()"
+              (change)="selectAgent($any($event.target).value)"
+            >
+              <option value="" [selected]="selectedAgentId() === null">Select a support agent…</option>
+              @for (agent of agentsFor(ticket); track agent.id) {
+                <option [value]="agent.id" [selected]="selectedAgentId() === agent.id">{{ agent.email }}</option>
+              }
+            </select>
+          </label>
+          @if (agentsFor(ticket).length === 0) {
+            <p class="field-hint">No other active support agents are available.</p>
+          }
+          @if (reassignError()) {
+            <p class="feedback-error" role="alert">{{ reassignError() }}</p>
+          }
+
+          <div class="dialog-actions">
+            <button type="button" class="btn" [disabled]="reassignSaving()" (click)="closeReassign()">Cancel</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="selectedAgentId() === null || reassignSaving()"
+              (click)="confirmReassign()"
+            >
+              {{ reassignSaving() ? 'Reassigning…' : 'Reassign' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
 
     @if (confirming()) {
       <div class="overlay">
