@@ -49,3 +49,53 @@ input {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 }
+
+@media (max-width: 720px) {
+  .details-page .table-card {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .details-page thead {
+    display: none;
+  }
+
+  .details-page table,
+  .details-page tbody,
+  .details-page tr,
+  .details-page td {
+    display: block;
+  }
+
+  .details-page tr {
+    margin-bottom: 12px;
+    padding: 4px 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+  }
+
+  .details-page td {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    border: 0;
+  }
+
+  .details-page td::before {
+    content: attr(data-label);
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .details-page .empty {
+    display: block;
+  }
+
+  .details-page .empty::before {
+    content: none;
+  }
+}
