@@ -39,9 +39,6 @@
             <td data-label="Actions">
               <div class="actions">
                 <a class="btn" [routerLink]="['/tickets', ticket.ticketId]">View</a>
-                @if (canCancel(ticket)) {
-                  <button type="button" class="btn btn-warn" (click)="openCancelDialog(ticket)">Cancel Ticket</button>
-                }
               </div>
             </td>
           </tr>
@@ -57,32 +54,4 @@
   </div>
 
   <app-pagination [page]="page()" [totalPages]="totalPages()" (pageChange)="load($event)" />
-}
-
-@if (ticketToCancel(); as ticket) {
-  <div class="overlay" (click)="closeCancelDialog()">
-    <div
-      class="dialog"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="cancel-title"
-      (click)="$event.stopPropagation()"
-    >
-      <h2 id="cancel-title">Cancel ticket?</h2>
-      <p>
-        Ticket <strong>{{ ticket.ticketNumber }}</strong> will be cancelled. This cannot be undone.
-      </p>
-
-      @if (cancelError()) {
-        <p class="dialog-error" role="alert">{{ cancelError() }}</p>
-      }
-
-      <div class="dialog-actions">
-        <button type="button" class="btn" [disabled]="cancelling()" (click)="closeCancelDialog()">Keep ticket</button>
-        <button type="button" class="btn btn-warn-solid" [disabled]="cancelling()" (click)="confirmCancel()">
-          {{ cancelling() ? 'Cancelling…' : 'Cancel ticket' }}
-        </button>
-      </div>
-    </div>
-  </div>
 }
