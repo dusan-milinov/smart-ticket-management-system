@@ -37,19 +37,31 @@ describe('UserDashboardComponent', () => {
 
   it('shows a distinct View link for each recent ticket while preserving its details and the full total', () => {
     fixture.detectChanges();
-    const request = http.expectOne('/api/tickets/my?page=0&size=5');
+    http.expectOne('/api/tickets/my/status-counts').flush({ FULFILLMENT: 5, RESOLVED: 4 });
+    const request = http.expectOne((request) => request.url === '/api/tickets/my');
     expect(request.request.withCredentials).toBe(true);
-    request.flush({ content: [ticket, { ...ticket, ticketId: 41, ticketNumber: 'TKT-0041' }], totalElements: 9 });
+    expect(request.request.params.get('page')).toBe('0');
+    expect(request.request.params.get('size')).toBe('5');
+    expect(request.request.params.getAll('sort')).toEqual(['createdAt,desc', 'ticketId,desc']);
+    request.flush({
+      content: [ticket, { ...ticket, ticketId: 41, ticketNumber: 'TKT-0041' }],
+      totalElements: 2,
+    });
     fixture.detectChanges();
 
     const element: HTMLElement = fixture.nativeElement;
     const viewLinks = Array.from(element.querySelectorAll<HTMLAnchorElement>('.ticket-view'));
-    expect(viewLinks.map(link => link.getAttribute('href'))).toEqual(['/tickets/42', '/tickets/41']);
-    expect(viewLinks.map(link => link.getAttribute('aria-label')))
-      .toEqual(['View ticket TKT-0042', 'View ticket TKT-0041']);
-    expect(viewLinks.every(link => link.textContent?.trim() === 'View')).toBe(true);
+    expect(viewLinks.map((link) => link.getAttribute('href'))).toEqual([
+      '/tickets/42',
+      '/tickets/41',
+    ]);
+    expect(viewLinks.map((link) => link.getAttribute('aria-label'))).toEqual([
+      'View ticket TKT-0042',
+      'View ticket TKT-0041',
+    ]);
+    expect(viewLinks.every((link) => link.textContent?.trim() === 'View')).toBe(true);
     expect(element.querySelector('.ticket-title')?.textContent).toBe(ticket.title);
-    expect(element.querySelector('.ticket-meta')?.textContent).toContain('Fulfillment');
+    expect(element.querySelector('.ticket-meta')?.textContent).toContain('In Progress');
     expect(element.querySelector('.ticket-meta')?.textContent).toContain('High');
     expect(element.querySelector('time')?.getAttribute('datetime')).toBe(ticket.createdAt);
     expect(element.querySelector('.total-number')?.textContent).toBe('9');
@@ -57,17 +69,41 @@ describe('UserDashboardComponent', () => {
 
   it('offers retry after a failed load and renders no View links for an empty dashboard', () => {
     fixture.detectChanges();
-    http.expectOne('/api/tickets/my?page=0&size=5').flush({}, { status: 500, statusText: 'Server error' });
+    http.expectOne('/api/tickets/my/status-counts').flush({});
+    http
+      .expectOne((request) => request.url === '/api/tickets/my')
+      .flush({}, { status: 500, statusText: 'Server error' });
     fixture.detectChanges();
     const element: HTMLElement = fixture.nativeElement;
     expect(element.querySelector('[role=alert]')).not.toBeNull();
     expect(element.querySelector('.ticket-view')).toBeNull();
 
     element.querySelector<HTMLButtonElement>('.retry-button')!.click();
-    http.expectOne('/api/tickets/my?page=0&size=5').flush({ content: [], totalElements: 0 });
+    http.expectOne((request) => request.url === '/api/tickets/my').flush({ content: [], totalElements: 0 });
     fixture.detectChanges();
     expect(element.textContent).toContain('You have not submitted any tickets yet.');
     expect(element.querySelector('.ticket-view')).toBeNull();
     expect(element.querySelector('[role=alert]')).toBeNull();
+  });
+
+  it('keeps the overview total unfiltered and distinguishes no matches from no tickets', () => {
+    fixture.detectChanges();
+    http.expectOne('/api/tickets/my/status-counts').flush({ IN_QUEUE: 4, RESOLVED: 2 });
+    const initial = http.expectOne((request) => request.url === '/api/tickets/my');
+    expect(initial.request.params.get('size')).toBe('5');
+    initial.flush({ content: [], totalElements: 6 });
+    fixture.detectChanges();
+
+    const element: HTMLElement = fixture.nativeElement;
+    element.querySelector<HTMLButtonElement>('.tab:nth-child(3)')!.click();
+    const filtered = http.expectOne((request) => request.url === '/api/tickets/my');
+    expect(filtered.request.params.get('status')).toBe('FULFILLMENT');
+    filtered.flush({ content: [], totalElements: 0 });
+    fixture.detectChanges();
+    expect(element.querySelector('.total-number')?.textContent?.trim()).toBe('6');
+    expect(element.textContent).toContain('No tickets match your filters.');
+    expect(element.textContent).not.toContain('Create your first ticket');
+    expect(element.querySelector('.ticket-view')).toBeNull();
+    expect(element.querySelector('#recent-heading')?.textContent).toBe('Matching tickets');
   });
 });

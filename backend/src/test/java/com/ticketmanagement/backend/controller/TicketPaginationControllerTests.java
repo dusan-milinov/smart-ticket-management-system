@@ -3,6 +3,7 @@ package com.ticketmanagement.backend.controller;
 import com.ticketmanagement.backend.config.SecurityConfig;
 import com.ticketmanagement.backend.dto.ticket.TicketResponse;
 import com.ticketmanagement.backend.enums.TicketStatus;
+import com.ticketmanagement.backend.enums.TicketPriority;
 import com.ticketmanagement.backend.enums.Role;
 import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.repository.UserRepository;
@@ -25,6 +26,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -52,14 +54,14 @@ class TicketPaginationControllerTests {
         agent.setId(12L);
         when(currentUser.getCurrentUser()).thenReturn(agent);
         Pageable pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "ticketId"));
-        when(tickets.getTicketsByAssigneeId(12L, pageable)).thenReturn(Page.empty(pageable));
+        when(tickets.searchTicketsByAssignee(12L, null, null, null, pageable)).thenReturn(Page.empty(pageable));
 
         mvc.perform(get("/tickets/assigned").with(jwt().authorities(() -> "ROLE_SUPPORT_AGENT")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.size").value(5));
 
-        verify(tickets).getTicketsByAssigneeId(12L, pageable);
+        verify(tickets).searchTicketsByAssignee(12L, null, null, null, pageable);
         verifyNoMoreInteractions(tickets);
     }
 
@@ -71,7 +73,7 @@ class TicketPaginationControllerTests {
         Pageable pageable = PageRequest.of(1, 10, Sort.by(Sort.Direction.DESC, "ticketId"));
         TicketResponse ticket = new TicketResponse(42L, "TKT-TEST", "Title", "Description",
                 TicketStatus.FULFILLMENT, null, null, null, null, 11L, 12L, null);
-        when(tickets.getTicketsByAssigneeId(12L, pageable))
+        when(tickets.searchTicketsByAssignee(12L, null, null, null, pageable))
                 .thenReturn(new PageImpl<>(List.of(ticket), pageable, 11));
 
         mvc.perform(get("/tickets/assigned").with(jwt().authorities(() -> "ROLE_SUPPORT_AGENT"))
@@ -83,7 +85,7 @@ class TicketPaginationControllerTests {
                 .andExpect(jsonPath("$.totalElements").value(11))
                 .andExpect(jsonPath("$.totalPages").value(2));
 
-        verify(tickets).getTicketsByAssigneeId(12L, pageable);
+        verify(tickets).searchTicketsByAssignee(12L, null, null, null, pageable);
         verifyNoMoreInteractions(tickets);
     }
 
@@ -99,6 +101,64 @@ class TicketPaginationControllerTests {
     void assignedTicketsRequireAuthentication() throws Exception {
         mvc.perform(get("/tickets/assigned"))
                 .andExpect(status().isUnauthorized());
+        verifyNoInteractions(tickets, currentUser);
+    }
+
+    @Test
+    void assignedTicketsForwardFiltersAndOldestFirstSortingWithoutChangingTheAssignee() throws Exception {
+        AppUser agent = new AppUser("agent@example.com", "password", Role.SUPPORT_AGENT);
+        agent.setId(12L);
+        when(currentUser.getCurrentUser()).thenReturn(agent);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("ticketId")));
+        when(tickets.searchTicketsByAssignee(12L, TicketStatus.IN_QUEUE, TicketPriority.HIGH, "vpn", pageable))
+                .thenReturn(Page.empty(pageable));
+
+        mvc.perform(get("/tickets/assigned").with(jwt().authorities(() -> "ROLE_SUPPORT_AGENT"))
+                        .param("status", "IN_QUEUE").param("priority", "HIGH").param("search", "vpn")
+                        .param("size", "10").param("sort", "createdAt,asc", "ticketId,asc")
+                        .param("assigneeId", "99"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+
+        verify(tickets).searchTicketsByAssignee(12L, TicketStatus.IN_QUEUE, TicketPriority.HIGH, "vpn", pageable);
+    }
+
+    @Test
+    void assignedTicketsRejectInvalidFilters() throws Exception {
+        mvc.perform(get("/tickets/assigned").with(jwt().authorities(() -> "ROLE_SUPPORT_AGENT"))
+                        .param("status", "PENDING"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(tickets);
+    }
+
+    @Test
+    void assignedCountsUseCurrentAgentAndOnlyPriorityAndSearch() throws Exception {
+        AppUser agent = new AppUser("agent@example.com", "password", Role.SUPPORT_AGENT);
+        agent.setId(12L);
+        when(currentUser.getCurrentUser()).thenReturn(agent);
+        when(tickets.countTicketsByAssignee(12L, TicketPriority.HIGH, "vpn"))
+                .thenReturn(Map.of(TicketStatus.IN_QUEUE, 2L, TicketStatus.RESOLVED, 1L));
+
+        mvc.perform(get("/tickets/assigned/status-counts").with(jwt().authorities(() -> "ROLE_SUPPORT_AGENT"))
+                        .param("priority", "HIGH").param("search", "vpn")
+                        .param("status", "RESOLVED").param("assigneeId", "99"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.IN_QUEUE").value(2))
+                .andExpect(jsonPath("$.RESOLVED").value(1));
+        verify(tickets).countTicketsByAssignee(12L, TicketPriority.HIGH, "vpn");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ROLE_USER", "ROLE_ADMIN"})
+    void assignedCountsRejectOtherRoles(String role) throws Exception {
+        mvc.perform(get("/tickets/assigned/status-counts").with(jwt().authorities(() -> role)))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(tickets, currentUser);
+    }
+
+    @Test
+    void assignedCountsRequireAuthentication() throws Exception {
+        mvc.perform(get("/tickets/assigned/status-counts")).andExpect(status().isUnauthorized());
         verifyNoInteractions(tickets, currentUser);
     }
 

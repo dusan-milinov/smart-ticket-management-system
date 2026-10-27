@@ -26,6 +26,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -35,6 +37,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
 import java.util.List;
@@ -43,9 +47,14 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Runs against the configured MySQL schema; every test rolls back its writes. */
 @SpringBootTest(properties = "app.seed.enabled=false")
+@AutoConfigureMockMvc
 @Transactional
 class AccountPersistenceTests {
 
@@ -60,6 +69,7 @@ class AccountPersistenceTests {
     @Autowired private EntityManager entityManager;
     @Autowired private JwtDecoder decoder;
     @Autowired private ActiveAccountJwtAuthenticationConverter authenticationConverter;
+    @Autowired private MockMvc mvc;
 
     @AfterEach
     void clearSecurityContext() {
@@ -212,6 +222,128 @@ class AccountPersistenceTests {
         AppUser stored = users.findByEmail(email).orElseThrow();
         assertThat(stored.isActive()).isTrue();
         assertThat(stored.getTokenVersion()).isZero();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void ticketFiltersApplyBeforePagingAndKeepCreatorAssigneeAndRelatedScopes() {
+        AppUser creator = account(Role.USER);
+        AppUser agent = account(Role.SUPPORT_AGENT);
+        AppUser other = account(Role.USER);
+        AppUser otherAgent = account(Role.SUPPORT_AGENT);
+        Ticket older = ticket(creator, agent, TicketStatus.IN_QUEUE);
+        older.setTitle("VPN older");
+        older.setTicketPriority(TicketPriority.HIGH);
+        older.setCreatedAt(Instant.parse("2026-01-01T00:00:00Z"));
+        Ticket newer = ticket(creator, agent, TicketStatus.IN_QUEUE);
+        newer.setTitle("VPN newer");
+        newer.setTicketPriority(TicketPriority.HIGH);
+        newer.setCreatedAt(Instant.parse("2026-02-01T00:00:00Z"));
+        Ticket wrongStatus = ticket(creator, agent, TicketStatus.RESOLVED);
+        wrongStatus.setTitle("VPN resolved");
+        wrongStatus.setTicketPriority(TicketPriority.HIGH);
+        Ticket wrongPriority = ticket(creator, agent, TicketStatus.IN_QUEUE);
+        wrongPriority.setTitle("VPN low");
+        wrongPriority.setTicketPriority(TicketPriority.LOW);
+        Ticket unrelated = ticket(other, otherAgent, TicketStatus.IN_QUEUE);
+        unrelated.setTitle("VPN unrelated");
+        unrelated.setTicketPriority(TicketPriority.HIGH);
+        Ticket assignedOnly = ticket(other, agent, TicketStatus.IN_QUEUE);
+        assignedOnly.setTitle("VPN assigned only");
+        assignedOnly.setTicketPriority(TicketPriority.HIGH);
+        entityManager.flush();
+
+        var ascending = Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("ticketId"));
+        var firstPage = PageRequest.of(0, 1, ascending);
+        var creatorPage = ticketService.searchTicketsByCreator(
+                creator.getId(), TicketStatus.IN_QUEUE, TicketPriority.HIGH, "  vPn  ", firstPage);
+        assertThat(creatorPage.getTotalElements()).isEqualTo(2);
+        assertThat(creatorPage.getContent()).extracting(t -> t.ticketId()).containsExactly(older.getTicketId());
+        var secondPage = ticketService.searchTicketsByCreator(
+                creator.getId(), TicketStatus.IN_QUEUE, TicketPriority.HIGH, "vpn", PageRequest.of(1, 1, ascending));
+        assertThat(secondPage.getContent()).extracting(t -> t.ticketId()).containsExactly(newer.getTicketId());
+        var assignedPage = ticketService.searchTicketsByAssignee(
+                agent.getId(), TicketStatus.IN_QUEUE, TicketPriority.HIGH, "vpn", PageRequest.of(0, 10, ascending));
+        assertThat(assignedPage.getContent()).extracting(t -> t.ticketId())
+                .containsExactly(older.getTicketId(), newer.getTicketId(), assignedOnly.getTicketId());
+        var relatedPage = service.getUserTickets(
+                agent.getId(), TicketStatus.IN_QUEUE, TicketPriority.HIGH, "vpn", PageRequest.of(0, 10, ascending));
+        assertThat(relatedPage.getContent()).extracting(t -> t.ticketId())
+                .containsExactly(older.getTicketId(), newer.getTicketId(), assignedOnly.getTicketId());
+        var descending = ticketService.searchTicketsByAssignee(
+                agent.getId(), TicketStatus.IN_QUEUE, TicketPriority.HIGH, "vpn",
+                PageRequest.of(0, 10, ascending.reverse()));
+        assertThat(descending.getContent()).extracting(t -> t.ticketId())
+                .containsExactly(assignedOnly.getTicketId(), newer.getTicketId(), older.getTicketId());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void relatedTicketSearchIncludesUnassignedCreatedTicketsAndEscapesWildcards() {
+        AppUser creator = account(Role.USER);
+        Ticket match = ticket(creator, null, TicketStatus.IN_QUEUE);
+        match.setTitle("VPN_100% outage");
+        Ticket nonMatch = ticket(creator, null, TicketStatus.IN_QUEUE);
+        nonMatch.setTitle("VPNx1000 outage");
+        entityManager.flush();
+
+        var page = service.getUserTickets(creator.getId(), TicketStatus.IN_QUEUE, null,
+                "VPN_100%", PageRequest.of(0, 10));
+        assertThat(page.getContent()).extracting(t -> t.ticketId()).containsExactly(match.getTicketId());
+        var byNumber = ticketService.searchTicketsByCreator(
+                creator.getId(), null, null, match.getTicketNumber(), PageRequest.of(0, 10));
+        assertThat(byNumber.getContent()).extracting(t -> t.ticketId()).containsExactly(match.getTicketId());
+    }
+
+    @Test
+    void assignedEndpointSortsAllTicketsAndFiltersBeforePaginationAndCounts() throws Exception {
+        AppUser creator = account(Role.USER);
+        AppUser agent = account(Role.SUPPORT_AGENT);
+        AppUser otherAgent = account(Role.SUPPORT_AGENT);
+        Ticket older = ticket(creator, agent, TicketStatus.IN_QUEUE);
+        older.setTitle("VPN older");
+        older.setTicketPriority(TicketPriority.HIGH);
+        older.setCreatedAt(Instant.parse("2026-01-01T00:00:00Z"));
+        Ticket newer = ticket(creator, agent, TicketStatus.RESOLVED);
+        newer.setTitle("VPN newer");
+        newer.setTicketPriority(TicketPriority.HIGH);
+        newer.setCreatedAt(Instant.parse("2026-02-01T00:00:00Z"));
+        Ticket unrelated = ticket(creator, otherAgent, TicketStatus.IN_QUEUE);
+        unrelated.setTitle("VPN unrelated");
+        unrelated.setTicketPriority(TicketPriority.HIGH);
+        entityManager.flush();
+
+        var auth = user(agent.getEmail()).roles("SUPPORT_AGENT");
+        mvc.perform(get("/tickets/assigned").with(auth)
+                        .param("size", "1").param("sort", "createdAt,desc", "ticketId,desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].ticketId").value(newer.getTicketId()))
+                .andExpect(jsonPath("$.totalElements").value(2));
+        mvc.perform(get("/tickets/assigned").with(auth)
+                        .param("size", "1").param("sort", "createdAt,asc", "ticketId,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].ticketId").value(older.getTicketId()));
+        mvc.perform(get("/tickets/assigned").with(auth).param("page", "1")
+                        .param("size", "1").param("sort", "createdAt,asc", "ticketId,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].ticketId").value(newer.getTicketId()));
+        mvc.perform(get("/tickets/assigned").with(auth)
+                        .param("status", "IN_QUEUE").param("priority", "HIGH").param("search", "vpn")
+                        .param("size", "1").param("sort", "createdAt,asc", "ticketId,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].ticketId").value(older.getTicketId()))
+                .andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/tickets/assigned/status-counts").with(auth)
+                        .param("priority", "HIGH").param("search", "vpn").param("status", "IN_QUEUE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.IN_QUEUE").value(1))
+                .andExpect(jsonPath("$.FULFILLMENT").value(0))
+                .andExpect(jsonPath("$.RESOLVED").value(1))
+                .andExpect(jsonPath("$.CANCELLED").value(0));
+        mvc.perform(get("/tickets/assigned/status-counts").with(auth).param("search", "no matches"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.IN_QUEUE").value(0))
+                .andExpect(jsonPath("$.RESOLVED").value(0));
     }
 
     private AppUser account(Role role) {

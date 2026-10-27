@@ -47,6 +47,7 @@
 
 .filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding-bottom: 8px;
 }
@@ -103,12 +104,3 @@ select { padding: 0 8px; cursor: pointer; }
   .search { flex: 1; }
   .search input { width: 100%; }
 }
-
-/* Status and priority use separate colour families */
-.badge.status-in_queue { background: #fff4d6; color: #8a5a00; }
-.badge.status-fulfillment { background: #dbeafe; color: #1d4ed8; }
-.badge.status-resolved { background: #dcfce7; color: #166534; }
-.badge.status-cancelled { background: #e5e7eb; color: #4b5563; }
-.badge.priority-low { background: #ccfbf1; color: #0f766e; }
-.badge.priority-medium { background: #ede9fe; color: #6d28d9; }
-.badge.priority-high { background: #fee2e2; color: #b91c1c; }

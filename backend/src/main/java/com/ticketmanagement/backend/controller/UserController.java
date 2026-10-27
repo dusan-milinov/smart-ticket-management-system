@@ -2,6 +2,9 @@ package com.ticketmanagement.backend.controller;
 
 import com.ticketmanagement.backend.dto.auth.AdminUserResponse;
 import com.ticketmanagement.backend.dto.ticket.TicketResponse;
+import com.ticketmanagement.backend.enums.TicketStatus;
+import com.ticketmanagement.backend.enums.TicketPriority;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PathVariable;
 import com.ticketmanagement.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -34,10 +37,13 @@ public class UserController {
     @GetMapping("/{userId}/tickets")
     public Page<TicketResponse> getUserTickets(
             @PathVariable long userId,
+            @RequestParam(required = false) TicketStatus status,
+            @RequestParam(required = false) TicketPriority priority,
+            @RequestParam(required = false) String search,
             @ParameterObject
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return userService.getUserTickets(userId, pageable);
+        return userService.getUserTickets(userId, status, priority, search, pageable);
     }
 
     @GetMapping("/me")
