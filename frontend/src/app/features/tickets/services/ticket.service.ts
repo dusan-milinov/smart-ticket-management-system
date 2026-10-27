@@ -29,6 +29,11 @@ export class TicketService {
         return this.http.patch<Ticket>(`${API_BASE_URL}/tickets/resolve`, null, { params, withCredentials: true });
     }
 
+    reassignTicket(ticketId: number, assigneeId: number): Observable<Ticket> {
+        const params = new HttpParams().set('ticketID', ticketId).set('assigneeId', assigneeId);
+        return this.http.patch<Ticket>(`${API_BASE_URL}/tickets/reassign`, null, { params, withCredentials: true });
+    }
+
     startTicketProcessing(ticketId: number): Observable<Ticket> {
         return this.http.patch<Ticket>(`${API_BASE_URL}/tickets/${ticketId}/start`, null, { withCredentials: true });
     }
