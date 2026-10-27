@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
@@ -7,14 +6,15 @@ import { RouterLink } from '@angular/router';
 import { Ticket } from '../../tickets/models/ticket.model';
 import { TicketService } from '../../tickets/services/ticket.service';
 import { TicketFiltersComponent } from '../../tickets/ticket-filters/ticket-filters.component';
-import { TicketFilters, TicketStatus, ticketLabel } from '../../tickets/ticket-presentation';
+import { TicketFilters, TicketStatus } from '../../tickets/ticket-presentation';
+import { RecentTicketsComponent } from '../recent-tickets/recent-tickets.component';
 
 const RECENT_TICKET_COUNT = 5;
 
 @Component({
   selector: 'app-user-dashboard',
-  imports: [DatePipe, RouterLink, TicketFiltersComponent],
-  styleUrls: ['./user-dashboard.component.css', '../../tickets/ticket-badges.css'],
+  imports: [RecentTicketsComponent, RouterLink, TicketFiltersComponent],
+  styleUrl: './user-dashboard.component.css',
   templateUrl: './user-dashboard.component.html',
 })
 export class UserDashboardComponent implements OnInit {
@@ -22,7 +22,6 @@ export class UserDashboardComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private request?: Subscription;
   private filters: TicketFilters = { sort: 'newest' };
-  protected readonly label = ticketLabel;
   protected readonly listHeading = signal('Recent tickets');
   protected readonly statusCards: { status: TicketStatus; title: string; caption: string; className: string }[] = [
     { status: 'IN_QUEUE', title: 'Pending', caption: 'Waiting for support', className: 'pending' },

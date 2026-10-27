@@ -39,7 +39,7 @@ interface TimelineEntry {
 @Component({
   imports: [DatePipe, FormsModule, RouterLink, TicketCommentsComponent],
   selector: 'app-ticket-details',
-  styleUrls: ['./ticket-details.component.css', '../ticket-badges.css'],
+  styleUrls: ['./ticket-details.component.css', '../ticket-badges.css', '../ticket-collapsible.css'],
   templateUrl: './ticket-details.component.html',
   host: { '(document:keydown.escape)': 'closeActionDialog()' },
 })
@@ -51,6 +51,7 @@ export class TicketDetailsComponent implements OnInit {
   protected readonly ticket = signal<Ticket | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+
   protected readonly events = signal<TicketEvent[]>([]);
   protected readonly eventsLoading = signal(false);
   protected readonly eventsError = signal<string | null>(null);
@@ -64,6 +65,9 @@ export class TicketDetailsComponent implements OnInit {
     const role = this.auth.user()?.role;
     if (role === ROLES.ADMIN) {
       const returnTo = this.route.snapshot.queryParamMap.get('returnTo');
+      if (returnTo === '/dashboard') {
+        return { path: '/dashboard', label: 'Back to dashboard' };
+      }
       return returnTo && /^\/users\/[1-9]\d*$/.test(returnTo)
         ? { path: returnTo, label: 'Back to user' }
         : { path: '/users', label: 'Back to users' };

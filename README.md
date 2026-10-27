@@ -40,16 +40,21 @@ from `GET /admin/dashboard`, protected by both HTTP and service-level admin
 authorization. Other roles retain their own dashboards.
 
 The overview shows all-time ticket counts by status, open tickets by priority,
-unassigned open tickets, active support agents, account totals, and the five
+active support agents, account totals, and the five
 newest tickets (ordered by creation time, then ID). The resolved
 percentage is resolved tickets divided by all tickets, including cancelled ones.
 Account totals include inactive accounts and administrators; the regular-user
 and support-agent totals are shown separately. Refresh reloads the summary.
 
 Ticket details use the same back-link style as account details; administrators
-return to their dashboard. The new support-agent form reuses the registration
-card styles and matching-password validation, then returns to the agents list
-after successful creation.
+return to the dashboard or account page they opened the ticket from. The new
+support-agent form reuses the registration card styles and matching-password
+validation, then returns to the agents list after successful creation.
+
+The regular-user dashboard's recent tickets and the admin dashboard's latest
+tickets share the same responsive row layout, status and priority badges, and
+creation dates. Each row includes a **View** button that opens that ticket's
+details.
 
 ## Running with Docker
 

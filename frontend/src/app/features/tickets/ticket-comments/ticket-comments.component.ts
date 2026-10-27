@@ -13,7 +13,7 @@ import { TicketService } from '../services/ticket.service';
   standalone: true,
   imports: [DatePipe],
   templateUrl: './ticket-comments.component.html',
-  styleUrl: './ticket-comments.component.css',
+  styleUrls: ['./ticket-comments.component.css', '../ticket-collapsible.css'],
 })
 export class TicketCommentsComponent {
   readonly ticketId = input.required<number>();

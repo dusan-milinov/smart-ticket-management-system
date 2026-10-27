@@ -125,20 +125,9 @@ h2 {
   border-right: 2px solid var(--color-text-muted);
   border-bottom: 2px solid var(--color-text-muted);
   transform: rotate(45deg);
-  transition: transform 0.25s ease;
 }
 
 .history-header[aria-expanded='true'] .chevron { transform: rotate(-135deg); }
-
-/* Animates height without measuring it */
-.collapsible {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.25s ease;
-}
-
-.collapsible.open { grid-template-rows: 1fr; }
-.collapsible-inner { min-height: 0; overflow: hidden; }
 
 .history-body {
   padding: 24px 28px 28px;
@@ -381,8 +370,6 @@ h2 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .collapsible,
-  .chevron,
   .history-header,
   .timeline-content { transition: none; }
 }

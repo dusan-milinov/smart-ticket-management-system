@@ -24,8 +24,6 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Users', path: '/users' },
     { label: 'New Support Agent', path: '/users/new-agent' },
-    { label: 'Categories', path: '/categories' },
-    { label: 'Analytics', path: '/analytics' },
     PROFILE_ITEM,
   ],
 };
