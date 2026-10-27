@@ -3,6 +3,7 @@ package com.ticketmanagement.backend.service;
 import com.ticketmanagement.backend.dto.ticket.CreateTicketRequest;
 import com.ticketmanagement.backend.dto.ticket.TicketResponse;
 import com.ticketmanagement.backend.enums.TicketEventType;
+import com.ticketmanagement.backend.enums.TicketPriority;
 import com.ticketmanagement.backend.enums.TicketStatus;
 import com.ticketmanagement.backend.exception.InactiveAssigneeException;
 import com.ticketmanagement.backend.exception.IllegalStatusException;
@@ -19,7 +20,14 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -136,6 +144,45 @@ public class TicketService {
     @Transactional(readOnly = true)
     public Page<TicketResponse> getTicketsByUserId(Long userId, Pageable pageable) {
         return ticketRepository.findByCreatorId(userId, pageable).map(TicketResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TicketResponse> searchTicketsByCreator(Long creatorId, TicketStatus status, TicketPriority priority,
+                                                       String search, Pageable pageable) {
+        return ticketRepository.findAll(creatorFilter(creatorId, status, priority, search), pageable)
+                .map(TicketResponse::from);
+    }
+
+    /** Per-status totals for the creator's tickets, honouring the priority and search filters. */
+    @Transactional(readOnly = true)
+    public Map<TicketStatus, Long> countTicketsByCreator(Long creatorId, TicketPriority priority, String search) {
+        Map<TicketStatus, Long> counts = new EnumMap<>(TicketStatus.class);
+        for (TicketStatus status : TicketStatus.values()) {
+            counts.put(status, ticketRepository.count(creatorFilter(creatorId, status, priority, search)));
+        }
+        return counts;
+    }
+
+    private static Specification<Ticket> creatorFilter(Long creatorId, TicketStatus status, TicketPriority priority,
+                                                       String search) {
+        String term = search == null ? "" : search.trim().toLowerCase();
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("creator").get("id"), creatorId));
+            if (status != null) {
+                predicates.add(cb.equal(root.get("ticketStatus"), status));
+            }
+            if (priority != null) {
+                predicates.add(cb.equal(root.get("ticketPriority"), priority));
+            }
+            if (!term.isEmpty()) {
+                String pattern = "%" + term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("title")), pattern, '\\'),
+                        cb.like(cb.lower(root.get("ticketNumber")), pattern, '\\')));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     @Transactional(readOnly = true)
