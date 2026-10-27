@@ -1,0 +1,11 @@
+.btn-open {
+  border-color: #15803d;
+  background: #15803d;
+  color: #fff;
+}
+
+.btn-open:hover:not(:disabled) {
+  border-color: #166534;
+  background: #166534;
+  color: #fff;
+}

@@ -29,7 +29,7 @@ the entered values and display an error so the user can retry.
 Support agents can open **Assigned Tickets** from the navigation at
 `/tickets/assigned`. The page lists only tickets assigned to the signed-in agent,
 newest first, with ten tickets per page. It shares the My Tickets table styles,
-status and priority badges, column order, View button, responsive mobile layout,
+status and priority badges, column order, responsive mobile layout,
 and dashboard page header. Status tabs show counts for the signed-in agent,
 respecting search and priority but not the selected status or sort order.
 Loading, empty, and error states are displayed, with a retry button on failure.
@@ -45,7 +45,7 @@ After changing backend endpoints, rebuild and restart the backend as well as
 refreshing the frontend. An older backend may silently ignore filter parameters
 it does not recognize; reloading the browser alone cannot update the API.
 
-Each row includes a **View** link to Ticket Details. Open tickets have a
+Each row includes a green **Open** link to Ticket Details. Open tickets have a
 **Resolve ticket** action on the details page, which opens a popup requiring
 a non-blank resolution message. Submission calls
 `PATCH /api/tickets/resolve` with `ticketID` and `summary` query parameters, then

@@ -15,7 +15,7 @@ const PAGE_SIZE = 10;
 @Component({
   selector: 'app-assigned-tickets',
   imports: [DatePipe, PageHeaderComponent, PaginationComponent, RouterLink, TicketFiltersComponent],
-  styleUrls: ['../ticket-list.css', '../ticket-badges.css'],
+  styleUrls: ['../ticket-list.css', '../ticket-badges.css', './assigned-tickets.component.css'],
   templateUrl: './assigned-tickets.component.html',
 })
 export class AssignedTicketsComponent implements OnInit {

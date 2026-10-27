@@ -31,7 +31,7 @@ describe('AssignedTicketsComponent', () => {
     vi.useRealTimers();
   });
 
-  it('shows submission time and a side-effect-free View link', () => {
+  it('shows submission time and a side-effect-free green Open link', () => {
     http.expectOne('/api/tickets/assigned/status-counts').flush({ IN_QUEUE: 1 });
     http.expectOne((request) => request.url === '/api/tickets/assigned').flush({
       content: [ticket], number: 0, size: 10, totalElements: 1, totalPages: 1, first: true, last: true, empty: false,
@@ -47,8 +47,8 @@ describe('AssignedTicketsComponent', () => {
     ]);
     expect(root.querySelector('.tab')?.textContent?.trim()).toContain('1');
     const view = root.querySelector<HTMLAnchorElement>('.actions .btn');
-    expect(view?.classList.contains('btn-open')).toBe(false);
-    expect(view?.textContent?.trim()).toBe('View');
+    expect(view?.classList.contains('btn-open')).toBe(true);
+    expect(view?.textContent?.trim()).toBe('Open');
     expect(view?.getAttribute('href')).toBe('/tickets/42');
     expect(http.match('/api/tickets/42/start')).toHaveLength(0);
   });
