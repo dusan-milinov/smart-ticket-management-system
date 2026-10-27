@@ -47,7 +47,8 @@ describe('MyTicketsComponent', () => {
 
   it('starts on All with no filters and shows the totals', () => {
     const list = http.expectOne((r) => r.url === '/api/tickets/my');
-    expect(list.request.params.keys()).toEqual(['page', 'size']);
+    expect(list.request.params.keys()).toEqual(['page', 'size', 'sort']);
+    expect(list.request.params.getAll('sort')).toEqual(['createdAt,desc', 'ticketId,desc']);
     list.flush(emptyPage);
     http.expectOne((r) => r.url === '/api/tickets/my/status-counts').flush({ IN_QUEUE: 2, FULFILLMENT: 1, RESOLVED: 0, CANCELLED: 3 });
     fixture.detectChanges();
@@ -56,7 +57,7 @@ describe('MyTicketsComponent', () => {
     expect([...element.querySelectorAll('.tab')].map((t) => t.textContent!.trim().replace(/\s+/g, ' '))).toEqual([
       'All 6', 'Pending 2', 'In Progress 1', 'Resolved 0', 'Cancelled 3',
     ]);
-    expect([...element.querySelectorAll('option')].map((o) => o.value)).toEqual(['', 'LOW', 'MEDIUM', 'HIGH']);
+    expect([...element.querySelectorAll<HTMLOptionElement>('select[aria-label="Filter by priority"] option')].map((o) => o.value)).toEqual(['', 'LOW', 'MEDIUM', 'HIGH']);
     expect(element.textContent).toContain('You have not submitted any tickets yet.');
   });
 
@@ -142,5 +143,22 @@ describe('MyTicketsComponent', () => {
     expect(element.querySelector('.tab-count')).toBeNull();
     element.querySelector<HTMLButtonElement>('.state-error .btn')!.click();
     listRequests()[0].flush(emptyPage);
+  });
+
+  it('sorts from the first page without changing filters or fetching counts again', () => {
+    flushInitial();
+    tab('Pending').click();
+    listRequests()[0].flush({ ...emptyPage, number: 2, totalPages: 4 });
+    fixture.detectChanges();
+
+    const sort = element.querySelector<HTMLSelectElement>('select[aria-label="Sort tickets"]')!;
+    sort.value = 'oldest';
+    sort.dispatchEvent(new Event('change'));
+    const [list] = listRequests();
+    expect(list.request.params.get('page')).toBe('0');
+    expect(list.request.params.get('status')).toBe('IN_QUEUE');
+    expect(list.request.params.getAll('sort')).toEqual(['createdAt,asc', 'ticketId,asc']);
+    expect(countRequests()).toHaveLength(0);
+    list.flush(emptyPage);
   });
 });

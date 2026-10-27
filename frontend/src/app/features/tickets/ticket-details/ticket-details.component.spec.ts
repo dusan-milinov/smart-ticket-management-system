@@ -188,6 +188,22 @@ describe('TicketDetailsComponent', () => {
     expect(element.querySelector('app-ticket-comments')?.textContent).toContain('No comments yet.');
   });
 
+  it('uses friendly status labels in badges and status change history', () => {
+    fixture.detectChanges();
+    http.expectOne('/api/tickets/42').flush(ticket);
+    fixture.detectChanges();
+    http.expectOne('/api/ticket-events/42').flush([{
+      id: 1, eventType: 'STATUS_CHANGED', oldValue: 'IN_QUEUE', newValue: 'FULFILLMENT',
+      createdAt: '2026-10-26T10:00:00Z',
+    }]);
+    http.expectOne('/api/comments/42').flush([]);
+    fixture.detectChanges();
+    expect(element.querySelector('.status-fulfillment')?.textContent).toBe('In Progress');
+    expect(element.textContent).toContain('Pending → In Progress');
+    expect(element.textContent).not.toContain('In queue');
+    expect(element.textContent).not.toContain('Fulfillment');
+  });
+
   it('does not request comments when loading the ticket fails', () => {
     fixture.detectChanges();
     http.expectOne('/api/tickets/42').flush({}, { status: 403, statusText: 'Forbidden' });

@@ -29,7 +29,7 @@ describe('UserDetailsComponent', () => {
         title: 'Broken printer',
         description: 'Printer is offline',
         ticketStatus: 'IN_QUEUE',
-        ticketPriority: 'LOW',
+        ticketPriority: 'HIGH',
         resolutionSummary: null,
         createdAt: '2026-10-26T10:00:00Z',
         updatedAt: '2026-10-26T10:00:00Z',
@@ -94,13 +94,14 @@ describe('UserDetailsComponent', () => {
     const text = root.textContent;
     expect(text).toContain('user@example.com');
     expect(text).toContain('Broken printer');
-    expect(text).toContain('In Queue');
+    expect(root.querySelector('.status-in_queue')?.textContent?.trim()).toBe('Pending');
+    expect(root.querySelector('.priority-high')?.textContent?.trim()).toBe('High');
     expect(text).toContain('Submitted');
     expect(root.querySelector<HTMLAnchorElement>('td[data-label="Actions"] a')?.getAttribute('href'))
       .toBe('/tickets/1?returnTo=%2Fusers%2F2');
     expect(root.querySelector('td[data-label="Submitted"]')?.textContent).toMatch(/Oct 26, 2026/);
-    expect(root.querySelectorAll('thead th')).toHaveLength(5);
-    expect(root.querySelectorAll('tbody tr:first-child td')).toHaveLength(5);
+    expect(root.querySelectorAll('thead th')).toHaveLength(7);
+    expect(root.querySelectorAll('tbody tr:first-child td')).toHaveLength(7);
     expect(root.querySelector('td[data-label="Actions"] button')?.textContent?.trim()).toBe('Reassign');
     expect(fixture.nativeElement.querySelector('.badge-active')).not.toBeNull();
   });
@@ -146,6 +147,20 @@ describe('UserDetailsComponent', () => {
     expect(reassignments).toEqual([[1, 9]]);
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('T-1 reassigned to agent9@example.com.');
+  });
+
+  it('passes filters and sorting to account-related ticket requests', () => {
+    setup(ROLES.ADMIN, { id: 2, email: 'user@example.com', role: 'USER', active: true });
+    const request = vi.spyOn(TestBed.inject(UserDirectoryService), 'getUserTickets');
+    const root = fixture.nativeElement as HTMLElement;
+    root.querySelector<HTMLButtonElement>('.tab:nth-child(2)')!.click();
+    const priority = root.querySelector<HTMLSelectElement>('select[aria-label="Filter by priority"]')!;
+    priority.value = 'HIGH';
+    priority.dispatchEvent(new Event('change'));
+    const sort = root.querySelector<HTMLSelectElement>('select[aria-label="Sort tickets"]')!;
+    sort.value = 'oldest';
+    sort.dispatchEvent(new Event('change'));
+    expect(request).toHaveBeenLastCalledWith(2, 0, 10, { status: 'IN_QUEUE', priority: 'HIGH', sort: 'oldest' });
   });
 
   it('keeps the popup open and shows the server message when reassignment fails', () => {

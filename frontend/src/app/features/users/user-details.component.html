@@ -51,8 +51,14 @@
         <h2 id="tickets-heading">Related tickets</h2>
         <p class="section-description">Tickets created by or assigned to this account.</p>
       </div>
+      <app-ticket-filters (filtersChange)="filtersChanged($event)" />
       @if (loading()) {
         <p class="state" role="status">Loading tickets…</p>
+      } @else if (ticketsError()) {
+        <div class="state state-error" role="alert">
+          <p>{{ ticketsError() }}</p>
+          <button type="button" class="btn" (click)="loadTickets(page())">Try again</button>
+        </div>
       } @else {
         @if (notice()) {
           <p class="feedback-success" role="status">{{ notice() }}</p>
@@ -61,8 +67,10 @@
           <table>
             <thead>
               <tr>
-                <th scope="col">Number</th>
+                <th scope="col">Ticket #</th>
                 <th scope="col">Title</th>
+                <th scope="col">Priority</th>
+                <th scope="col">Type</th>
                 <th scope="col">Status</th>
                 <th scope="col">Submitted</th>
                 <th scope="col">Actions</th>
@@ -71,8 +79,12 @@
             <tbody>
               @for (ticket of tickets(); track ticket.ticketId) {
                 <tr>
-                  <td data-label="Number">{{ ticket.ticketNumber }}</td>
-                  <td data-label="Title">{{ ticket.title }}</td>
+                  <td data-label="Ticket #" class="number">{{ ticket.ticketNumber }}</td>
+                  <td data-label="Title" class="title">{{ ticket.title }}</td>
+                  <td data-label="Priority">
+                    <span class="badge priority-{{ ticket.ticketPriority.toLowerCase() }}">{{ ticketLabel(ticket.ticketPriority) }}</span>
+                  </td>
+                  <td data-label="Type">{{ ticketLabel(ticket.ticketType) }}</td>
                   <td data-label="Status">
                     <span
                       class="badge"
@@ -91,18 +103,25 @@
                       <button
                         type="button"
                         class="btn btn-sm"
-                        [attr.aria-label]="'Reassign ' + ticket.ticketNumber"
-                        (click)="openReassign(ticket)"
-                      >
-                        Reassign
-                      </button>
-                    }
+                        [routerLink]="['/tickets', ticket.ticketId]"
+                        [queryParams]="{ returnTo: '/users/' + user.id }"
+                      >View</a>
+                      @if (canReassign(ticket)) {
+                        <button
+                          type="button"
+                          class="btn btn-sm"
+                          [attr.aria-label]="'Reassign ' + ticket.ticketNumber"
+                          (click)="openReassign(ticket)"
+                        >
+                          Reassign
+                        </button>
+                      }
+                    </div>
                   </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td class="empty" colspan="5">No tickets found.</td>
-                  <td class="empty" colspan="5">No tickets found.</td>
+                  <td class="empty" colspan="7">No tickets found.</td>
                 </tr>
               }
             </tbody>
@@ -134,7 +153,7 @@
               <dt>Status</dt>
               <dd>
                 <span class="badge" [class]="'badge status-' + ticket.ticketStatus.toLowerCase()">{{
-                  label(ticket.ticketStatus)
+                  ticketLabel(ticket.ticketStatus)
                 }}</span>
               </dd>
             </div>

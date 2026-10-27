@@ -11,6 +11,10 @@ import com.ticketmanagement.backend.dto.ticket.TicketResponse;
 import com.ticketmanagement.backend.model.Ticket;
 import com.ticketmanagement.backend.enums.Role;
 import com.ticketmanagement.backend.enums.TicketStatus;
+import com.ticketmanagement.backend.enums.TicketPriority;
+import com.ticketmanagement.backend.repository.TicketSpecifications;
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.JoinType;
 import com.ticketmanagement.backend.exception.PasswordChangeException;
 import com.ticketmanagement.backend.exception.UserAlreadyExistsException;
 import com.ticketmanagement.backend.exception.UserDeactivationException;
@@ -137,6 +141,21 @@ public class UserService {
         findUser(userId);
         Page<Ticket> tickets = ticketRepository.findByCreatorIdOrAssigneeId(userId, userId, pageable);
         return tickets.map(TicketResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public Page<TicketResponse> getUserTickets(long userId, TicketStatus status, TicketPriority priority,
+                                               String search, Pageable pageable) {
+        if (status == null && priority == null && (search == null || search.isBlank())) {
+            return getUserTickets(userId, pageable);
+        }
+        findUser(userId);
+        Specification<Ticket> scope = (root, query, cb) -> cb.or(
+                cb.equal(root.get("creator").get("id"), userId),
+                cb.equal(root.join("assignee", JoinType.LEFT).get("id"), userId));
+        return ticketRepository.findAll(scope.and(TicketSpecifications.matching(status, priority, search)), pageable)
+                .map(TicketResponse::from);
     }
 
     private AppUser findUser(long userId) {
