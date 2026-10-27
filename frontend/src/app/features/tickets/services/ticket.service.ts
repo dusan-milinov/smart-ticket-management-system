@@ -35,6 +35,10 @@ export class TicketService {
         return this.http.get<Page<Ticket>>(`${API_BASE_URL}/tickets/assigned`, { params, withCredentials: true });
     }
 
+    getAssignedPriorityQueue(): Observable<Ticket[]> {
+        return this.http.get<Ticket[]>(`${API_BASE_URL}/tickets/assigned/priority-queue`, { withCredentials: true });
+    }
+
     getAssignedTicketStatusCounts(filters: Pick<TicketFilters, 'priority' | 'search'> = {}): Observable<Partial<Record<TicketStatus, number>>> {
         let params = new HttpParams();
         if (filters.priority) params = params.set('priority', filters.priority);

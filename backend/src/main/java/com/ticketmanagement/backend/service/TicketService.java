@@ -16,6 +16,7 @@ import com.ticketmanagement.backend.repository.TicketSpecifications;
 import com.ticketmanagement.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Instant;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -181,6 +183,17 @@ public class TicketService {
             counts.put(status, ticketRepository.count(assigneeFilter(assigneeId, status, priority, search)));
         }
         return counts;
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketResponse> getAssignedPriorityQueue(Long assigneeId) {
+        return ticketRepository.findPriorityQueueByAssigneeIdAndTicketStatusIn(
+                        assigneeId,
+                        List.of(TicketStatus.IN_QUEUE, TicketStatus.FULFILLMENT),
+                        PageRequest.of(0, 5))
+                .stream()
+                .map(TicketResponse::from)
+                .toList();
     }
 
     private static Specification<Ticket> assigneeFilter(Long assigneeId, TicketStatus status, TicketPriority priority,

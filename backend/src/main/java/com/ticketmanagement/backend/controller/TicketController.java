@@ -21,6 +21,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/tickets")
@@ -70,6 +71,13 @@ public class TicketController {
     ) {
         return ResponseEntity.ok(ticketService.countTicketsByAssignee(
                 currentUserService.getCurrentUser().getId(), priority, search));
+    }
+
+    @GetMapping("/assigned/priority-queue")
+    @PreAuthorize("hasRole('SUPPORT_AGENT')")
+    public ResponseEntity<List<TicketResponse>> getAssignedPriorityQueue() {
+        return ResponseEntity.ok(ticketService.getAssignedPriorityQueue(
+                currentUserService.getCurrentUser().getId()));
     }
 
     @PostMapping("/add")
