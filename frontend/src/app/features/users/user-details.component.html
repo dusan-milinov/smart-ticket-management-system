@@ -86,11 +86,11 @@
                   <td data-label="Submitted" class="submitted">{{ ticket.createdAt | date: 'MMM d, y, HH:mm' }}</td>
                   <td data-label="Actions" class="actions-cell">
                     <div class="actions">
-                    <a
-                      class="btn btn-sm"
-                      [routerLink]="['/tickets', ticket.ticketId]"
-                      [queryParams]="{ returnTo: '/users/' + user.id }"
-                    >View</a>
+                      <a
+                        class="btn btn-sm"
+                        [routerLink]="['/tickets', ticket.ticketId]"
+                        [queryParams]="{ returnTo: '/users/' + user.id }"
+                      >View</a>
                       @if (canReassign(ticket)) {
                         <button
                           type="button"
