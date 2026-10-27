@@ -12,6 +12,14 @@ ng serve
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
+## Page transitions
+
+Client-side navigation uses Angular Router's native View Transitions integration
+for a short fade and vertical slide between pages, including sign-in and
+registration. The initial page load is not animated. The animations are disabled
+when the operating system requests reduced motion. Browsers without the View
+Transitions API continue to navigate normally, without animation.
+
 ## Creating tickets
 
 After signing in, open `/tickets/new` (also linked as **Create Ticket** in the user
