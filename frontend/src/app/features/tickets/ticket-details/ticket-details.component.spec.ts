@@ -28,16 +28,26 @@ describe('TicketDetailsComponent', () => {
   let http: HttpTestingController;
   let element: HTMLElement;
   let currentUser: ReturnType<typeof signal<CurrentUser | null>>;
+  let queryParams: Record<string, string>;
 
   beforeEach(async () => {
     currentUser = signal({ email: 'user@example.com', role: 'ROLE_USER' });
+    queryParams = {};
     await TestBed.configureTestingModule({
       imports: [TicketDetailsComponent],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '42' }) } } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: convertToParamMap({ id: '42' }),
+              get queryParamMap() { return convertToParamMap(queryParams); },
+            },
+          },
+        },
         { provide: AuthService, useValue: { user: currentUser.asReadonly() } },
       ],
     }).compileComponents();
@@ -62,6 +72,7 @@ describe('TicketDetailsComponent', () => {
     loadTicket();
 
     expect(element.querySelector('.back')?.textContent).toContain('Back to my tickets');
+    expect(element.querySelector('.back')?.getAttribute('href')).toBe('/tickets');
     expect(element.querySelector('.ticket-actions')?.textContent).toContain('Cancel ticket');
     expect(element.querySelector('.ticket-actions')?.textContent).not.toContain('Resolve ticket');
     expect(element.querySelector('.ticket-header .ticket-actions')).not.toBeNull();
@@ -89,6 +100,7 @@ describe('TicketDetailsComponent', () => {
     loadTicket();
 
     expect(element.querySelector('.back')?.textContent).toContain('Back to assigned tickets');
+    expect(element.querySelector('.back')?.getAttribute('href')).toBe('/tickets/assigned');
     expect(element.querySelector('.ticket-actions')?.textContent).toContain('Resolve ticket');
     expect(element.querySelector('.ticket-actions')?.textContent).not.toContain('Cancel ticket');
     expect(element.querySelector('.ticket-header .ticket-actions')).not.toBeNull();
@@ -117,6 +129,34 @@ describe('TicketDetailsComponent', () => {
     expect(element.querySelector('.status-resolved')?.textContent).toBe('Resolved');
     expect(element.querySelector('.ticket-actions')).toBeNull();
     expect(element.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it('returns administrators to the user whose ticket they opened', () => {
+    currentUser.set({ email: 'admin@example.com', role: 'ROLE_ADMIN' });
+    queryParams = { returnTo: '/users/11' };
+    loadTicket();
+
+    expect(element.querySelector('.back')?.getAttribute('href')).toBe('/users/11');
+    expect(element.querySelector('.back')?.textContent).toContain('Back to user');
+  });
+
+  it.each([undefined, '/tickets', '//example.com', '/users/invalid'])(
+    'returns administrators to the users directory for returnTo=%s',
+    (returnTo) => {
+      currentUser.set({ email: 'admin@example.com', role: 'ROLE_ADMIN' });
+      queryParams = returnTo === undefined ? {} : { returnTo };
+      loadTicket();
+
+      expect(element.querySelector('.back')?.getAttribute('href')).toBe('/users');
+      expect(element.querySelector('.back')?.textContent).toContain('Back to users');
+    },
+  );
+
+  it('does not send regular users to an admin-only return destination', () => {
+    queryParams = { returnTo: '/users/11' };
+    loadTicket();
+
+    expect(element.querySelector('.back')?.getAttribute('href')).toBe('/tickets');
   });
 
   it('does not offer actions for terminal tickets', () => {
