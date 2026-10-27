@@ -47,6 +47,10 @@ describe('AdminDashboardComponent', () => {
     const element: HTMLElement = fixture.nativeElement;
     expect(element.querySelector('[data-stat=total] .metric-value')?.textContent).toBe('28');
     expect(element.querySelector('[data-stat=open] .metric-value')?.textContent).toBe('14');
+    expect(Array.from(element.querySelectorAll('.status-list dt'), item => item.textContent?.trim()))
+      .toEqual(['Pending', 'In Progress', 'Resolved', 'Cancelled']);
+    expect(element.querySelector('[data-stat=open] .metric-caption')?.textContent)
+      .toContain('2 Pending · 12 In Progress');
     expect(element.querySelector('[data-stat=resolved]')?.textContent).toContain('35.7%');
     expect(element.querySelector('[data-stat=agents] .metric-value')?.textContent).toBe('3');
     expect(element.querySelector('.assignment-note')).toBeNull();

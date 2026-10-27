@@ -24,7 +24,7 @@
     <article class="metric" data-stat="open">
       <p class="metric-label"><span class="dot blue" aria-hidden="true"></span>Open tickets</p>
       <p class="metric-value">{{ openTickets() | number }}</p>
-      <p class="metric-caption">{{ data.ticketsByStatus.IN_QUEUE | number }} in queue &middot; {{ data.ticketsByStatus.FULFILLMENT | number }} in fulfillment</p>
+      <p class="metric-caption">{{ data.ticketsByStatus.IN_QUEUE | number }} {{ label('IN_QUEUE') }} &middot; {{ data.ticketsByStatus.FULFILLMENT | number }} {{ label('FULFILLMENT') }}</p>
     </article>
     <article class="metric" data-stat="resolved">
       <p class="metric-label"><span class="dot green" aria-hidden="true"></span>Resolved tickets</p>
@@ -49,7 +49,7 @@
       @if (data.totalTickets === 0) { <p class="empty-note">Your ticket overview will appear when the first request arrives.</p> }
       <dl class="status-list">
         @for (status of statuses; track status.key) {
-          <div><dt><span class="dot" [style.background]="status.color" aria-hidden="true"></span>{{ status.label }}</dt>
+          <div><dt><span class="dot" [style.background]="status.color" aria-hidden="true"></span>{{ label(status.key) }}</dt>
             <dd><strong>{{ data.ticketsByStatus[status.key] | number }}</strong><span>{{ percentage(data.ticketsByStatus[status.key], data.totalTickets) | number: '1.0-1' }}%</span></dd>
           </div>
         }
@@ -57,7 +57,7 @@
     </section>
 
     <section class="panel" aria-labelledby="workload-heading">
-      <div class="panel-heading"><div><h2 id="workload-heading">Open workload</h2><p>In queue and in fulfillment</p></div><span class="tag">{{ openTickets() | number }} open</span></div>
+      <div class="panel-heading"><div><h2 id="workload-heading">Open workload</h2><p>{{ label('IN_QUEUE') }} and {{ label('FULFILLMENT') }}</p></div><span class="tag">{{ openTickets() | number }} open</span></div>
       <div class="priority-list">
         @for (priority of priorities; track priority) {
           <div class="priority-row">
