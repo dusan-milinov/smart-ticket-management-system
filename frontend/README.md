@@ -43,6 +43,20 @@ requiring a non-blank resolution message. Submission calls
 refreshes the current page. Failed submissions keep the message for retry.
 Resolved and cancelled tickets cannot be resolved again.
 
+## Ticket comments
+
+Ticket Details includes an expanded-by-default Comments card below Event History.
+It loads `GET /api/comments/{ticketId}` and posts multiline text to
+`POST /api/comments` with `{ ticketId, content }`, using the session cookie.
+Comments are sorted oldest first. Failed posts retain the draft for retry.
+
+Each comment response includes `authorEmail` and `authorRole` (`USER`,
+`SUPPORT_AGENT` or `ADMIN`), which determine the author shown and the side of the
+timeline. The application has no separate display name, so the email is shown.
+User comments appear left in blue; support-agent comments appear right in orange
+with an Operator label; admin comments appear right in orange with an Admin label.
+Mobile uses one left-aligned timeline.
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:

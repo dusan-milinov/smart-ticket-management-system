@@ -45,6 +45,7 @@ public class CommentService {
         return CommentResponse.from(savedComment);
     }
 
+    @Transactional(readOnly = true)
     public List<CommentResponse> getAllTicketComments(long ticketId) {
         Ticket ticket = ticketRepository.findByTicketId(ticketId)
                 .orElseThrow(() -> new TicketNotFoundException("Ticket with ID " + ticketId + " not found."));

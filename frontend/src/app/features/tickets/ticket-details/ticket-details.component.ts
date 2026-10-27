@@ -8,6 +8,7 @@ import { ROLES } from '../../../core/roles';
 import { TicketEvent, TicketEventType } from '../models/ticket-event.model';
 import { Ticket } from '../models/ticket.model';
 import { TicketService } from '../services/ticket.service';
+import { TicketCommentsComponent } from '../ticket-comments/ticket-comments.component';
 
 type TicketAction = 'cancel' | 'resolve';
 
@@ -35,7 +36,7 @@ interface TimelineEntry {
 }
 
 @Component({
-  imports: [DatePipe, FormsModule, RouterLink],
+  imports: [DatePipe, FormsModule, RouterLink, TicketCommentsComponent],
   selector: 'app-ticket-details',
   styleUrl: './ticket-details.component.css',
   templateUrl: './ticket-details.component.html',

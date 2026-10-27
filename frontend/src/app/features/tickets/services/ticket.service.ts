@@ -6,6 +6,7 @@ import { Page } from '../models/page.model';
 import { Ticket } from '../models/ticket.model';
 import { CreateTicketRequest } from '../models/create-ticket-request.model';
 import { TicketEvent } from '../models/ticket-event.model';
+import { TicketComment } from '../models/ticket-comment.model';
 
 @Service()
 export class TicketService {
@@ -48,5 +49,13 @@ export class TicketService {
 
     getTicketEvents(ticketId: number): Observable<TicketEvent[]> {
         return this.http.get<TicketEvent[]>(`${API_BASE_URL}/ticket-events/${ticketId}`, { withCredentials: true });
+    }
+
+    getTicketComments(ticketId: number): Observable<TicketComment[]> {
+        return this.http.get<TicketComment[]>(`${API_BASE_URL}/comments/${ticketId}`, { withCredentials: true });
+    }
+
+    postTicketComment(ticketId: number, content: string): Observable<TicketComment> {
+        return this.http.post<TicketComment>(`${API_BASE_URL}/comments`, { ticketId, content }, { withCredentials: true });
     }
 }

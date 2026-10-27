@@ -21,6 +21,25 @@ describe('TicketService', () => {
     expect(service).toBeTruthy();
   });
 
+  it('should load ticket comments with session credentials', () => {
+    service.getTicketComments(42).subscribe();
+
+    const req = http.expectOne('/api/comments/42');
+    expect(req.request.method).toBe('GET');
+    expect(req.request.withCredentials).toBe(true);
+    req.flush([]);
+  });
+
+  it('should post only the ticket ID and content with session credentials', () => {
+    service.postTicketComment(42, 'First line\nSecond line').subscribe();
+
+    const req = http.expectOne('/api/comments');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.withCredentials).toBe(true);
+    expect(req.request.body).toEqual({ ticketId: 42, content: 'First line\nSecond line' });
+    req.flush({ id: 1, ticketId: 42, authorId: 7, authorEmail: 'user@example.com', authorRole: 'USER', content: 'First line\nSecond line', createdAt: '2026-10-27T12:00:00Z' });
+  });
+
   it('should request the current user tickets with paging', () => {
     service.getMyTickets(2, 10).subscribe();
 
