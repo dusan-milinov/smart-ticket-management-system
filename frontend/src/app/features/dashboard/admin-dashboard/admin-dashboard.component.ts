@@ -5,10 +5,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { AdminDashboardService, AdminDashboardSummary } from './admin-dashboard.service';
+import { RecentTicketsComponent } from '../recent-tickets/recent-tickets.component';
 
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [DatePipe, DecimalPipe, PageHeaderComponent, RouterLink],
+  imports: [DatePipe, DecimalPipe, PageHeaderComponent, RecentTicketsComponent, RouterLink],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.css',
 })

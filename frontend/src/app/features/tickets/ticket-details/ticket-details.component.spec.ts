@@ -172,12 +172,13 @@ describe('TicketDetailsComponent', () => {
     expect(element.querySelector('.ticket-actions')).toBeNull();
   });
 
-  it('returns administrators to the users directory when no user context is provided', () => {
+  it('returns administrators to the dashboard when they opened a dashboard ticket', () => {
     currentUser.set({ email: 'admin@example.com', role: 'ROLE_ADMIN' });
+    queryParams = { returnTo: '/dashboard' };
     loadTicket();
     const backLink = element.querySelector<HTMLAnchorElement>('.back-link')!;
-    expect(backLink.textContent).toContain('Back to users');
-    expect(backLink.getAttribute('href')).toBe('/users');
+    expect(backLink.textContent).toContain('Back to dashboard');
+    expect(backLink.getAttribute('href')).toBe('/dashboard');
   });
 
   it('renders comments directly after Event History', () => {
@@ -192,10 +193,15 @@ describe('TicketDetailsComponent', () => {
     fixture.detectChanges();
     http.expectOne('/api/tickets/42').flush(ticket);
     fixture.detectChanges();
-    http.expectOne('/api/ticket-events/42').flush([{
-      id: 1, eventType: 'STATUS_CHANGED', oldValue: 'IN_QUEUE', newValue: 'FULFILLMENT',
-      createdAt: '2026-10-26T10:00:00Z',
-    }]);
+    http.expectOne('/api/ticket-events/42').flush([
+      {
+        id: 1,
+        eventType: 'STATUS_CHANGED',
+        oldValue: 'IN_QUEUE',
+        newValue: 'FULFILLMENT',
+        createdAt: '2026-10-26T10:00:00Z',
+      },
+    ]);
     http.expectOne('/api/comments/42').flush([]);
     fixture.detectChanges();
     expect(element.querySelector('.status-fulfillment')?.textContent).toBe('In Progress');

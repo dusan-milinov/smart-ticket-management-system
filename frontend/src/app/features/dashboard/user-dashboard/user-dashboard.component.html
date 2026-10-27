@@ -68,22 +68,7 @@
         }
       </div>
     } @else {
-      <div class="recent-card">
-        @for (ticket of tickets(); track ticket.ticketId) {
-          <article class="ticket-row">
-            <div class="ticket-main">
-              <span class="ticket-title">{{ ticket.title }}</span>
-              <span class="ticket-number">{{ ticket.ticketNumber }}</span>
-            </div>
-            <div class="ticket-meta">
-              <span class="badge status-{{ ticket.ticketStatus.toLowerCase() }}">{{ label(ticket.ticketStatus) }}</span>
-              <span class="badge priority-{{ ticket.ticketPriority.toLowerCase() }}">{{ label(ticket.ticketPriority) }}</span>
-            </div>
-            <time class="ticket-date" [attr.datetime]="ticket.createdAt">{{ ticket.createdAt | date: 'MMM d, y' }}</time>
-            <a class="btn ticket-open" [routerLink]="['/tickets', ticket.ticketId]" [attr.aria-label]="'View ' + ticket.ticketNumber">View</a>
-          </article>
-        }
-      </div>
+      <app-recent-tickets [tickets]="tickets()" />
     }
   </section>
 </main>

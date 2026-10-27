@@ -82,7 +82,9 @@
                   <td data-label="Ticket #" class="number">{{ ticket.ticketNumber }}</td>
                   <td data-label="Title" class="title">{{ ticket.title }}</td>
                   <td data-label="Priority">
-                    <span class="badge priority-{{ ticket.ticketPriority.toLowerCase() }}">{{ ticketLabel(ticket.ticketPriority) }}</span>
+                    <span class="badge priority-{{ ticket.ticketPriority.toLowerCase() }}">{{
+                      ticketLabel(ticket.ticketPriority)
+                    }}</span>
                   </td>
                   <td data-label="Type">{{ ticketLabel(ticket.ticketType) }}</td>
                   <td data-label="Status">
@@ -102,7 +104,8 @@
                       class="btn btn-sm"
                       [routerLink]="['/tickets', ticket.ticketId]"
                       [queryParams]="{ returnTo: '/users/' + user.id }"
-                    >View</a>
+                      >View</a
+                    >
                     @if (isAdmin() && canReassign(ticket)) {
                       <button
                         type="button"
