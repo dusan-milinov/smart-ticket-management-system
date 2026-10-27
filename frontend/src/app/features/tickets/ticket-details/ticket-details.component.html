@@ -1,0 +1,34 @@
+<a class="back" routerLink="/tickets">← Back to my tickets</a>
+
+@if (loading()) {
+  <p class="state" role="status">Loading ticket…</p>
+} @else if (error()) {
+  <div class="state state-error" role="alert">
+    <p>{{ error() }}</p>
+    <button type="button" class="btn" (click)="load()">Try again</button>
+  </div>
+} @else if (ticket(); as t) {
+  <app-page-header [heading]="t.title" [description]="t.ticketNumber" />
+
+  <section class="card">
+    <div class="badges">
+      <span class="badge status-{{ t.ticketStatus.toLowerCase() }}">{{ label(t.ticketStatus) }}</span>
+      <span class="badge priority-{{ t.ticketPriority.toLowerCase() }}">{{ label(t.ticketPriority) }} priority</span>
+    </div>
+
+    <h2>Description</h2>
+    <p class="text">{{ t.description }}</p>
+
+    @if (t.resolutionSummary) {
+      <h2>Resolution</h2>
+      <p class="text">{{ t.resolutionSummary }}</p>
+    }
+
+    <dl class="meta">
+      <div><dt>Type</dt><dd>{{ label(t.ticketType) }}</dd></div>
+      <div><dt>Created</dt><dd>{{ t.createdAt | date: 'MMM d, y, HH:mm' }}</dd></div>
+      <div><dt>Last updated</dt><dd>{{ t.updatedAt | date: 'MMM d, y, HH:mm' }}</dd></div>
+      <div><dt>Assigned to</dt><dd>{{ t.assigneeId ? 'Support agent' : 'Not assigned yet' }}</dd></div>
+    </dl>
+  </section>
+}

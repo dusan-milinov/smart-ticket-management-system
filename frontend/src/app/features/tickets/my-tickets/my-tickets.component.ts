@@ -5,6 +5,7 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { Ticket } from '../models/ticket.model';
 import { TicketService } from '../services/ticket.service';
+import { Router } from '@angular/router';
 
 const PAGE_SIZE = 10;
 
@@ -20,6 +21,7 @@ const NON_CANCELLABLE_STATUSES = ['RESOLVED', 'CANCELLED'];
 })
 export class MyTicketsComponent implements OnInit {
   private readonly ticketService = inject(TicketService);
+  private readonly router = inject(Router);
 
   protected readonly tickets = signal<Ticket[]>([]);
   protected readonly page = signal(0);
@@ -30,6 +32,8 @@ export class MyTicketsComponent implements OnInit {
   protected readonly ticketToCancel = signal<Ticket | null>(null);
   protected readonly cancelling = signal(false);
   protected readonly cancelError = signal<string | null>(null);
+
+
 
   ngOnInit(): void {
     this.load(0);
@@ -56,10 +60,9 @@ export class MyTicketsComponent implements OnInit {
   protected canCancel(ticket: Ticket): boolean {
     return !NON_CANCELLABLE_STATUSES.includes(ticket.ticketStatus);
   }
-
+  
   protected viewDetails(ticket: Ticket): void {
-    // TODO: navigate to `/tickets/${ticket.ticketId}` once a ticket details page exists.
-    // The backend already provides GET /tickets/{ticketId}.
+    this.router.navigate(['/tickets', ticket.ticketId]);
   }
 
   protected openCancelDialog(ticket: Ticket): void {
