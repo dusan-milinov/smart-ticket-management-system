@@ -225,6 +225,18 @@
         </div>
       </div>
     }
+
+    @if (deactivationError()) {
+      <div class="overlay">
+        <div class="dialog" role="dialog" aria-modal="true" aria-label="Could not deactivate account">
+          <h2>Could not deactivate account</h2>
+          <p class="deactivation-message" role="alert">{{ deactivationError() }}</p>
+          <div class="dialog-actions">
+            <button type="button" class="btn btn-primary" (click)="deactivationError.set(null)">Close</button>
+          </div>
+        </div>
+      </div>
+    }
   } @else {
     <p class="state" role="status">Loading user…</p>
   }

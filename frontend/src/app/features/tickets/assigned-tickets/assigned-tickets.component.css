@@ -1,3 +1,12 @@
 .ticket-view {
+  border-color: #15803d;
+  background: #15803d;
+  color: #fff;
   font-size: 0.85rem;
+}
+
+.ticket-view:hover:not(:disabled) {
+  border-color: #166534;
+  background: #166534;
+  color: #fff;
 }

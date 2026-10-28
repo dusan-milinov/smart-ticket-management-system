@@ -142,7 +142,16 @@
 }
 
 .queue-view {
+  border-color: #15803d;
+  background: #15803d;
+  color: #fff;
   font-size: 0.85rem;
+}
+
+.queue-view:hover {
+  border-color: #166534;
+  background: #166534;
+  color: #fff;
 }
 
 .overview-content {
