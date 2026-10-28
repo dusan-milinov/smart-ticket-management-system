@@ -129,14 +129,16 @@ export class TicketDetailsComponent implements OnInit {
     });
   }
 
-  private loadEvents(ticketId: number): void {
+  private loadEvents(ticketId: number, preserveHistoryState = false): void {
     this.eventsLoading.set(true);
     this.eventsError.set(null);
 
     this.ticketService.getTicketEvents(ticketId).subscribe({
       next: (events) => {
         this.events.set(events);
-        this.historyOpen.set(events.length <= EXPANDED_BY_DEFAULT_MAX);
+        if (!preserveHistoryState) {
+          this.historyOpen.set(events.length <= EXPANDED_BY_DEFAULT_MAX);
+        }
         this.eventsLoading.set(false);
       },
       error: (err: HttpErrorResponse) => {
@@ -155,6 +157,11 @@ export class TicketDetailsComponent implements OnInit {
 
   protected toggleHistory(): void {
     this.historyOpen.update((open) => !open);
+  }
+
+  protected refreshEvents(): void {
+    const ticket = this.ticket();
+    if (ticket) this.loadEvents(ticket.ticketId, true);
   }
 
   protected isAgent(): boolean {

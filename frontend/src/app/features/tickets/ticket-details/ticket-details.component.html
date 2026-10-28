@@ -135,7 +135,7 @@
     </div>
   </section>
 
-  <app-ticket-comments [ticketId]="t.ticketId" />
+  <app-ticket-comments [ticketId]="t.ticketId" (commentAdded)="refreshEvents()" />
 
   @if (action(); as currentAction) {
     <div class="overlay" (click)="closeActionDialog()">
