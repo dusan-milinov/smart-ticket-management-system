@@ -72,6 +72,10 @@ export class UserDirectoryComponent implements OnInit {
     return account.active === true && account.role !== 'ADMIN';
   }
 
+  protected isDeactivated(account: AccountDirectoryEntry): boolean {
+    return account.active === false;
+  }
+
   protected confirmDeactivate(): void {
     const account = this.pending();
     if (!account || !this.canDeactivate(account) || this.deactivating()) {

@@ -65,6 +65,15 @@
                 <a class="btn" [routerLink]="['/users', account.id]">View</a>
                 @if (canDeactivate(account)) {
                   <button type="button" class="btn btn-danger" (click)="pending.set(account)">Deactivate</button>
+                } @else if (isDeactivated(account)) {
+                  <button
+                    type="button"
+                    class="btn"
+                    disabled
+                    style="background: #e5e7eb; border-color: #d1d5db; color: #6b7280; cursor: not-allowed"
+                  >
+                    Inactive
+                  </button>
                 }
               </div>
             </td>
