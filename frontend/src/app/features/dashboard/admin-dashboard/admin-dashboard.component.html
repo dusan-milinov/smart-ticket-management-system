@@ -1,6 +1,5 @@
 <app-page-header heading="Admin dashboard" description="A clear view of your support desk, across all tickets and accounts.">
   <div actions class="header-actions">
-    <button class="btn" type="button" (click)="load()" [disabled]="loading()">{{ loading() ? 'Refreshing...' : 'Refresh' }}</button>
     <a class="btn btn-primary" routerLink="/users/new-agent">New support agent <span aria-hidden="true">+</span></a>
   </div>
 </app-page-header>
@@ -34,7 +33,7 @@
     <article class="metric" data-stat="agents">
       <p class="metric-label"><span class="dot navy" aria-hidden="true"></span>Active support agents</p>
       <p class="metric-value">{{ data.activeSupportAgents | number }}</p>
-      <a class="text-link" routerLink="/users" [queryParams]="{ list: 'agents' }">Manage {{ data.supportAgents | number }} agents <span aria-hidden="true">&rarr;</span></a>
+      <p class="metric-caption">Active members of your support team</p>
     </article>
   </section>
 
