@@ -5,15 +5,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Ticket } from '../../tickets/models/ticket.model';
 import { TicketService } from '../../tickets/services/ticket.service';
-import { TicketFiltersComponent } from '../../tickets/ticket-filters/ticket-filters.component';
-import { TicketFilters, TicketStatus } from '../../tickets/ticket-presentation';
+import { TicketStatus } from '../../tickets/ticket-presentation';
 import { RecentTicketsComponent } from '../recent-tickets/recent-tickets.component';
 
 const RECENT_TICKET_COUNT = 5;
 
 @Component({
   selector: 'app-user-dashboard',
-  imports: [RecentTicketsComponent, RouterLink, TicketFiltersComponent],
+  imports: [RecentTicketsComponent, RouterLink],
   styleUrl: './user-dashboard.component.css',
   templateUrl: './user-dashboard.component.html',
 })
@@ -21,8 +20,6 @@ export class UserDashboardComponent implements OnInit {
   private readonly ticketService = inject(TicketService);
   private readonly destroyRef = inject(DestroyRef);
   private request?: Subscription;
-  private filters: TicketFilters = { sort: 'newest' };
-  protected readonly listHeading = signal('Recent tickets');
   protected readonly statusCards: { status: TicketStatus; title: string; caption: string; className: string }[] = [
     { status: 'IN_QUEUE', title: 'Pending', caption: 'Waiting for support', className: 'pending' },
     { status: 'FULFILLMENT', title: 'In progress', caption: 'Being worked on', className: 'progress' },
@@ -32,16 +29,6 @@ export class UserDashboardComponent implements OnInit {
 
   constructor() {
     this.destroyRef.onDestroy(() => this.request?.unsubscribe());
-  }
-
-  protected get filtered(): boolean {
-    return !!this.filters.status || !!this.filters.priority || !!this.filters.search;
-  }
-
-  protected filtersChanged(filters: TicketFilters): void {
-    this.filters = filters;
-    this.listHeading.set(this.filtered ? 'Matching tickets' : filters.sort === 'oldest' ? 'Oldest tickets' : 'Recent tickets');
-    this.loadRecentTickets();
   }
 
   protected readonly tickets = signal<Ticket[]>([]);
@@ -82,7 +69,7 @@ export class UserDashboardComponent implements OnInit {
     this.error.set(null);
 
     this.request?.unsubscribe();
-    this.request = this.ticketService.getMyTickets(0, RECENT_TICKET_COUNT, this.filters).subscribe({
+    this.request = this.ticketService.getMyTickets(0, RECENT_TICKET_COUNT, { sort: 'newest' }).subscribe({
       next: (result) => {
         this.tickets.set(result.content);
         this.loading.set(false);

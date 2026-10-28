@@ -42,14 +42,12 @@
     <div class="section-heading">
       <div>
         <p class="section-eyebrow">YOUR REQUESTS</p>
-        <h2 id="recent-heading">{{ listHeading() }}</h2>
+        <h2 id="recent-heading">Recent tickets</h2>
       </div>
       <a class="all-tickets-link" routerLink="/tickets">
         View all tickets <span aria-hidden="true">→</span>
       </a>
     </div>
-
-    <app-ticket-filters [counts]="statusCounts()" (filtersChange)="filtersChanged($event)" />
 
     @if (loading()) {
       <p class="state" role="status">Loading your recent tickets…</p>
@@ -61,11 +59,9 @@
     } @else if (tickets().length === 0) {
       <div class="state empty-state">
         <span class="empty-mark" aria-hidden="true">✓</span>
-        <h3>{{ filtered ? 'No matching requests' : 'A clear slate' }}</h3>
-        <p>{{ filtered ? 'Try adjusting your filters to find what you need.' : 'When you submit a request, you can follow its progress right here.' }}</p>
-        @if (!filtered) {
-          <a class="secondary-link" routerLink="/tickets/new">Create your first ticket</a>
-        }
+        <h3>A clear slate</h3>
+        <p>When you submit a request, you can follow its progress right here.</p>
+        <a class="secondary-link" routerLink="/tickets/new">Create your first ticket</a>
       </div>
     } @else {
       <app-recent-tickets [tickets]="tickets()" />
