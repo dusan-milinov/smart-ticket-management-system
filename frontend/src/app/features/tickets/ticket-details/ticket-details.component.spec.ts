@@ -72,6 +72,38 @@ describe('TicketDetailsComponent', () => {
     fixture.detectChanges();
   }
 
+  it.each([true, false])('refreshes history after posting a comment and preserves expanded=%s', (expanded) => {
+    loadTicket();
+    if (!expanded) {
+      element.querySelector<HTMLButtonElement>('.history-header')!.click();
+      fixture.detectChanges();
+    }
+
+    const input = element.querySelector<HTMLTextAreaElement>('.composer textarea')!;
+    input.value = 'Additional details';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    element.querySelector<HTMLFormElement>('.composer')!.dispatchEvent(new Event('submit', { cancelable: true }));
+
+    const request = http.expectOne('/api/comments');
+    expect(request.request.method).toBe('POST');
+    request.flush({
+      id: 1, content: 'Additional details', createdAt: '2026-10-28T10:00:00Z',
+      authorId: 11, authorEmail: 'user@example.com', authorRole: 'USER', ticketId: 42,
+    });
+    http.expectOne('/api/ticket-events/42').flush(
+      Array.from({ length: 6 }, (_, index) => ({
+        id: index + 1, eventType: 'COMMENT_ADDED', oldValue: null, newValue: null,
+        createdAt: '2026-10-28T10:00:00Z', ticketId: 42, userId: 11,
+      })),
+    );
+    fixture.detectChanges();
+
+    expect(element.querySelector('.history-header .count')?.textContent?.trim()).toBe('6');
+    expect(element.querySelector('.history-header')?.getAttribute('aria-expanded')).toBe(String(expanded));
+    expect(element.querySelector('.history-body')?.textContent).toContain('Comment');
+  });
+
   it.each(['ROLE_USER', 'ROLE_ADMIN'])('offers cancellation to %s and updates the ticket after cancellation', (role) => {
     currentUser.set({ email: 'actor@example.com', role });
     loadTicket();
