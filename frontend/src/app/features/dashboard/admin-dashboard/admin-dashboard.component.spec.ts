@@ -15,7 +15,7 @@ const summary: AdminDashboardSummary = {
   unassignedOpenTickets: 2, totalAccounts: 10, regularUsers: 4, supportAgents: 5, activeSupportAgents: 3,
   recentTickets: [{ ticketId: 28, ticketNumber: 'TKT-SEED-0028', title: 'Install the review tool',
     ticketStatus: 'RESOLVED', ticketPriority: 'HIGH', ticketType: 'SOFTWARE_REQUEST', description: 'Approved tool',
-    resolutionSummary: 'Installed', creatorId: 2, assigneeId: 3, createdAt: '2026-01-29T09:00:00Z', updatedAt: '2026-01-29T09:08:00Z' }],
+    resolutionSummary: 'Installed', creatorId: 2, creatorEmail: 'user@example.com', assigneeId: 3, assigneeEmail: 'agent@example.com', createdAt: '2026-01-29T09:00:00Z', updatedAt: '2026-01-29T09:08:00Z' }],
 };
 
 describe('AdminDashboardComponent', () => {

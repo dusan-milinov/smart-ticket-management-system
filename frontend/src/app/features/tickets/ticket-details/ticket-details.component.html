@@ -58,6 +58,10 @@
 
       <dl class="meta">
         <div>
+          <dt>Created by</dt>
+          <dd>{{ t.creatorEmail }}</dd>
+        </div>
+        <div>
           <dt>Created</dt>
           <dd>{{ t.createdAt | date: 'MMM d, y, HH:mm' }}</dd>
         </div>
@@ -67,7 +71,7 @@
         </div>
         <div>
           <dt>Assigned to</dt>
-          <dd>{{ t.assigneeId ? 'Support agent' : 'Not assigned yet' }}</dd>
+          <dd>{{ t.assigneeId ? t.assigneeEmail : 'Not assigned yet' }}</dd>
         </div>
       </dl>
     </div>

@@ -78,7 +78,6 @@ public class Ticket {
         if(this.ticketStatus == TicketStatus.RESOLVED || this.ticketStatus == TicketStatus.CANCELLED) {
             throw new IllegalStatusException("Cannot assign a ticket that is already resolved or cancelled.");
         }
-        changeStatus(TicketStatus.FULFILLMENT);
         this.assignee = agent;
     }
 

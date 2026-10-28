@@ -9,6 +9,8 @@ export interface Ticket {
     createdAt: string;
     updatedAt: string;
     creatorId: number;
+    creatorEmail: string;
     assigneeId: number | null;
+    assigneeEmail: string | null;
     ticketType: string;
 }

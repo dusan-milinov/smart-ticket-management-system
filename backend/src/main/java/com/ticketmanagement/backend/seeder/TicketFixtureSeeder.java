@@ -52,6 +52,7 @@ public class TicketFixtureSeeder {
         eventSeeder.record(ticket, admin, TicketEventType.ASSIGNED,
                 null, initialAgent.getId().toString(), timestamp);
         timestamp = timestamp.plusSeconds(1);
+        ticket.changeStatus(TicketStatus.FULFILLMENT);
         ticket.setUpdatedAt(timestamp);
         eventSeeder.record(ticket, admin, TicketEventType.STATUS_CHANGED,
                 TicketStatus.IN_QUEUE.name(), TicketStatus.FULFILLMENT.name(), timestamp);

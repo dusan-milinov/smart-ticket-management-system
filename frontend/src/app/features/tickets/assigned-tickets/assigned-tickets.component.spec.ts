@@ -9,6 +9,8 @@ const ticket: Ticket = {
   ticketId: 42, ticketNumber: 'TKT-TEST', title: 'Cannot connect to VPN', description: 'Connection times out.',
   ticketStatus: 'IN_QUEUE', ticketPriority: 'HIGH', ticketType: 'SOFTWARE_REQUEST', resolutionSummary: null,
   createdAt: '2026-10-26T10:00:00Z', updatedAt: '2026-10-26T10:00:00Z', creatorId: 11, assigneeId: 12,
+  assigneeEmail: 'agent@example.com',
+  creatorEmail: 'user@example.com',
 };
 
 describe('AssignedTicketsComponent', () => {

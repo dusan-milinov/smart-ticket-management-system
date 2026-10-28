@@ -46,6 +46,9 @@ percentage is resolved tickets divided by all tickets, including cancelled ones.
 Account totals include inactive accounts and administrators; the regular-user
 and support-agent totals are shown separately. Refresh reloads the summary.
 
+Ticket details show the creator's email and the assigned support agent's email,
+or "Not assigned yet" when unassigned. Ticket API responses include `creatorEmail`
+and the nullable `assigneeEmail` field.
 Ticket details use the same back-link style as account details; administrators
 return to the dashboard or account page they opened the ticket from. The new
 support-agent form reuses the registration card styles and matching-password
@@ -549,9 +552,14 @@ Automatic assignment and resolution are system/agent actions visible to the user
 
 View assigned tickets → Fulfill the request or investigate the incident → Comment as needed → Resolve the ticket.
 
-Only the assigned support agent may explicitly start processing a queued ticket,
-moving it into `FULFILLMENT`. Administrators can resolve or cancel tickets but
-cannot use this agent-only start operation.
+Opening a pending (`IN_QUEUE`) ticket's details as its assigned support agent
+automatically starts processing and moves it to in progress (`FULFILLMENT`).
+Only the assigned support agent may perform this agent-only transition;
+viewing the ticket as another agent, a regular user, or an administrator does
+not change its status. Administrators can resolve or cancel tickets but cannot
+start them. Reassigning an in-progress ticket returns it to pending; an already
+pending ticket stays pending. Both status transitions are recorded in ticket
+history.
 
 ### Administrator Workflow
 

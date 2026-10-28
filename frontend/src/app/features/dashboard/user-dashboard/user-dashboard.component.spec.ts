@@ -19,7 +19,9 @@ describe('UserDashboardComponent', () => {
     ticketType: 'INCIDENT',
     resolutionSummary: null,
     creatorId: 5,
+    creatorEmail: 'user@example.com',
     assigneeId: 8,
+    assigneeEmail: 'agent@example.com',
     createdAt: '2026-10-27T09:00:00Z',
     updatedAt: '2026-10-27T09:01:00Z',
   };

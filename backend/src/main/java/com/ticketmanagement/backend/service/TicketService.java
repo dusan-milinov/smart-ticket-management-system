@@ -86,8 +86,14 @@ public class TicketService {
         if (!assignee.isActive()) {
             throw new InactiveAssigneeException(assigneeID);
         }
-        ticketEventRecorder.recordEvent(ticketID, actor.getId(), TicketEventType.REASSIGNED, ticket.getAssignee() == null ? null : ticket.getAssignee().getId().toString(), assigneeID + "");
+        String previousAssignee = ticket.getAssignee() == null ? null : ticket.getAssignee().getId().toString();
         ticket.assignTo(assignee);
+        ticketEventRecorder.recordEvent(ticketID, actor.getId(), TicketEventType.REASSIGNED, previousAssignee, assigneeID + "");
+        if (ticket.getTicketStatus() == TicketStatus.FULFILLMENT) {
+            ticket.changeStatus(TicketStatus.IN_QUEUE);
+            ticketEventRecorder.recordEvent(ticketID, actor.getId(), TicketEventType.STATUS_CHANGED,
+                    TicketStatus.FULFILLMENT.name(), TicketStatus.IN_QUEUE.name());
+        }
         return TicketResponse.from(ticket);
     }
 

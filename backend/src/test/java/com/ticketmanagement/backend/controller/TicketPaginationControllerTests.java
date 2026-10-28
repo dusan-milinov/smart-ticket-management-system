@@ -72,7 +72,7 @@ class TicketPaginationControllerTests {
         when(currentUser.getCurrentUser()).thenReturn(agent);
         Pageable pageable = PageRequest.of(1, 10, Sort.by(Sort.Direction.DESC, "ticketId"));
         TicketResponse ticket = new TicketResponse(42L, "TKT-TEST", "Title", "Description",
-                TicketStatus.FULFILLMENT, null, null, null, null, 11L, 12L, null);
+                TicketStatus.FULFILLMENT, null, null, null, null, 11L, "user@example.com", 12L, "agent@example.com", null);
         when(tickets.searchTicketsByAssignee(12L, null, null, null, pageable))
                 .thenReturn(new PageImpl<>(List.of(ticket), pageable, 11));
 
@@ -165,7 +165,7 @@ class TicketPaginationControllerTests {
     @Test
     void startingTicketProcessingUsesCurrentAgent() throws Exception {
         TicketResponse ticket = new TicketResponse(42L, "TKT-TEST", "Title", "Description",
-                TicketStatus.FULFILLMENT, null, null, null, null, 11L, 12L, null);
+                TicketStatus.FULFILLMENT, null, null, null, null, 11L, "user@example.com", 12L, "agent@example.com", null);
         when(tickets.startTicketProcessing(42L)).thenReturn(ticket);
 
         mvc.perform(patch("/tickets/42/start").with(jwt().authorities(() -> "ROLE_SUPPORT_AGENT")))
@@ -208,7 +208,7 @@ class TicketPaginationControllerTests {
     void forwardsRequestedPageSizeAndSortAndReturnsContentWithTotals(String path) throws Exception {
         Pageable pageable = PageRequest.of(1, 2, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("ticketId")));
         TicketResponse ticket = new TicketResponse(42L, "TKT-TEST", "Title", "Description",
-                TicketStatus.IN_QUEUE, null, null, null, null, 11L, null, null);
+                TicketStatus.IN_QUEUE, null, null, null, null, 11L, "user@example.com", null, null, null);
         stub(path, pageable, new PageImpl<>(List.of(ticket), pageable, 3));
 
         mvc.perform(get(path).with(jwt().authorities(() -> "ROLE_USER"))
