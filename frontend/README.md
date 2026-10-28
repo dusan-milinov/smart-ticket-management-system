@@ -20,6 +20,21 @@ registration. The initial page load is not animated. The animations are disabled
 when the operating system requests reduced motion. Browsers without the View
 Transitions API continue to navigate normally, without animation.
 
+## Profile
+
+Open `/profile` to review your account and security settings. Avatar initials come
+from non-empty segments of the email prefix. User activity uses
+`GET /api/tickets/my/status-counts`; operator activity remains on the dashboard
+and is not displayed or requested on the profile. Totals include
+all statuses, and open tickets include `IN_QUEUE` and `FULFILLMENT`, matching the
+dashboard. Failed activity requests show an error and a retry action.
+
+**Change Password** opens a native modal dialog with focus containment, Escape
+dismissal, and focus restoration to the trigger. Closing clears password values
+and errors. During submission, dismissal and duplicate submissions are disabled.
+The existing `POST /api/auth/change-password` flow invalidates sessions and returns
+the user to login after success.
+
 ## Creating tickets
 
 After signing in, open `/tickets/new` (also linked as **Create Ticket** in the user
