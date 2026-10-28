@@ -586,13 +586,3 @@ The proposed `eventType` field is a string with the following values:
 Events need enough information to identify the ticket, when the event occurred, who or what performed it, and the relevant change. System-generated actions must be distinguishable from user actions.
 
 It must be decided whether resolution and closure produce both a `STATUS_CHANGED` event and a specialized event, or only the specialized event.
-
-## Decisions to Confirm
-
-These items clarify incomplete requirements; they do not introduce additional committed functionality.
-
-1. **Automatic assignment:** Active-ticket definition, availability criteria, tie-breaking, no-agent handling, and concurrency behavior.
-2. **Reassignment:** Manual replacement selection versus automatic selection, and whether support levels exist in the baseline.
-3. **Ticket forms:** Required fields and validation for Incident and Software Request.
-4. **Authentication:** Email verification behavior, password-reset flow, JWT expiry, and logout/revocation semantics.
-5. **History:** How specialized status events relate to `STATUS_CHANGED`.
