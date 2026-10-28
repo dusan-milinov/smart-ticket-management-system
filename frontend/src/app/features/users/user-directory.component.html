@@ -65,6 +65,15 @@
                 <a class="btn" [routerLink]="['/users', account.id]">View</a>
                 @if (canDeactivate(account)) {
                   <button type="button" class="btn btn-danger" (click)="pending.set(account)">Deactivate</button>
+                } @else if (isDeactivated(account)) {
+                  <button
+                    type="button"
+                    class="btn"
+                    disabled
+                    style="background: #e5e7eb; border-color: #d1d5db; color: #6b7280; cursor: not-allowed"
+                  >
+                    Inactive
+                  </button>
                 }
               </div>
             </td>
@@ -75,26 +84,35 @@
           </tr>
         }
 
-        @if (actionError()) {
-          <p class="feedback-error" role="alert">{{ actionError() }}</p>
-        }
-
-        @if (pending(); as account) {
-          <div class="overlay">
-            <div class="dialog" role="dialog" aria-modal="true" aria-label="Confirm deactivation">
-              <p>Deactivate {{ account.email }}? They will no longer be able to log in.</p>
-              <div class="dialog-actions">
-                <button type="button" class="btn" [disabled]="deactivating()" (click)="pending.set(null)">Cancel</button>
-                <button type="button" class="btn btn-danger" [disabled]="deactivating()" (click)="confirmDeactivate()">
-                  {{ deactivating() ? 'Deactivating…' : 'Deactivate' }}
-                </button>
-              </div>
-            </div>
-          </div>
-        }
       </tbody>
     </table>
   </div>
 
   <app-pagination [page]="page()" [totalPages]="totalPages()" (pageChange)="load($event)" />
+}
+
+@if (pending(); as account) {
+  <div class="overlay">
+    <div class="dialog" role="dialog" aria-modal="true" aria-label="Confirm deactivation">
+      <p>Deactivate {{ account.email }}? They will no longer be able to log in.</p>
+      <div class="dialog-actions">
+        <button type="button" class="btn" [disabled]="deactivating()" (click)="closeDialogs()">Cancel</button>
+        <button type="button" class="btn btn-danger" [disabled]="deactivating()" (click)="confirmDeactivate()">
+          {{ deactivating() ? 'Deactivating…' : 'Deactivate' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (actionError()) {
+  <div class="overlay">
+    <div class="dialog" role="dialog" aria-modal="true" aria-label="Could not deactivate account">
+      <h2>Could not deactivate account</h2>
+      <p class="deactivation-message" role="alert">{{ actionError() }}</p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-primary" (click)="closeDialogs()">Close</button>
+      </div>
+    </div>
+  </div>
 }

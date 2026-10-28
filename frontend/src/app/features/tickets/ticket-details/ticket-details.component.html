@@ -25,7 +25,13 @@
           <span class="badge badge-type">{{ label(t.ticketType) }}</span>
         </div>
       </div>
-      @if (canCancel(t) || canResolve(t)) {
+      @if (t.ticketStatus === 'CANCELLED') {
+        <div class="ticket-actions">
+          <button type="button" class="btn btn-cancelled" disabled aria-label="Ticket is cancelled">
+            Cancelled
+          </button>
+        </div>
+      } @else if (canCancel(t) || canResolve(t)) {
         <div class="ticket-actions">
           @if (canCancel(t)) {
             <button type="button" class="btn btn-warn-solid" (click)="openActionDialog('cancel')">
@@ -135,7 +141,7 @@
     </div>
   </section>
 
-  <app-ticket-comments [ticketId]="t.ticketId" />
+  <app-ticket-comments [ticketId]="t.ticketId" (commentAdded)="refreshEvents()" />
 
   @if (action(); as currentAction) {
     <div class="overlay" (click)="closeActionDialog()">

@@ -74,7 +74,7 @@ describe('TicketCommentsComponent', () => {
       'timeline-item operator', 'timeline-item user', 'timeline-item operator',
     ]);
     expect([...element.querySelectorAll('.role')].map((node) => node.textContent)).toEqual([
-      'Admin', 'User', 'Operator',
+      'Admin', 'User', 'Support Agent',
     ]);
     expect(element.textContent).toContain('user@example.com');
     expect(element.querySelector('time')?.getAttribute('datetime')).toBe('2026-10-26T12:00:00Z');
@@ -124,7 +124,7 @@ describe('TicketCommentsComponent', () => {
 
   it.each([
     ['USER', 'user', 'User'],
-    ['SUPPORT_AGENT', 'operator', 'Operator'],
+    ['SUPPORT_AGENT', 'operator', 'Support Agent'],
     ['ADMIN', 'operator', 'Admin'],
   ] as const)('keeps consecutive %s comments on the same side', (role, side, label) => {
     load([comment(1, role)]);

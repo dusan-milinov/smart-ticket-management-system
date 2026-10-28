@@ -299,6 +299,10 @@ dd {
   color: #a12020;
 }
 
+.deactivation-message {
+  color: var(--color-text-muted);
+}
+
 @media (max-width: 720px) {
   .account-summary {
     grid-template-columns: 1fr;

@@ -13,6 +13,7 @@ type DirectoryList = 'users' | 'agents';
 @Component({
   imports: [PageHeaderComponent, PaginationComponent, RouterLink],
   selector: 'app-user-directory',
+  host: { '(document:keydown.escape)': 'closeDialogs()' },
   styleUrl: './user-directory.component.css',
   templateUrl: './user-directory.component.html',
 })
@@ -71,6 +72,10 @@ export class UserDirectoryComponent implements OnInit {
     return account.active === true && account.role !== 'ADMIN';
   }
 
+  protected isDeactivated(account: AccountDirectoryEntry): boolean {
+    return account.active === false;
+  }
+
   protected confirmDeactivate(): void {
     const account = this.pending();
     if (!account || !this.canDeactivate(account) || this.deactivating()) {
@@ -93,6 +98,14 @@ export class UserDirectoryComponent implements OnInit {
         this.deactivating.set(false);
       },
     });
+  }
+
+  protected closeDialogs(): void {
+    if (this.deactivating()) {
+      return;
+    }
+    this.pending.set(null);
+    this.actionError.set(null);
   }
 
   protected label(value: string): string {

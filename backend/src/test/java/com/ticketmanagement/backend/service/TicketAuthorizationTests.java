@@ -150,7 +150,7 @@ class TicketAuthorizationTests {
         if (identity == Identity.ADMIN) {
             service.reassign(ticket.getTicketId(), fixture.otherAgent().getId());
             assertThat(ticket.getAssignee().getId()).isEqualTo(fixture.otherAgent().getId());
-            assertThat(ticket.getTicketStatus()).isEqualTo(TicketStatus.FULFILLMENT);
+            assertThat(ticket.getTicketStatus()).isEqualTo(TicketStatus.IN_QUEUE);
             assertThat(events.findAllByTicket(ticket)).singleElement().satisfies(event -> {
                 assertThat(event.getEventType()).isEqualTo(TicketEventType.REASSIGNED);
                 assertThat(event.getInitiator().getId()).isEqualTo(fixture.actor().getId());

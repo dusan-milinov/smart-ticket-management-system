@@ -5,6 +5,7 @@ import { of, Subject, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { AuthService, CurrentUser } from '../../core/auth.service';
 import { ROLES } from '../../core/roles';
+import { ResolvedTicketDay } from '../tickets/models/resolved-ticket-day.model';
 import { TicketService } from '../tickets/services/ticket.service';
 import { ProfileComponent } from './profile.component';
 
@@ -14,7 +15,17 @@ describe('ProfileComponent', () => {
   const changePassword = vi.fn();
   const getMyTicketStatusCounts = vi.fn();
   const getAssignedTicketStatusCounts = vi.fn();
+  const getMyDailyResolutions = vi.fn();
   const counts = { IN_QUEUE: 3, FULFILLMENT: 2, RESOLVED: 7, CANCELLED: 1 };
+  const performance: ResolvedTicketDay[] = [
+    { date: '2026-10-22', count: 0 },
+    { date: '2026-10-23', count: 3 },
+    { date: '2026-10-24', count: 0 },
+    { date: '2026-10-25', count: 0 },
+    { date: '2026-10-26', count: 2 },
+    { date: '2026-10-27', count: 0 },
+    { date: '2026-10-28', count: 2 },
+  ];
 
   function element<T extends Element>(selector: string): T {
     const result = fixture.nativeElement.querySelector(selector);
@@ -43,17 +54,25 @@ describe('ProfileComponent', () => {
     fixture.detectChanges();
   }
 
+  function showAgentProfile(): void {
+    fixture.destroy();
+    user.set({ email: 'agent@example.com', role: ROLES.SUPPORT_AGENT });
+    fixture = TestBed.createComponent(ProfileComponent);
+    fixture.detectChanges();
+  }
+
   beforeEach(async () => {
     changePassword.mockReset();
     getMyTicketStatusCounts.mockReset().mockReturnValue(of(counts));
     getAssignedTicketStatusCounts.mockReset().mockReturnValue(of(counts));
+    getMyDailyResolutions.mockReset().mockReturnValue(of(performance));
     user.set({ email: 'user@example.com', role: ROLES.USER });
     await TestBed.configureTestingModule({
       imports: [ProfileComponent],
       providers: [
         provideRouter([]),
         { provide: AuthService, useValue: { user: user.asReadonly(), changePassword } },
-        { provide: TicketService, useValue: { getMyTicketStatusCounts, getAssignedTicketStatusCounts } },
+        { provide: TicketService, useValue: { getMyTicketStatusCounts, getAssignedTicketStatusCounts, getMyDailyResolutions } },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(ProfileComponent);
@@ -90,25 +109,27 @@ describe('ProfileComponent', () => {
     fixture.detectChanges();
     expect(element('.avatar').textContent?.trim()).toBe('?');
     expect(fixture.nativeElement.textContent).toContain('Email unavailable');
-    expect(fixture.nativeElement.querySelector('.activity')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.performance')).toBeNull();
   });
 
-  it('uses status counts for totals including cancelled tickets and the existing definition of open', () => {
-    const values = Array.from(fixture.nativeElement.querySelectorAll('.stat-card strong'), (node) => (node as HTMLElement).textContent?.trim());
-    expect(values).toEqual(['13', '5', '2', '7']);
-    expect(getMyTicketStatusCounts).toHaveBeenCalledOnce();
+  it('shows account and security settings without requesting performance for a regular user', () => {
+    expect(element('.identity').textContent).toContain('user@example.com');
+    expect(element('.security-card').textContent).toContain('Change Password');
+    expect(fixture.nativeElement.querySelector('.performance')).toBeNull();
+    expect(getMyDailyResolutions).not.toHaveBeenCalled();
+    expect(getMyTicketStatusCounts).not.toHaveBeenCalled();
     expect(getAssignedTicketStatusCounts).not.toHaveBeenCalled();
   });
 
-  it('does not show activity or request ticket counts for an operator', () => {
-    fixture.destroy();
-    getMyTicketStatusCounts.mockClear();
-    user.set({ email: 'agent@example.com', role: ROLES.SUPPORT_AGENT });
-    fixture = TestBed.createComponent(ProfileComponent);
-    fixture.detectChanges();
+  it('loads an agent\'s seven-day resolution performance and displays its total and chart', () => {
+    showAgentProfile();
+    expect(getMyDailyResolutions).toHaveBeenCalledExactlyOnceWith(7);
+    expect(element('.performance-summary strong').textContent?.trim()).toBe('7');
+    expect(element('.performance-chart > title').textContent).toContain('Total: 7');
+    expect(fixture.nativeElement.querySelectorAll('.chart-point')).toHaveLength(7);
     expect(getAssignedTicketStatusCounts).not.toHaveBeenCalled();
     expect(getMyTicketStatusCounts).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('.activity')).toBeNull();
+    expect(element('.performance').textContent).toContain('Date (UTC)');
   });
 
   it('does not request activity for an administrator', () => {
@@ -119,32 +140,73 @@ describe('ProfileComponent', () => {
     fixture.detectChanges();
     expect(getMyTicketStatusCounts).not.toHaveBeenCalled();
     expect(getAssignedTicketStatusCounts).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('.activity')).toBeNull();
+    expect(getMyDailyResolutions).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.performance')).toBeNull();
   });
 
-  it('shows loading, failure and retry without presenting fake zero counts', () => {
-    fixture.destroy();
-    const request = new Subject<typeof counts>();
-    getMyTicketStatusCounts.mockReturnValueOnce(request);
-    fixture = TestBed.createComponent(ProfileComponent);
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Loading ticket activity');
-    expect(element('.stat-card strong').textContent).toContain('—');
+  it('shows performance loading, failure and retry without exposing placeholder results', () => {
+    const request = new Subject<ResolvedTicketDay[]>();
+    getMyDailyResolutions.mockReturnValueOnce(request);
+    showAgentProfile();
+    expect(element('.performance [role="status"]').textContent).toContain('Loading 7-day performance');
+    expect(element('.performance-result').getAttribute('aria-hidden')).toBe('true');
     request.error({ status: 0 });
     fixture.detectChanges();
     expect(element('[role="alert"]').textContent).toContain('Cannot reach the server.');
-    expect(fixture.nativeElement.querySelector('.stat-card')).toBeNull();
-    element<HTMLButtonElement>('.activity-error button').click();
+    expect(element('.performance-result').getAttribute('aria-hidden')).toBe('true');
+    element<HTMLButtonElement>('.performance [role="alert"] button').click();
     fixture.detectChanges();
-    expect(element('.stat-card strong').textContent?.trim()).toBe('13');
+    expect(getMyDailyResolutions.mock.calls).toEqual([[7], [7]]);
+    expect(element('.performance-summary strong').textContent?.trim()).toBe('7');
+    expect(element('.performance-result').getAttribute('aria-hidden')).toBe('false');
+    expect(fixture.nativeElement.querySelector('.performance [role="alert"]')).toBeNull();
   });
 
-  it('treats omitted status counts as zero after a successful response', () => {
-    fixture.destroy();
-    getMyTicketStatusCounts.mockReturnValue(of({}));
-    fixture = TestBed.createComponent(ProfileComponent);
+  it('shows an empty performance state when the agent has no resolutions', () => {
+    getMyDailyResolutions.mockReturnValue(of(performance.map((day) => ({ ...day, count: 0 }))));
+    showAgentProfile();
+    expect(element('.performance-summary strong').textContent?.trim()).toBe('0');
+    expect(element('.performance-empty').textContent).toContain('No tickets resolved during this period.');
+    expect(element('.performance-result').getAttribute('aria-hidden')).toBe('false');
+  });
+
+  it('switches to thirty-day performance while retaining the previous result until the response arrives', () => {
+    showAgentProfile();
+    const request = new Subject<ResolvedTicketDay[]>();
+    getMyDailyResolutions.mockReturnValueOnce(request);
+    element<HTMLButtonElement>('.period-toggle button:last-child').click();
     fixture.detectChanges();
-    expect(Array.from(fixture.nativeElement.querySelectorAll('.stat-card strong'), (node) => (node as HTMLElement).textContent?.trim())).toEqual(['0', '0', '0', '0']);
+    expect(element('.performance [role="status"]').textContent).toContain('Loading 30-day performance');
+    expect(element('.performance-summary').textContent).toContain('last 7 days');
+
+    request.next(Array.from({ length: 30 }, (_, index) => ({
+      date: new Date(Date.UTC(2026, 8, 29 + index)).toISOString().slice(0, 10),
+      count: index === 29 ? 10 : 0,
+    })));
+    fixture.detectChanges();
+
+    expect(getMyDailyResolutions.mock.calls).toEqual([[7], [30]]);
+    expect(element('.performance-summary').textContent).toContain('last 30 days');
+    expect(element('.performance-summary strong').textContent?.trim()).toBe('10');
+    expect(fixture.nativeElement.querySelectorAll('.chart-point')).toHaveLength(30);
+    expect(element('.period-toggle button:last-child').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('ignores a late performance response after switching back to seven days', () => {
+    showAgentProfile();
+    const request = new Subject<ResolvedTicketDay[]>();
+    getMyDailyResolutions.mockReturnValueOnce(request);
+    element<HTMLButtonElement>('.period-toggle button:last-child').click();
+    fixture.detectChanges();
+    element<HTMLButtonElement>('.period-toggle button:first-child').click();
+    fixture.detectChanges();
+    request.next([{ date: '2026-10-28', count: 99 }]);
+    fixture.detectChanges();
+
+    expect(getMyDailyResolutions.mock.calls).toEqual([[7], [30], [7]]);
+    expect(element('.performance-summary strong').textContent?.trim()).toBe('7');
+    expect(element('.performance-summary').textContent).toContain('last 7 days');
+    expect(fixture.nativeElement.querySelectorAll('.chart-point')).toHaveLength(7);
   });
 
   it.each(['cancel', 'keydown'])('opens on demand and resets values and restores focus on Escape (%s)', (eventType) => {

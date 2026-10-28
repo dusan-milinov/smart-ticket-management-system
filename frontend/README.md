@@ -23,11 +23,11 @@ Transitions API continue to navigate normally, without animation.
 ## Profile
 
 Open `/profile` to review your account and security settings. Avatar initials come
-from non-empty segments of the email prefix. User activity uses
-`GET /api/tickets/my/status-counts`; operator activity remains on the dashboard
-and is not displayed or requested on the profile. Totals include
-all statuses, and open tickets include `IN_QUEUE` and `FULFILLMENT`, matching the
-dashboard. Failed activity requests show an error and a retry action.
+from non-empty segments of the email prefix. Support agents also see a performance
+chart of tickets they resolved, using `GET /api/ticket-events/my/resolved-daily`
+with a 7- or 30-day period. Dates use UTC, missing days have zero resolutions,
+and failed requests show an error and a retry action. Regular users and
+administrators do not request or display agent performance data on their profiles.
 
 **Change Password** opens a native modal dialog with focus containment, Escape
 dismissal, and focus restoration to the trigger. Closing clears password values
@@ -85,12 +85,12 @@ actions. Authorization is enforced by the backend services as well as by button 
 
 ## Ticket display and list controls
 
-My Tickets, Assigned Tickets, related tickets on account details, and the dashboard
-ticket preview share status tabs, priority filtering, title/number search
+My Tickets, Assigned Tickets, and related tickets on account details share
+status tabs, priority filtering, title/number search
 (debounced by 300 ms), and newest/oldest sorting. Filters reset paginated lists to
 the first page and apply on the server before pagination. Sorting uses `createdAt`
 with `ticketId` as a stable tie-breaker. The dashboard continues to show at most
-five matching tickets; its overview total is not a filtered count.
+five recent tickets; its overview total includes all ticket statuses.
 
 Ticket badges use the My Tickets palette everywhere, including Ticket Details
 and reassignment dialogs: pending is amber, in progress blue, resolved green,
