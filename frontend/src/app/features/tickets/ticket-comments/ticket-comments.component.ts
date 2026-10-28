@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, DestroyRef, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/auth.service';
@@ -17,6 +17,7 @@ import { TicketService } from '../services/ticket.service';
 })
 export class TicketCommentsComponent {
   readonly ticketId = input.required<number>();
+  readonly commentAdded = output<void>();
 
   private readonly ticketService = inject(TicketService);
   private readonly auth = inject(AuthService);
@@ -88,6 +89,7 @@ export class TicketCommentsComponent {
           this.draft.set('');
           this.posting.set(false);
           this.posted.set(true);
+          this.commentAdded.emit();
         },
         error: (error: HttpErrorResponse) => {
           this.postError.set(this.errorMessage(error, 'Could not post your comment. Please try again.'));
