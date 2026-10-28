@@ -5,12 +5,12 @@ export const users = {
   },
 
   user: {
-    email: 'user@example.com',
+    email: 'petar.petrovic@example.com',
     password: 'admin123'
   },
 
   agent: {
-    email: 'agent@example.com',
+    email: 'agent3@example.com',
     password: 'admin123'
   }
 };

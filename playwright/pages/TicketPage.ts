@@ -1,96 +1,61 @@
 import { APIRequestContext } from '@playwright/test';
 
 export class TicketPage {
-
   constructor(
     private readonly request: APIRequestContext
   ) {}
 
   async createTicket(
-    token: string,
     title: string,
-    description: string
+    description: string,
+    priority = 'HIGH',
+    ticketType = 'INCIDENT'
   ) {
-
-    return this.request.post(
+    return await this.request.post(
       '/tickets/add',
       {
-        headers: {
-          Authorization:
-            `Bearer ${token}`
-        },
-
         data: {
           title,
           description,
-          ticketPriority: 'HIGH',
-          ticketType: 'INCIDENT'
+          ticketPriority: priority,
+          ticketType
         }
       }
     );
   }
 
   async getTicket(
-    token: string,
     ticketId: number
   ) {
-
-    return this.request.get(
-      `/tickets/${ticketId}`,
-      {
-        headers: {
-          Authorization:
-            `Bearer ${token}`
-        }
-      }
+    return await this.request.get(
+      `/tickets/${ticketId}`
     );
   }
 
   async getTickets(
-    token: string
+    page = 0,
+    size = 5
   ) {
-
-    return this.request.get(
-      '/tickets',
-      {
-        headers: {
-          Authorization:
-            `Bearer ${token}`
-        }
-      }
+    return await this.request.get(
+      `/tickets?page=${page}&size=${size}`
     );
   }
 
   async getTicketsByStatus(
-    token: string,
     status: string
   ) {
-
-    return this.request.get(
-      `/tickets/status/${status}`,
-      {
-        headers: {
-          Authorization:
-            `Bearer ${token}`
-        }
-      }
+    return await this.request.get(
+      `/tickets/status/${status}`
     );
   }
 
   async resolveTicket(
-    token: string,
     ticketId: number,
     summary: string
   ) {
-
-    return this.request.patch(
+    return await this.request.patch(
       '/tickets/resolve',
       {
-        headers: {
-          Authorization:
-            `Bearer ${token}`
-        },
-
         params: {
           ticketID: ticketId,
           summary
