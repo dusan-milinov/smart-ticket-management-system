@@ -14,25 +14,6 @@ The system has three roles:
 - **Support Agent** — handles assigned tickets.
 - **Administrator** — manages users, agents, and all tickets.
 
-## Playwright UI tests
-
-Start the backend and the Angular development server before running the browser
-tests. The Angular server proxies `/api` requests to the backend. The tests
-sign in as the regular user defined in `playwright/test-data/user.data.ts`
-(a seeded account). In a separate PowerShell terminal, run:
-
-```powershell
-cd playwright
-npx playwright test --project=UI
-```
-
-Set `$env:CI = '1'` to run Edge headless.
-
-The UI project uses Microsoft Edge and defaults to `http://localhost:4200`.
-Set `PLAYWRIGHT_UI_BASE_URL` to override that address. The tests create uniquely
-named tickets and a comment in the configured backend; these records are not
-automatically deleted. Do not run them against production data.
-
 ## Ticket list pagination
 
 `GET /tickets`, `GET /tickets/status/{status}`, `GET /tickets/creator/{creatorId}`,
@@ -605,6 +586,47 @@ The proposed `eventType` field is a string with the following values:
 Events need enough information to identify the ticket, when the event occurred, who or what performed it, and the relevant change. System-generated actions must be distinguishable from user actions.
 
 It must be decided whether resolution and closure produce both a `STATUS_CHANGED` event and a specialized event, or only the specialized event.
+
+## Playwright Tests
+
+The `playwright/` folder contains three projects:
+
+| Project | Folder              | Purpose                                                    |
+| ------- | ------------------- | ---------------------------------------------------------- |
+| `API`   | `tests/api`         | Backend endpoint tests (default `http://localhost:8080`).  |
+| `UI`    | `tests/ui`          | Browser tests: login, tickets, ticket details, dashboard.  |
+| `E2E`   | `tests/e2e`         | Full user and support-agent flows in the browser.          |
+
+### Prerequisites
+
+Start the backend (port 8080) and the Angular development server (port 4200)
+before running browser tests. The Angular server proxies `/api` requests to the
+backend. Tests sign in with the seeded accounts defined in
+`playwright/test-data/user.data.ts` (see [Development seeding](#development-seeding)).
+
+### Running
+
+```powershell
+cd playwright
+npx playwright test --project=UI
+npx playwright test --project=E2E
+npx playwright show-report
+```
+
+### E2E flows
+
+- **User:** registers a new account, logs in, creates a ticket via the
+  *Create Ticket* tab, finds it in *My Tickets* and checks the assigned agent.
+- **Support agent:** a new ticket is created through the API, the assigned
+  agent logs in, opens it from the dashboard Priority Queue, posts two comments
+  and resolves it. The test is skipped if the ticket is not among the top 5
+  queue entries.
+
+### Test data
+
+Tests create uniquely named users, tickets and comments in the configured
+backend; these records are not deleted automatically. Do not run them against
+production data.
 
 ## Decisions to Confirm
 
