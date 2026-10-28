@@ -60,6 +60,14 @@ a non-blank resolution message. Submission calls
 refreshes the current page. Failed submissions keep the message for retry.
 Resolved and cancelled tickets cannot be resolved again.
 
+Ticket Details follows the backend authorization matrix: regular users can read
+and comment on their own tickets, and cancel them while unresolved. Support
+agents can read, comment on, and resolve their assigned tickets.
+Administrators can read and comment on any ticket and see both
+**Resolve ticket** and **Cancel ticket** actions for unresolved tickets.
+Agents cannot cancel tickets. Resolved and cancelled tickets offer no status
+actions. Authorization is enforced by the backend services as well as by button visibility.
+
 ## Ticket display and list controls
 
 My Tickets, Assigned Tickets, related tickets on account details, and the dashboard

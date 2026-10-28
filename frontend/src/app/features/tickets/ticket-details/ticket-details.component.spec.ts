@@ -70,13 +70,18 @@ describe('TicketDetailsComponent', () => {
     fixture.detectChanges();
   }
 
-  it('offers cancellation to users and updates the ticket after cancellation', () => {
+  it.each(['ROLE_USER', 'ROLE_ADMIN'])('offers cancellation to %s and updates the ticket after cancellation', (role) => {
+    currentUser.set({ email: 'actor@example.com', role });
     loadTicket();
 
-    expect(element.querySelector('.back-link')?.textContent).toContain('Back to my tickets');
-    expect(element.querySelector('.back-link')?.getAttribute('href')).toBe('/tickets');
     expect(element.querySelector('.ticket-actions')?.textContent).toContain('Cancel ticket');
-    expect(element.querySelector('.ticket-actions')?.textContent).not.toContain('Resolve ticket');
+    if (role === 'ROLE_USER') {
+      expect(element.querySelector('.back-link')?.textContent).toContain('Back to my tickets');
+      expect(element.querySelector('.back-link')?.getAttribute('href')).toBe('/tickets');
+      expect(element.querySelector('.ticket-actions')?.textContent).not.toContain('Resolve ticket');
+    } else {
+      expect(element.querySelector('.ticket-actions')?.textContent).toContain('Resolve ticket');
+    }
     expect(element.querySelector('.ticket-header .ticket-actions')).not.toBeNull();
     expect(element.querySelectorAll('.ticket-actions').length).toBe(1);
 
@@ -167,7 +172,8 @@ describe('TicketDetailsComponent', () => {
     expect(element.querySelector('.back-link')?.getAttribute('href')).toBe('/tickets');
   });
 
-  it('does not offer actions for terminal tickets', () => {
+  it.each(['ROLE_USER', 'ROLE_SUPPORT_AGENT', 'ROLE_ADMIN'])('does not offer actions on resolved tickets to %s', (role) => {
+    currentUser.set({ email: 'actor@example.com', role });
     loadTicket('RESOLVED');
     expect(element.querySelector('.ticket-actions')).toBeNull();
   });

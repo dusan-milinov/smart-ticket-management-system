@@ -3,10 +3,8 @@ package com.ticketmanagement.backend.controller;
 
 import com.ticketmanagement.backend.dto.comment.CommentResponse;
 import com.ticketmanagement.backend.dto.comment.CreateCommentRequest;
-import com.ticketmanagement.backend.dto.ticket.TicketEventResponse;
 import com.ticketmanagement.backend.service.CommentService;
-import com.ticketmanagement.backend.service.CurrentUserService;
-import com.ticketmanagement.backend.service.TicketEventService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +16,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CommentController {
     private final CommentService commentService;
-    private final CurrentUserService currentUserService;
 
     @GetMapping("/{ticketId}")
     public ResponseEntity<List<CommentResponse>> getAllTicketComments(@PathVariable long ticketId) {
@@ -26,8 +23,8 @@ public class CommentController {
     }
 
     @PostMapping
-    public ResponseEntity<CommentResponse> addComment(@RequestBody CreateCommentRequest commentRequest) {
-        return ResponseEntity.ok(commentService.addComment(commentRequest, currentUserService.getCurrentUser().getId()));
+    public ResponseEntity<CommentResponse> addComment(@Valid @RequestBody CreateCommentRequest commentRequest) {
+        return ResponseEntity.ok(commentService.addComment(commentRequest));
     }
 
 }

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -28,8 +29,10 @@ class TicketStartProcessingTests {
 
     @Mock private TicketRepository tickets;
     @Mock private UserRepository users;
-    @Mock private TicketEventService events;
+    @Mock private TicketEventRecorder events;
     @Mock private TicketAssignmentService assignments;
+    @Mock private CurrentUserService currentUser;
+    @Spy private TicketAccessPolicy policy = new TicketAccessPolicy();
     @InjectMocks private TicketService service;
 
     @Test
@@ -37,7 +40,8 @@ class TicketStartProcessingTests {
         Ticket ticket = ticket(TicketStatus.IN_QUEUE);
         when(tickets.findByTicketId(42L)).thenReturn(Optional.of(ticket));
 
-        var result = service.startTicketProcessing(42L, 12L);
+        when(currentUser.getCurrentUser()).thenReturn(ticket.getAssignee());
+        var result = service.startTicketProcessing(42L);
 
         assertThat(result.ticketStatus()).isEqualTo(TicketStatus.FULFILLMENT);
         verify(events).recordEvent(42L, 12L, TicketEventType.STATUS_CHANGED,
@@ -49,7 +53,8 @@ class TicketStartProcessingTests {
         Ticket ticket = ticket(TicketStatus.FULFILLMENT);
         when(tickets.findByTicketId(42L)).thenReturn(Optional.of(ticket));
 
-        var result = service.startTicketProcessing(42L, 12L);
+        when(currentUser.getCurrentUser()).thenReturn(ticket.getAssignee());
+        var result = service.startTicketProcessing(42L);
 
         assertThat(result.ticketStatus()).isEqualTo(TicketStatus.FULFILLMENT);
         verifyNoInteractions(events);
@@ -60,7 +65,10 @@ class TicketStartProcessingTests {
         Ticket ticket = ticket(TicketStatus.IN_QUEUE);
         when(tickets.findByTicketId(42L)).thenReturn(Optional.of(ticket));
 
-        assertThatThrownBy(() -> service.startTicketProcessing(42L, 99L))
+        AppUser otherAgent = new AppUser("other@example.com", "password-hash", Role.SUPPORT_AGENT);
+        otherAgent.setId(99L);
+        when(currentUser.getCurrentUser()).thenReturn(otherAgent);
+        assertThatThrownBy(() -> service.startTicketProcessing(42L))
                 .isInstanceOf(AccessDeniedException.class);
         verifyNoInteractions(events);
     }
@@ -70,7 +78,8 @@ class TicketStartProcessingTests {
         Ticket ticket = ticket(TicketStatus.RESOLVED);
         when(tickets.findByTicketId(42L)).thenReturn(Optional.of(ticket));
 
-        assertThatThrownBy(() -> service.startTicketProcessing(42L, 12L))
+        when(currentUser.getCurrentUser()).thenReturn(ticket.getAssignee());
+        assertThatThrownBy(() -> service.startTicketProcessing(42L))
                 .isInstanceOf(IllegalStatusException.class);
         verifyNoInteractions(events);
     }

@@ -12,6 +12,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -31,7 +32,9 @@ class TicketPaginationTests {
 
     @Mock private TicketRepository tickets;
     @Mock private UserRepository users;
-    @Mock private TicketEventService events;
+    @Mock private TicketEventRecorder events;
+    @Mock private CurrentUserService currentUser;
+    @Spy private TicketAccessPolicy policy = new TicketAccessPolicy();
     @InjectMocks private TicketService service;
 
     private final Pageable pageable = PageRequest.of(1, 2, Sort.by("ticketId"));
@@ -83,6 +86,9 @@ class TicketPaginationTests {
     }
 
     private Page<TicketResponse> execute(Query query, Page<Ticket> source) {
+        if (query != Query.ALL && query != Query.STATUS) {
+            when(currentUser.getCurrentUser()).thenReturn(new AppUser("admin@example.com", "hash", Role.ADMIN));
+        }
         Page<TicketResponse> result = switch (query) {
             case ALL -> {
                 when(tickets.findAll(pageable)).thenReturn(source);
