@@ -59,6 +59,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Edge'],
         channel: 'msedge',
+        baseURL: process.env.PLAYWRIGHT_UI_BASE_URL || 'http://localhost:4200',
 
         headless: isCI,
 

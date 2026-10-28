@@ -14,6 +14,25 @@ The system has three roles:
 - **Support Agent** — handles assigned tickets.
 - **Administrator** — manages users, agents, and all tickets.
 
+## Playwright UI tests
+
+Start the backend and the Angular development server before running the browser
+tests. The Angular server proxies `/api` requests to the backend. The tests
+sign in as the regular user defined in `playwright/test-data/user.data.ts`
+(a seeded account). In a separate PowerShell terminal, run:
+
+```powershell
+cd playwright
+npx playwright test --project=UI
+```
+
+Set `$env:CI = '1'` to run Edge headless.
+
+The UI project uses Microsoft Edge and defaults to `http://localhost:4200`.
+Set `PLAYWRIGHT_UI_BASE_URL` to override that address. The tests create uniquely
+named tickets and a comment in the configured backend; these records are not
+automatically deleted. Do not run them against production data.
+
 ## Ticket list pagination
 
 `GET /tickets`, `GET /tickets/status/{status}`, `GET /tickets/creator/{creatorId}`,
