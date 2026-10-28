@@ -274,14 +274,14 @@ These extensions are outside the initial implementation.
 - Search and filter their own tickets.
 - Comment on their own tickets.
 - View the history of their own tickets.
+- Cancel their own unresolved tickets.
 
 ### Support Agent
 
 - View assigned tickets.
 - Comment on assigned tickets.
+- Start processing assigned tickets (`IN_QUEUE` to `FULFILLMENT`).
 - Resolve assigned tickets by changing their status to `RESOLVED`.
-
-Permission to perform other status transitions remains to be confirmed.
 
 ### Administrator
 
@@ -300,7 +300,33 @@ Permission to perform other status transitions remains to be confirmed.
 | Support Agent | Assigned tickets only | No administrative access defined in this baseline     |
 | Administrator | All tickets           | User and support-agent management                     |
 
-Authorization must protect backend operations as well as access to frontend pages. Role checks must be combined with ticket ownership or assignment checks where applicable.
+The backend enforces this matrix at service entry points with `@PreAuthorize`
+and shared ticket ownership/assignment checks:
+
+| Operation                                                              | USER                   | SUPPORT_AGENT         | ADMIN                             |
+| ---------------------------------------------------------------------- | ---------------------- | --------------------- | --------------------------------- |
+| Create a ticket                                                        | As self                | As self               | As self                           |
+| Read ticket details, comments, history; add comments                   | Own tickets            | Assigned tickets      | Any ticket                        |
+| List/search/count tickets                                              | Own creator scope      | Own assignee scope    | Any scope, including global lists |
+| Start processing                                                       | Denied                 | Assigned tickets only | Denied                            |
+| Resolve                                                                | Denied                 | Assigned tickets only | Any ticket                        |
+| Cancel                                                                 | Own unresolved tickets | Denied                | Any ticket                        |
+| Reassign                                                               | Denied                 | Denied                | Any ticket                        |
+| User/agent directories, other account details and related-ticket lists | Denied                 | Denied                | Allowed                           |
+| Admin dashboard, agent registration, account deactivation              | Denied                 | Denied                | Allowed                           |
+| Own profile and password change                                        | Allowed                | Allowed               | Allowed                           |
+
+Registration and login remain public. Ticket creation remains available to all
+three roles; subsequent access follows the relationship rules above, including
+for tickets created by agents. Existing status-transition rules and inactive
+assignee checks still apply.
+
+Regular users may cancel their own tickets in `IN_QUEUE` or `FULFILLMENT`, but cannot resolve or reassign tickets. Support agents cannot cancel tickets; they may resolve only assigned tickets. Administrators may cancel, resolve, or reassign any unresolved ticket. Resolved and cancelled tickets remain terminal and reject further status changes or reassignment.
+
+The controller-to-service audit covers authentication/profile operations, administration/dashboard operations, every ticket list/filter/count/queue and mutation, comments, and history. Query IDs are validated against the authenticated account; changing a creator/assignee ID cannot widen access.
+Ticket creators, comment authors, and event initiators are derived from the authenticated principal in the service.
+
+Internal event recording is separate from the history-reading service and requires an existing transaction. Ticket creation, automatic assignment and its events, and each later ticket or comment mutation with its event remain atomic.
 
 ## Diagrams
 
@@ -464,7 +490,9 @@ The working status names include:
 - `FULFILLMENT`
 - `RESOLVED`
 
-The workflow also includes closure. The final status list, including whether closure uses `CLOSED`, and the allowed transitions remain to be confirmed.
+The workflow also includes `CANCELLED`. Regular users may cancel their own
+unresolved tickets, and administrators may cancel any unresolved ticket.
+Support agents cannot cancel tickets. Cancellation records a `CLOSED` history event.
 
 Support agents shall be able to resolve assigned tickets. Administrators shall be able to change ticket statuses. State changes shall be recorded in the ticket history.
 
@@ -521,7 +549,9 @@ Automatic assignment and resolution are system/agent actions visible to the user
 
 View assigned tickets → Fulfill the request or investigate the incident → Comment as needed → Resolve the ticket.
 
-The actor responsible for moving a ticket into `FULFILLMENT` remains to be confirmed.
+Only the assigned support agent may explicitly start processing a queued ticket,
+moving it into `FULFILLMENT`. Administrators can resolve or cancel tickets but
+cannot use this agent-only start operation.
 
 ### Administrator Workflow
 

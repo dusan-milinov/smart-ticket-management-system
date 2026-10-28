@@ -84,7 +84,7 @@ public class TicketController {
     public ResponseEntity<TicketResponse> addTicket(
             @Valid @RequestBody CreateTicketRequest request
     ) {
-        return new ResponseEntity<>(ticketService.createTicket(request, currentUserService.getCurrentUser()), HttpStatus.CREATED);
+        return new ResponseEntity<>(ticketService.createTicket(request), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -126,23 +126,23 @@ public class TicketController {
 
     @PatchMapping("/reassign")
     public ResponseEntity<TicketResponse> reassignTicket(@PathParam("ticketID") Long ticketID, @PathParam("assigneeId") Long assigneeId) {
-        return ResponseEntity.ok(ticketService.reassign(ticketID, assigneeId, currentUserService.getCurrentUser().getId()));
+        return ResponseEntity.ok(ticketService.reassign(ticketID, assigneeId));
     }
 
     @PatchMapping("/resolve")
     public ResponseEntity<TicketResponse> resolveTicket(@PathParam("ticketID") Long ticketID, @PathParam("summary") String summary) {
-        return ResponseEntity.ok(ticketService.resolveTicket(ticketID, summary, currentUserService.getCurrentUser().getId()));
+        return ResponseEntity.ok(ticketService.resolveTicket(ticketID, summary));
     }
 
     @PatchMapping("/{ticketId}/start")
     @PreAuthorize("hasRole('SUPPORT_AGENT')")
     public ResponseEntity<TicketResponse> startTicketProcessing(@PathVariable Long ticketId) {
-        return ResponseEntity.ok(ticketService.startTicketProcessing(ticketId, currentUserService.getCurrentUser().getId()));
+        return ResponseEntity.ok(ticketService.startTicketProcessing(ticketId));
     }
 
     @PatchMapping("/cancel")
     public ResponseEntity<TicketResponse> cancelTicket(@PathParam("ticketID") Long ticketID) {
-        return ResponseEntity.ok(ticketService.cancelTicket(ticketID, currentUserService.getCurrentUser().getId()));
+        return ResponseEntity.ok(ticketService.cancelTicket(ticketID));
     }
 
 }

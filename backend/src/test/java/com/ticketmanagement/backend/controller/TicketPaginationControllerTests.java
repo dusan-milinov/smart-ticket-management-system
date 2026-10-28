@@ -164,19 +164,16 @@ class TicketPaginationControllerTests {
 
     @Test
     void startingTicketProcessingUsesCurrentAgent() throws Exception {
-        AppUser agent = new AppUser("agent@example.com", "password", Role.SUPPORT_AGENT);
-        agent.setId(12L);
-        when(currentUser.getCurrentUser()).thenReturn(agent);
         TicketResponse ticket = new TicketResponse(42L, "TKT-TEST", "Title", "Description",
                 TicketStatus.FULFILLMENT, null, null, null, null, 11L, 12L, null);
-        when(tickets.startTicketProcessing(42L, 12L)).thenReturn(ticket);
+        when(tickets.startTicketProcessing(42L)).thenReturn(ticket);
 
         mvc.perform(patch("/tickets/42/start").with(jwt().authorities(() -> "ROLE_SUPPORT_AGENT")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ticketId").value(42))
                 .andExpect(jsonPath("$.ticketStatus").value("FULFILLMENT"));
 
-        verify(tickets).startTicketProcessing(42L, 12L);
+        verify(tickets).startTicketProcessing(42L);
         verifyNoMoreInteractions(tickets);
     }
 

@@ -2,20 +2,16 @@ package com.ticketmanagement.backend.service;
 
 import com.ticketmanagement.backend.dto.ticket.TicketEventResponse;
 import com.ticketmanagement.backend.dto.ticket.ResolvedTicketDay;
-import com.ticketmanagement.backend.enums.TicketEventType;
 import com.ticketmanagement.backend.exception.TicketNotFoundException;
-import com.ticketmanagement.backend.exception.UserNotFoundException;
-import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.model.Ticket;
 import com.ticketmanagement.backend.model.TicketEvent;
 import com.ticketmanagement.backend.repository.TicketEventRepository;
 import com.ticketmanagement.backend.repository.TicketRepository;
-import com.ticketmanagement.backend.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -32,39 +28,23 @@ public class TicketEventService {
 
     private final TicketEventRepository ticketEventRepository;
     private final TicketRepository ticketRepository;
-    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
+    private final TicketAccessPolicy ticketAccessPolicy;
 
-    @Transactional
-    public void recordEvent(Long ticketId, Long actorID, TicketEventType eventType, String oldValue, String newValue) {
-
-        Ticket ticket = ticketRepository.findByTicketId(ticketId)
-                .orElseThrow(() -> new TicketNotFoundException("Ticket with ID " + ticketId + " not found."));
-
-        AppUser actor = userRepository.findById(actorID)
-                .orElseThrow(() -> new UserNotFoundException("User with ID " + actorID + " not found."));
-
-        TicketEvent event = new TicketEvent();
-        event.setTicket(ticket);
-        event.setInitiator(actor);
-        event.setOldValue(oldValue);
-        event.setNewValue(newValue);
-        event.setEventType(eventType);
-
-        ticket.setUpdatedAt(java.time.Instant.now()); // Svaki event bi trebao da ažurira vreme poslednje izmene tiketa
-        ticketRepository.save(ticket);
-
-        ticketEventRepository.save(event);
-    }
-
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('USER', 'SUPPORT_AGENT', 'ADMIN')")
     public List<TicketEventResponse> getAllTicketEvents(long ticketId) {
         Ticket ticket = ticketRepository.findByTicketId(ticketId)
                 .orElseThrow(() -> new TicketNotFoundException("Ticket with ID " + ticketId + " not found."));
+        ticketAccessPolicy.requireRead(ticket, currentUserService.getCurrentUser());
         return toResponses(ticketEventRepository.findAllByTicket(ticket));
     }
 
     /** Daily UTC counts attributed to the agent who performed each resolution, including today. */
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('SUPPORT_AGENT', 'ADMIN')")
     public List<ResolvedTicketDay> getDailyResolutions(Long agentId, int days) {
+        ticketAccessPolicy.requireAssigneeScope(agentId, currentUserService.getCurrentUser());
         if (days != 7 && days != 30) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Days must be 7 or 30.");
         }

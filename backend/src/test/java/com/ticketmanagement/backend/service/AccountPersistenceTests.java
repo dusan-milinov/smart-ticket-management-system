@@ -185,16 +185,17 @@ class AccountPersistenceTests {
         AppUser current = account(Role.SUPPORT_AGENT);
         AppUser inactive = account(Role.SUPPORT_AGENT);
         AppUser replacement = account(Role.SUPPORT_AGENT);
+        actAsAdmin(admin);
         inactive.deactivate();
         Ticket ticket = ticket(account(Role.USER), current, TicketStatus.FULFILLMENT);
         entityManager.flush();
 
-        assertThatThrownBy(() -> ticketService.reassign(ticket.getTicketId(), inactive.getId(), admin.getId()))
+        assertThatThrownBy(() -> ticketService.reassign(ticket.getTicketId(), inactive.getId()))
                 .isInstanceOf(InactiveAssigneeException.class);
         assertThat(ticket.getAssignee().getId()).isEqualTo(current.getId());
         assertThat(history.findAllByTicket(ticket)).isEmpty();
 
-        ticketService.reassign(ticket.getTicketId(), replacement.getId(), admin.getId());
+        ticketService.reassign(ticket.getTicketId(), replacement.getId());
         entityManager.flush();
         entityManager.clear();
         Ticket stored = tickets.findById(ticket.getTicketId()).orElseThrow();
@@ -227,6 +228,7 @@ class AccountPersistenceTests {
     @Test
     @WithMockUser(roles = "ADMIN")
     void ticketFiltersApplyBeforePagingAndKeepCreatorAssigneeAndRelatedScopes() {
+        actAsAdmin(account(Role.ADMIN));
         AppUser creator = account(Role.USER);
         AppUser agent = account(Role.SUPPORT_AGENT);
         AppUser other = account(Role.USER);
@@ -280,6 +282,7 @@ class AccountPersistenceTests {
     @Test
     @WithMockUser(roles = "ADMIN")
     void relatedTicketSearchIncludesUnassignedCreatedTicketsAndEscapesWildcards() {
+        actAsAdmin(account(Role.ADMIN));
         AppUser creator = account(Role.USER);
         Ticket match = ticket(creator, null, TicketStatus.IN_QUEUE);
         match.setTitle("VPN_100% outage");

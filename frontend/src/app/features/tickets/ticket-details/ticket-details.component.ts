@@ -151,12 +151,14 @@ export class TicketDetailsComponent implements OnInit {
   }
 
   protected canCancel(ticket: Ticket): boolean {
-    return this.auth.user()?.role === ROLES.USER
+    const role = this.auth.user()?.role;
+    return (role === ROLES.USER || role === ROLES.ADMIN)
       && !['RESOLVED', 'CANCELLED'].includes(ticket.ticketStatus);
   }
 
   protected canResolve(ticket: Ticket): boolean {
-    return this.isAgent() && !['RESOLVED', 'CANCELLED'].includes(ticket.ticketStatus);
+    return (this.isAgent() || this.auth.user()?.role === ROLES.ADMIN)
+      && !['RESOLVED', 'CANCELLED'].includes(ticket.ticketStatus);
   }
 
   protected openActionDialog(action: TicketAction): void {
