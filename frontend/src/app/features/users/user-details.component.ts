@@ -44,6 +44,7 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
   protected readonly error = signal<string | null>(null);
   protected readonly ticketsError = signal<string | null>(null);
   protected readonly actionError = signal<string | null>(null);
+  protected readonly deactivationError = signal<string | null>(null);
   protected readonly confirming = signal(false);
   protected readonly reassigning = signal<Ticket | null>(null);
   protected readonly selectedAgentId = signal<number | null>(null);
@@ -104,11 +105,11 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
 
   protected confirmDeactivate(): void {
     this.confirming.set(false);
-    this.actionError.set(null);
+    this.deactivationError.set(null);
     this.directoryService.deactivateUser(this.userId).subscribe({
       next: (updated) => this.account.set(updated),
       error: (err: HttpErrorResponse) =>
-        this.actionError.set(err.error?.message ?? 'Could not deactivate the account.'),
+        this.deactivationError.set(err.error?.message ?? 'Could not deactivate the account.'),
     });
   }
 
@@ -129,6 +130,7 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
 
   protected closeDialogs(): void {
     this.confirming.set(false);
+    this.deactivationError.set(null);
     this.closeReassign();
   }
 

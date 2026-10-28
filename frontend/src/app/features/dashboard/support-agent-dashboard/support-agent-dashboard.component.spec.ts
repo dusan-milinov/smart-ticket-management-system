@@ -7,7 +7,7 @@ import { SupportAgentDashboardComponent } from './support-agent-dashboard.compon
 describe('SupportAgentDashboardComponent', () => {
   afterEach(() => TestBed.inject(HttpTestingController).verify());
 
-  it('shows a View button for each priority ticket without changing its status', () => {
+  it('shows a green Open button for each priority ticket without changing its status', () => {
     TestBed.configureTestingModule({
       imports: [SupportAgentDashboardComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
@@ -24,10 +24,10 @@ describe('SupportAgentDashboardComponent', () => {
 
     const element: HTMLElement = fixture.nativeElement;
     const actions = Array.from(element.querySelectorAll<HTMLAnchorElement>('.queue-view'));
-    expect(actions.map(action => action.textContent?.trim())).toEqual(['View', 'View']);
+    expect(actions.map(action => action.textContent?.trim())).toEqual(['Open', 'Open']);
     expect(actions.map(action => action.getAttribute('href'))).toEqual(['/tickets/42', '/tickets/43']);
     expect(actions.map(action => action.getAttribute('aria-label')))
-      .toEqual(['View ticket TKT-0042', 'View ticket TKT-0043']);
+      .toEqual(['Open ticket TKT-0042', 'Open ticket TKT-0043']);
     expect(actions.every(action => action.classList.contains('btn'))).toBe(true);
     http.expectNone(request => request.method !== 'GET');
   });

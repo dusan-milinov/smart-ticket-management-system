@@ -90,17 +90,26 @@ describe('UserDirectoryComponent', () => {
     expect(root.querySelector('.dialog')).toBeNull();
   });
 
-  it('shows backend rejection and leaves the account active', () => {
+  it('shows unresolved-ticket deactivation failures in a dismissible modal', () => {
+    const message = 'User has 4 unresolved assigned ticket(s); reassign them before deactivation';
     deactivateUser.mockReturnValue(throwError(() => new HttpErrorResponse({
-      status: 409, error: { message: 'Has unresolved tickets' },
+      status: 409, error: { message },
     })));
     const root = fixture.nativeElement as HTMLElement;
+    root.querySelector<HTMLButtonElement>('[role="tab"]:nth-child(2)')!.click();
+    fixture.detectChanges();
     root.querySelector<HTMLButtonElement>('.row-actions .btn-danger')!.click();
     fixture.detectChanges();
     root.querySelector<HTMLButtonElement>('.dialog .btn-danger')!.click();
     fixture.detectChanges();
-    expect(root.querySelector('[role="alert"]')?.textContent).toContain('Has unresolved tickets');
+    const dialog = root.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog.getAttribute('aria-label')).toBe('Could not deactivate account');
+    expect(dialog.textContent).toContain(message);
+    expect(dialog.querySelector('.deactivation-message')).not.toBeNull();
     expect(root.querySelector('.badge-active')).not.toBeNull();
+    root.querySelector<HTMLButtonElement>('.dialog .btn-primary')!.click();
+    fixture.detectChanges();
+    expect(root.querySelector('[role="dialog"]')).toBeNull();
   });
 
   it('hides deactivation for inactive and administrator accounts', () => {

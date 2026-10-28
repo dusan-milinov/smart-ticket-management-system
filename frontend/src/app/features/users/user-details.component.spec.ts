@@ -219,13 +219,21 @@ describe('UserDetailsComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Deactivate user');
   });
 
-  it('shows the server message when deactivation fails', () => {
+  it('shows unresolved-ticket deactivation failures in a dismissible modal', () => {
     setup(ROLES.ADMIN, { id: 3, email: 'agent@example.com', role: 'SUPPORT_AGENT', active: true });
-    deactivateResult = throwError(() => new HttpErrorResponse({ status: 409, error: { message: 'Has unresolved tickets' } }));
+    const message = 'User has 4 unresolved assigned ticket(s); reassign them before deactivation';
+    deactivateResult = throwError(() => new HttpErrorResponse({ status: 409, error: { message } }));
 
     click('Deactivate user');
     click('Deactivate');
 
-    expect(fixture.nativeElement.textContent).toContain('Has unresolved tickets');
+    const dialog = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog.getAttribute('aria-label')).toBe('Could not deactivate account');
+    expect(dialog.textContent).toContain(message);
+    expect(dialog.querySelector('.deactivation-message')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.details-page > .feedback-error')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.badge-active')).not.toBeNull();
+    click('Close');
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 });

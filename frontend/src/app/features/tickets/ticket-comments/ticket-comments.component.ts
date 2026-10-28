@@ -48,7 +48,7 @@ export class TicketCommentsComponent {
         return {
           ...comment,
           author: comment.authorEmail,
-          role: role === ROLES.SUPPORT_AGENT ? 'Operator' : ROLE_LABELS[role],
+          role: role === ROLES.SUPPORT_AGENT ? 'Support Agent' : ROLE_LABELS[role],
           side: role === ROLES.USER ? 'user' : 'operator',
         };
       }),
