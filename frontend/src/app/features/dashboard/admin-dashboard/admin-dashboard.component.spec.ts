@@ -53,6 +53,9 @@ describe('AdminDashboardComponent', () => {
       .toContain('2 Pending · 12 In Progress');
     expect(element.querySelector('[data-stat=resolved]')?.textContent).toContain('35.7%');
     expect(element.querySelector('[data-stat=agents] .metric-value')?.textContent).toBe('3');
+    expect(element.querySelector('[data-stat=agents] .metric-caption')?.textContent)
+      .toBe('Active members of your support team');
+    expect(element.querySelector('[data-stat=agents] a')).toBeNull();
     expect(element.querySelector('.assignment-note')).toBeNull();
     const viewLink = element.querySelector<HTMLAnchorElement>('.ticket-view');
     expect(viewLink?.textContent?.trim()).toBe('View');
@@ -66,6 +69,7 @@ describe('AdminDashboardComponent', () => {
     expect(element.querySelector('.ticket-row .status-resolved')?.textContent).toBe('Resolved');
     expect(element.querySelector('.ticket-row .priority-high')?.textContent).toBe('High');
     expect(element.querySelector('.team-counts')?.textContent).toContain('Regular users4');
+    expect(element.querySelector('.header-actions button')).toBeNull();
     expect(element.querySelector('.header-actions a')?.getAttribute('href')).toBe('/users/new-agent');
   });
 
@@ -80,7 +84,7 @@ describe('AdminDashboardComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-stat=resolved]').textContent).toContain('0%');
   });
 
-  it('shows a retryable error instead of misleading zero totals and supports refresh', () => {
+  it('shows a retryable error instead of misleading zero totals', () => {
     fixture.detectChanges();
     http.expectOne('/api/admin/dashboard').flush({}, { status: 500, statusText: 'Error' });
     fixture.detectChanges();
@@ -89,10 +93,7 @@ describe('AdminDashboardComponent', () => {
     fixture.nativeElement.querySelector('.state button').click();
     http.expectOne('/api/admin/dashboard').flush(summary);
     fixture.detectChanges();
-    fixture.nativeElement.querySelector('.header-actions button').click();
-    http.expectOne('/api/admin/dashboard').flush({ ...summary, totalTickets: 29 });
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-stat=total] .metric-value').textContent).toBe('29');
+    expect(fixture.nativeElement.querySelector('[data-stat=total] .metric-value').textContent).toBe('28');
   });
 
   it('matches the admin dashboard route only for administrators', () => {
