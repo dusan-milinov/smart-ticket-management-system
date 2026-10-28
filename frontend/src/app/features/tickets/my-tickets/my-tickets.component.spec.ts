@@ -77,7 +77,9 @@ describe('MyTicketsComponent', () => {
         createdAt: '2026-10-27T12:00:00Z',
         updatedAt: '2026-10-27T12:00:00Z',
         creatorId: 1,
+        creatorEmail: 'user@example.com',
         assigneeId: null,
+        assigneeEmail: null,
         ticketType: 'TECHNICAL',
       }],
     });

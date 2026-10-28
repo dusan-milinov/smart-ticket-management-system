@@ -200,12 +200,28 @@ class AccountPersistenceTests {
         entityManager.clear();
         Ticket stored = tickets.findById(ticket.getTicketId()).orElseThrow();
         assertThat(stored.getAssignee().getId()).isEqualTo(replacement.getId());
-        assertThat(history.findAllByTicket(stored)).singleElement()
+        assertThat(stored.getTicketStatus()).isEqualTo(TicketStatus.IN_QUEUE);
+        assertThat(history.findAllByTicket(stored)).hasSize(2)
+                .filteredOn(event -> event.getEventType() == TicketEventType.REASSIGNED).singleElement()
                 .satisfies(event -> {
                     assertThat(event.getEventType()).isEqualTo(TicketEventType.REASSIGNED);
                     assertThat(event.getOldValue()).isEqualTo(current.getId().toString());
                     assertThat(event.getNewValue()).isEqualTo(replacement.getId().toString());
                 });
+        assertThat(history.findAllByTicket(stored))
+                .filteredOn(event -> event.getEventType() == TicketEventType.STATUS_CHANGED).singleElement()
+                .satisfies(event -> {
+                    assertThat(event.getOldValue()).isEqualTo(TicketStatus.FULFILLMENT.name());
+                    assertThat(event.getNewValue()).isEqualTo(TicketStatus.IN_QUEUE.name());
+                });
+
+        SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
+                replacement.getEmail(), null, List.of(new SimpleGrantedAuthority("ROLE_SUPPORT_AGENT"))));
+        ticketService.startTicketProcessing(stored.getTicketId());
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(tickets.findById(stored.getTicketId()).orElseThrow().getTicketStatus())
+                .isEqualTo(TicketStatus.FULFILLMENT);
     }
 
     @Test

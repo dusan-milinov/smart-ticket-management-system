@@ -19,7 +19,9 @@ public record TicketResponse(
         Instant createdAt,
         Instant updatedAt,
         Long creatorId,
+        String creatorEmail,
         Long assigneeId,
+        String assigneeEmail,
         TicketType ticketType
 ) {
     public static TicketResponse from(Ticket ticket) {
@@ -34,7 +36,9 @@ public record TicketResponse(
                 ticket.getCreatedAt(),
                 ticket.getUpdatedAt(),
                 ticket.getCreator().getId(),
+                ticket.getCreator().getEmail(),
                 ticket.getAssignee() == null ? null : ticket.getAssignee().getId(),
+                ticket.getAssignee() == null ? null : ticket.getAssignee().getEmail(),
                 ticket.getTicketType()
         );
     }

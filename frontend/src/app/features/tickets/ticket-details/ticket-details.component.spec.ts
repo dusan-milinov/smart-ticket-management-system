@@ -20,7 +20,9 @@ const ticket: Ticket = {
   createdAt: '2026-10-26T10:00:00Z',
   updatedAt: '2026-10-26T10:00:00Z',
   creatorId: 11,
+  creatorEmail: 'creator@example.com',
   assigneeId: 12,
+  assigneeEmail: 'agent@example.com',
 };
 
 describe('TicketDetailsComponent', () => {
@@ -60,9 +62,9 @@ describe('TicketDetailsComponent', () => {
 
   afterEach(() => http.verify());
 
-  function loadTicket(status = 'FULFILLMENT'): void {
+  function loadTicket(status = 'FULFILLMENT', details: Ticket = ticket): void {
     fixture.detectChanges();
-    http.expectOne('/api/tickets/42').flush({ ...ticket, ticketStatus: status });
+    http.expectOne('/api/tickets/42').flush({ ...details, ticketStatus: status });
     fixture.detectChanges();
     http.expectOne('/api/ticket-events/42').flush([]);
     fixture.detectChanges();
@@ -100,6 +102,83 @@ describe('TicketDetailsComponent', () => {
     expect(element.querySelector('.status-cancelled')?.textContent).toBe('Cancelled');
     expect(element.querySelector('.ticket-actions')).toBeNull();
     expect(element.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it.each(['ROLE_USER', 'ROLE_SUPPORT_AGENT', 'ROLE_ADMIN'])(
+    'shows the creator and assignee emails for %s',
+    (role) => {
+      currentUser.set({ email: 'viewer@example.com', role });
+      loadTicket();
+
+      const assignment = Array.from(element.querySelectorAll('.meta > div'))
+        .find((row) => row.querySelector('dt')?.textContent === 'Assigned to');
+      expect(assignment?.querySelector('dd')?.textContent).toBe('agent@example.com');
+      const creator = Array.from(element.querySelectorAll('.meta > div'))
+        .find((row) => row.querySelector('dt')?.textContent === 'Created by');
+      expect(creator?.querySelector('dd')?.textContent).toBe('creator@example.com');
+    },
+  );
+
+  it('keeps the unassigned label when there is no assignee', () => {
+    loadTicket('IN_QUEUE', { ...ticket, assigneeId: null, assigneeEmail: null });
+
+    const assignment = Array.from(element.querySelectorAll('.meta > div'))
+      .find((row) => row.querySelector('dt')?.textContent === 'Assigned to');
+    expect(assignment?.querySelector('dd')?.textContent).toBe('Not assigned yet');
+  });
+
+  it('starts a pending ticket when opened by its assigned agent and loads the updated history', () => {
+    currentUser.set({ email: 'agent@example.com', role: 'ROLE_SUPPORT_AGENT' });
+    fixture.detectChanges();
+    http.expectOne('/api/tickets/42').flush({ ...ticket, ticketStatus: 'IN_QUEUE' });
+    http.expectNone('/api/ticket-events/42');
+
+    const start = http.expectOne('/api/tickets/42/start');
+    expect(start.request.method).toBe('PATCH');
+    start.flush(ticket);
+    fixture.detectChanges();
+    http.expectOne('/api/ticket-events/42').flush([{
+      id: 1, ticketId: 42, initiatorId: 12, eventType: 'STATUS_CHANGED',
+      oldValue: 'IN_QUEUE', newValue: 'FULFILLMENT', createdAt: ticket.updatedAt,
+    }]);
+    http.expectOne('/api/comments/42').flush([]);
+    fixture.detectChanges();
+
+    expect(element.querySelector('.status-fulfillment')?.textContent?.trim()).toBe('In Progress');
+    expect(element.querySelector('.history')?.textContent).toContain('In Progress');
+  });
+
+  it.each([
+    ['ROLE_USER', 'agent@example.com', 'IN_QUEUE', 12],
+    ['ROLE_ADMIN', 'agent@example.com', 'IN_QUEUE', 12],
+    ['ROLE_SUPPORT_AGENT', 'another@example.com', 'IN_QUEUE', 12],
+    ['ROLE_SUPPORT_AGENT', 'agent@example.com', 'IN_QUEUE', null],
+    ['ROLE_SUPPORT_AGENT', 'agent@example.com', 'FULFILLMENT', 12],
+    ['ROLE_SUPPORT_AGENT', 'agent@example.com', 'RESOLVED', 12],
+    ['ROLE_SUPPORT_AGENT', 'agent@example.com', 'CANCELLED', 12],
+  ])('does not start a ticket for role=%s email=%s status=%s assignee=%s',
+    (role, email, status, assigneeId) => {
+      currentUser.set({ email, role });
+      loadTicket(status, { ...ticket, assigneeId });
+      http.expectNone('/api/tickets/42/start');
+      expect(element.querySelector(`.status-${status.toLowerCase()}`)).not.toBeNull();
+    },
+  );
+
+  it('reports start-processing failures instead of displaying a successful transition', () => {
+    currentUser.set({ email: 'agent@example.com', role: 'ROLE_SUPPORT_AGENT' });
+    fixture.detectChanges();
+    http.expectOne('/api/tickets/42').flush({ ...ticket, ticketStatus: 'IN_QUEUE' });
+    http.expectOne('/api/tickets/42/start').flush(
+      { message: 'Only the assigned agent can start this ticket.' },
+      { status: 403, statusText: 'Forbidden' },
+    );
+    fixture.detectChanges();
+
+    expect(element.querySelector('[role="alert"]')?.textContent)
+      .toContain('Only the assigned agent can start this ticket.');
+    expect(element.querySelector('.status-fulfillment')).toBeNull();
+    http.expectNone('/api/ticket-events/42');
   });
 
   it('offers resolution to agents and records the resolution message', async () => {

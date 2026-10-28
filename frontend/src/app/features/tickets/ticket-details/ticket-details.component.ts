@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { of, switchMap } from 'rxjs';
 import { AuthService } from '../../../core/auth.service';
 import { ROLES } from '../../../core/roles';
 import { TicketEvent, TicketEventType } from '../models/ticket-event.model';
@@ -105,7 +106,17 @@ export class TicketDetailsComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.ticketService.getTicketById(id).subscribe({
+    this.ticketService.getTicketById(id).pipe(
+      switchMap((ticket) => {
+        const user = this.auth.user();
+        return user?.role === ROLES.SUPPORT_AGENT
+          && ticket.assigneeId !== null
+          && ticket.assigneeEmail === user.email
+          && ticket.ticketStatus === 'IN_QUEUE'
+          ? this.ticketService.startTicketProcessing(id)
+          : of(ticket);
+      }),
+    ).subscribe({
       next: (ticket) => {
         this.ticket.set(ticket);
         this.loading.set(false);
