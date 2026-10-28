@@ -91,27 +91,32 @@ describe('UserDashboardComponent', () => {
     expect(element.querySelector('[role=alert]')).toBeNull();
   });
 
-  it('keeps the overview total unfiltered and distinguishes no matches from no tickets', () => {
+  it('keeps all-ticket overview totals separate from the five-ticket preview', () => {
     fixture.detectChanges();
     http.expectOne('/api/tickets/my/status-counts').flush({ IN_QUEUE: 4, RESOLVED: 2 });
     const initial = http.expectOne((request) => request.url === '/api/tickets/my');
     expect(initial.request.params.get('size')).toBe('5');
-    initial.flush({ content: [], totalElements: 6 });
+    expect(initial.request.params.has('status')).toBe(false);
+    initial.flush({
+      content: Array.from({ length: 5 }, (_, index) => ({
+        ...ticket,
+        ticketId: 42 - index,
+        ticketNumber: `TKT-${42 - index}`,
+        ticketStatus: index < 4 ? 'IN_QUEUE' : 'RESOLVED',
+      })),
+      totalElements: 6,
+    });
     fixture.detectChanges();
 
     const element: HTMLElement = fixture.nativeElement;
-    element.querySelector<HTMLButtonElement>('.tab:nth-child(3)')!.click();
-    const filtered = http.expectOne((request) => request.url === '/api/tickets/my');
-    expect(filtered.request.params.get('status')).toBe('FULFILLMENT');
-    filtered.flush({ content: [], totalElements: 0 });
-    fixture.detectChanges();
     expect(element.querySelector('.summary-total')?.textContent?.trim()).toBe('6');
     expect(element.querySelector('[data-status="IN_QUEUE"] .status-value')?.textContent).toBe('4');
     expect(element.querySelector('[data-status="FULFILLMENT"] .status-value')?.textContent).toBe('0');
-    expect(element.textContent).toContain('No matching requests');
+    expect(element.querySelector('[data-status="RESOLVED"] .status-value')?.textContent).toBe('2');
     expect(element.textContent).not.toContain('Create your first ticket');
-    expect(element.querySelector('.ticket-view')).toBeNull();
-    expect(element.querySelector('#recent-heading')?.textContent).toBe('Matching tickets');
+    expect(element.querySelectorAll('.ticket-view')).toHaveLength(5);
+    expect(element.querySelector('#recent-heading')?.textContent).toBe('Recent tickets');
+    expect(element.querySelector('.all-tickets-link')?.getAttribute('href')).toBe('/tickets');
   });
 
   it('labels the recent ticket action View and links to the ticket details', () => {
