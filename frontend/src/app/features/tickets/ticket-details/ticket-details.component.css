@@ -283,6 +283,15 @@ h2 {
   cursor: not-allowed;
 }
 
+.btn-cancelled,
+.btn-cancelled:hover {
+  border-color: #d1d5db;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.btn-cancelled:disabled { opacity: 1; }
+
 .overlay {
   position: fixed;
   inset: 0;

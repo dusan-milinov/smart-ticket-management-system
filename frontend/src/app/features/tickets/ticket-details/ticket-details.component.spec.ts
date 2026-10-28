@@ -132,7 +132,10 @@ describe('TicketDetailsComponent', () => {
     fixture.detectChanges();
 
     expect(element.querySelector('.status-cancelled')?.textContent).toBe('Cancelled');
-    expect(element.querySelector('.ticket-actions')).toBeNull();
+    const cancelledButton = element.querySelector<HTMLButtonElement>('.ticket-actions .btn-cancelled');
+    expect(cancelledButton?.textContent?.trim()).toBe('Cancelled');
+    expect(cancelledButton?.disabled).toBe(true);
+    expect(element.querySelector('.ticket-actions')?.textContent).not.toContain('Cancel ticket');
     expect(element.querySelector('[role="dialog"]')).toBeNull();
   });
 
