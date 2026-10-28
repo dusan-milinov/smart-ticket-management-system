@@ -2,6 +2,7 @@ package com.ticketmanagement.backend.service;
 
 import com.ticketmanagement.backend.dto.comment.CreateCommentRequest;
 import com.ticketmanagement.backend.dto.ticket.CreateTicketRequest;
+import com.ticketmanagement.backend.dto.ticket.ResolvedTicketDay;
 import com.ticketmanagement.backend.enums.Role;
 import com.ticketmanagement.backend.enums.TicketEventType;
 import com.ticketmanagement.backend.enums.TicketPriority;
@@ -10,6 +11,7 @@ import com.ticketmanagement.backend.enums.TicketType;
 import com.ticketmanagement.backend.exception.IllegalStatusException;
 import com.ticketmanagement.backend.model.AppUser;
 import com.ticketmanagement.backend.model.Ticket;
+import com.ticketmanagement.backend.model.TicketEvent;
 import com.ticketmanagement.backend.repository.CommentRepository;
 import com.ticketmanagement.backend.repository.TicketEventRepository;
 import com.ticketmanagement.backend.repository.TicketRepository;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -39,6 +42,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -317,9 +323,58 @@ class TicketAuthorizationTests {
                 () -> service.getTicketsByAssigneeIdAndStatus(1L, TicketStatus.IN_QUEUE, page),
                 () -> commentService.addComment(new CreateCommentRequest("Test", 1L)),
                 () -> commentService.getAllTicketComments(1L),
-                () -> eventService.getAllTicketEvents(1L));
+                () -> eventService.getAllTicketEvents(1L),
+                () -> eventService.getDailyResolutions(1L, 7));
         calls.forEach(call -> assertThatThrownBy(call::execute)
                 .isInstanceOf(AuthenticationCredentialsNotFoundException.class));
+    }
+
+    @ParameterizedTest
+    @EnumSource(Role.class)
+    void dailyResolutionStatisticsEnforceRoleAndAgentScope(Role role) {
+        AppUser actor = account(role);
+        AppUser otherAgent = account(Role.SUPPORT_AGENT);
+        authenticate(actor);
+
+        if (role == Role.USER) {
+            denied(() -> eventService.getDailyResolutions(actor.getId(), 7));
+        } else {
+            assertThat(eventService.getDailyResolutions(actor.getId(), 7)).hasSize(7);
+        }
+        if (role == Role.ADMIN) {
+            assertThat(eventService.getDailyResolutions(otherAgent.getId(), 7)).hasSize(7);
+        } else {
+            denied(() -> eventService.getDailyResolutions(otherAgent.getId(), 7));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {7, 30})
+    void dailyResolutionStatisticsKeepAgentAttributionAndFillMissingDays(int days) {
+        Fixture fixture = fixture(Identity.ASSIGNED_AGENT);
+        Fixture other = fixture(Identity.ASSIGNED_AGENT);
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate yesterday = today.minusDays(1);
+        Instant resolvedAt = yesterday.atTime(12, 0).toInstant(ZoneOffset.UTC);
+        fixture.ticket().setTicketStatus(TicketStatus.RESOLVED);
+        other.ticket().setTicketStatus(TicketStatus.RESOLVED);
+        saveEvent(fixture.ticket(), fixture.actor(), TicketEventType.RESOLVED, resolvedAt);
+        saveEvent(fixture.ticket(), fixture.actor(), TicketEventType.RESOLVED, resolvedAt.plusSeconds(1));
+        saveEvent(other.ticket(), other.actor(), TicketEventType.RESOLVED, resolvedAt);
+        saveEvent(fixture.ticket(), fixture.actor(), TicketEventType.COMMENT_ADDED,
+                today.atTime(12, 0).toInstant(ZoneOffset.UTC));
+        saveEvent(fixture.ticket(), fixture.actor(), TicketEventType.RESOLVED,
+                today.minusDays(days).atTime(12, 0).toInstant(ZoneOffset.UTC));
+        entityManager.flush();
+        authenticate(fixture.actor());
+
+        List<ResolvedTicketDay> result = eventService.getDailyResolutions(fixture.actor().getId(), days);
+
+        assertThat(result).hasSize(days);
+        assertThat(result.getFirst().date()).isEqualTo(today.minusDays(days - 1L));
+        assertThat(result.getLast().date()).isEqualTo(today);
+        assertThat(result).contains(new ResolvedTicketDay(yesterday, 1));
+        assertThat(result.stream().mapToLong(ResolvedTicketDay::count).sum()).isEqualTo(1);
     }
 
     @ParameterizedTest
@@ -499,6 +554,14 @@ class TicketAuthorizationTests {
 
     private AppUser account(Role role) {
         return users.save(new AppUser("authorization-" + UUID.randomUUID() + "@example.com", "unused-test-hash", role));
+    }
+
+    private void saveEvent(Ticket ticket, AppUser actor, TicketEventType type, Instant at) {
+        TicketEvent event = new TicketEvent(at);
+        event.setTicket(ticket);
+        event.setInitiator(actor);
+        event.setEventType(type);
+        events.save(event);
     }
 
     private void authenticate(AppUser actor) {

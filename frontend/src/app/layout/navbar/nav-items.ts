@@ -17,7 +17,6 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
   [ROLES.SUPPORT_AGENT]: [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Assigned Tickets', path: '/tickets/assigned' },
-    { label: 'Workload', path: '/workload' },
     PROFILE_ITEM,
   ],
   [ROLES.ADMIN]: [

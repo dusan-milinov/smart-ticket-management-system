@@ -1,56 +1,169 @@
-<app-page-header heading="Profile" description="Review your account and update your password." />
+<app-page-header heading="Profile" description="Your account, activity and security in one place." />
 
-<div class="profile-layout">
-  <section class="profile-card" aria-labelledby="account-heading">
-    <p class="eyebrow">Account</p>
-    <h2 id="account-heading">Your details</h2>
-    <dl>
-      <div>
-        <dt>Email address</dt>
-        <dd>{{ user()?.email }}</dd>
+<section class="profile-header" aria-label="Profile overview">
+  <div class="avatar" aria-hidden="true">{{ initials() }}</div>
+  <div class="identity">
+    <p class="eyebrow">Smart Ticket account</p>
+    <h2>{{ user()?.email || 'Email unavailable' }}</h2>
+    <span class="role-badge">{{ roleLabel() }}</span>
+  </div>
+</section>
+
+<section class="account-security" aria-labelledby="account-security-heading">
+  <h2 id="account-security-heading">Account &amp; Security</h2>
+  <div class="profile-layout">
+    <section class="profile-card" aria-labelledby="account-heading">
+      <h3 id="account-heading">Account Details</h3>
+      <dl>
+        <div>
+          <dt>Email address</dt>
+          <dd>{{ user()?.email || 'Email unavailable' }}</dd>
+        </div>
+        <div>
+          <dt>Role</dt>
+          <dd>{{ roleLabel() }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="profile-card security-card" aria-labelledby="security-heading">
+      <div class="security-title">
+        <span class="lock-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+            <rect x="5" y="10" width="14" height="11" rx="2" />
+            <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" />
+          </svg>
+        </span>
+        <h3 id="security-heading">Security</h3>
       </div>
+      <p class="description">Keep your account protected with a strong, unique password.</p>
+      <button #passwordTrigger type="button" class="btn btn-primary" aria-haspopup="dialog" (click)="openPasswordDialog()">
+        Change Password
+      </button>
+    </section>
+  </div>
+</section>
+
+@if (isSupportAgent()) {
+  <section class="profile-card performance" aria-labelledby="performance-heading">
+    <div class="performance-header">
       <div>
-        <dt>Role</dt>
-        <dd>{{ user()?.role?.replace('ROLE_', '').replace('_', ' ') }}</dd>
+        <h2 id="performance-heading">My Performance</h2>
+        <p class="description">Tickets you resolved by resolution date (UTC).</p>
       </div>
-    </dl>
+      <div class="period-toggle" role="group" aria-label="Performance period">
+        <button type="button" [attr.aria-pressed]="performanceDays() === 7" (click)="loadPerformance(7)">7 Days</button>
+        <button type="button" [attr.aria-pressed]="performanceDays() === 30" (click)="loadPerformance(30)">30 Days</button>
+      </div>
+    </div>
+    <div class="performance-body" [attr.aria-busy]="performanceLoading()">
+    @if (performanceLoading()) {
+      <p class="performance-state performance-overlay" role="status">Loading {{ performanceDays() }}-day performance…</p>
+    } @else if (performanceError()) {
+      <div class="performance-state performance-overlay" role="alert">
+        <p>{{ performanceError() }}</p>
+        <button type="button" class="btn" (click)="loadPerformance(performanceDays())">Try again</button>
+      </div>
+    }
+    <div class="performance-result" [class.is-pending]="performanceLoading() || !!performanceError()"
+      [attr.aria-hidden]="performanceLoading() || !!performanceError()">
+      <p class="performance-summary"><strong>{{ resolvedTotal() }}</strong> tickets resolved in the last {{ displayedPerformanceDays() }} days</p>
+      <p class="loading-note performance-empty">
+        {{ resolvedTotal() === 0 ? 'No tickets resolved during this period.' : '' }}
+      </p>
+      <svg class="performance-chart" viewBox="0 0 720 270" role="img" aria-labelledby="performance-chart-title">
+        <title id="performance-chart-title">Daily resolved tickets over the last {{ displayedPerformanceDays() }} days. Total: {{ resolvedTotal() }}.</title>
+        <defs>
+          <linearGradient id="performance-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.22" />
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.02" />
+          </linearGradient>
+        </defs>
+        @for (tick of performanceChart().ticks; track tick.value) {
+          <line class="chart-grid" x1="48" x2="680" [attr.y1]="tick.y" [attr.y2]="tick.y" />
+          <text class="chart-label" x="36" [attr.y]="tick.y + 4" text-anchor="end">{{ tick.value }}</text>
+        }
+        <path [attr.d]="performanceChart().area" fill="url(#performance-fill)" />
+        <path class="chart-line" [attr.d]="performanceChart().line" />
+        @for (point of performanceChart().points; track point.date) {
+          <circle class="chart-point" [attr.cx]="point.x" [attr.cy]="point.y" r="3">
+            <title>{{ point.label }}: {{ point.count }} resolved tickets</title>
+          </circle>
+        }
+        @for (day of performanceChart().dates; track day.date) {
+          <text class="chart-label" [attr.x]="day.x" y="235" text-anchor="middle">{{ day.label }}</text>
+        }
+        <text class="chart-label" x="364" y="260" text-anchor="middle">Date (UTC)</text>
+        <text class="chart-label" x="48" y="16">Resolved tickets</text>
+      </svg>
+    </div>
+    </div>
   </section>
+}
 
-  <section class="profile-card password-card" aria-labelledby="password-heading">
-    <p class="eyebrow">Security</p>
-    <h2 id="password-heading">Change password</h2>
-    <p class="description">You will be signed out on every device after changing your password.</p>
-
-    <form [formGroup]="passwordForm" (ngSubmit)="submit()" novalidate>
+<dialog #passwordDialog class="password-dialog" aria-labelledby="password-heading" aria-describedby="password-description"
+  (cancel)="cancelPasswordDialog($event)" (keydown.escape)="cancelPasswordDialog($event)" (close)="resetPasswordDialog()">
+  <div class="dialog-header">
+    <h2 id="password-heading">Change Password</h2>
+    <button type="button" class="close-button" aria-label="Close change password" [disabled]="submitting()" (click)="closePasswordDialog()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="m6 6 12 12M6 18 18 6" />
+      </svg>
+    </button>
+  </div>
+  <p id="password-description" class="description">You will be signed out on every device after changing your password.</p>
+  <form [formGroup]="passwordForm" (ngSubmit)="submit()" [attr.aria-busy]="submitting()" novalidate>
+    <fieldset [disabled]="submitting()">
       <div class="field">
         <label for="current-password">Current password</label>
-        <input id="current-password" type="password" formControlName="currentPassword" autocomplete="current-password" />
-        @if (passwordForm.controls.currentPassword.touched && passwordForm.controls.currentPassword.invalid) {
-          <p class="field-error">Enter your current password.</p>
-        }
+        <input id="current-password" type="password" formControlName="currentPassword" autocomplete="current-password" autofocus
+          [attr.aria-invalid]="passwordForm.controls.currentPassword.touched && passwordForm.controls.currentPassword.invalid"
+          aria-describedby="current-password-error" />
+        <p id="current-password-error" class="field-error">
+          @if (passwordForm.controls.currentPassword.touched && passwordForm.controls.currentPassword.invalid) {
+            Enter your current password.
+          }
+        </p>
       </div>
       <div class="field">
         <label for="new-password">New password</label>
-        <input id="new-password" type="password" formControlName="newPassword" autocomplete="new-password" />
-        @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.invalid) {
-          <p class="field-error">Use at least {{ minimumPasswordLength }} characters.</p>
-        }
+        <input id="new-password" type="password" formControlName="newPassword" autocomplete="new-password"
+          [attr.aria-invalid]="passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.invalid"
+          aria-describedby="new-password-hint new-password-error" />
+        <p id="new-password-hint" class="field-hint">Use at least {{ minimumPasswordLength }} characters.</p>
+        <p id="new-password-error" class="field-error">
+          @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.invalid) {
+            Enter a password with at least {{ minimumPasswordLength }} characters.
+          }
+        </p>
       </div>
       <div class="field">
         <label for="confirm-password">Confirm new password</label>
-        <input id="confirm-password" type="password" formControlName="confirmPassword" autocomplete="new-password" />
-        @if (passwordForm.controls.confirmPassword.touched && passwordForm.hasError('passwordMismatch')) {
-          <p class="field-error">Passwords do not match.</p>
-        }
+        <input id="confirm-password" type="password" formControlName="confirmPassword" autocomplete="new-password"
+          [attr.aria-invalid]="passwordForm.controls.confirmPassword.touched && (passwordForm.controls.confirmPassword.invalid || passwordForm.hasError('passwordMismatch'))"
+          aria-describedby="confirm-password-error" />
+        <p id="confirm-password-error" class="field-error">
+          @if (passwordForm.controls.confirmPassword.touched) {
+            @if (passwordForm.controls.confirmPassword.hasError('required')) {
+              Confirm your new password.
+            } @else if (passwordForm.hasError('passwordMismatch')) {
+              Passwords do not match.
+            }
+          }
+        </p>
       </div>
-
-      @if (error()) {
-        <p class="form-error" role="alert">{{ error() }}</p>
-      }
-
+    </fieldset>
+    @if (error()) {
+      <p class="form-error" role="alert">{{ error() }}</p>
+    }
+    @if (submitting()) {
+      <p class="field-hint" role="status">Changing password. Please wait before closing.</p>
+    }
+    <div class="dialog-actions">
+      <button type="button" class="btn" [disabled]="submitting()" (click)="closePasswordDialog()">Cancel</button>
       <button type="submit" class="btn btn-primary" [disabled]="submitting()">
-        {{ submitting() ? 'Changing password…' : 'Change password' }}
+        {{ submitting() ? 'Changing password…' : 'Change Password' }}
       </button>
-    </form>
-  </section>
-</div>
+    </div>
+  </form>
+</dialog>

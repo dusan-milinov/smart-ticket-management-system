@@ -7,6 +7,7 @@ import { Ticket } from '../models/ticket.model';
 import { CreateTicketRequest } from '../models/create-ticket-request.model';
 import { TicketEvent } from '../models/ticket-event.model';
 import { TicketComment } from '../models/ticket-comment.model';
+import { ResolvedTicketDay } from '../models/resolved-ticket-day.model';
 import { TicketFilters, TicketStatus, ticketParams } from '../ticket-presentation';
 export type { TicketStatus } from '../ticket-presentation';
 export type MyTicketFilters = TicketFilters;
@@ -76,6 +77,11 @@ export class TicketService {
 
     getTicketEvents(ticketId: number): Observable<TicketEvent[]> {
         return this.http.get<TicketEvent[]>(`${API_BASE_URL}/ticket-events/${ticketId}`, { withCredentials: true });
+    }
+
+    getMyDailyResolutions(days: 7 | 30): Observable<ResolvedTicketDay[]> {
+        const params = new HttpParams().set('days', days);
+        return this.http.get<ResolvedTicketDay[]>(`${API_BASE_URL}/ticket-events/my/resolved-daily`, { params, withCredentials: true });
     }
 
     getTicketComments(ticketId: number): Observable<TicketComment[]> {
